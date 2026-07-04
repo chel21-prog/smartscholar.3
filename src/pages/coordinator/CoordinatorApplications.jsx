@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import styles from "./CoordinatorApplications.module.css";
 
 export default function CoordinatorApplications() {
   const [applications, setApplications] = useState([]);
@@ -9,6 +10,11 @@ export default function CoordinatorApplications() {
   const [answers, setAnswers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
+  const [search, setSearch] = useState("");
+
+const [currentPage, setCurrentPage] = useState(1);
+
+const [rowsPerPage] = useState(10);
   const HEADER_HEIGHT = 30;
 const FOOTER_HEIGHT = 20;
 const MARGIN_TOP = 10;
@@ -27,6 +33,9 @@ const [sendNotification, setSendNotification] = useState(true);
   useEffect(() => {
     load();
   }, []);
+  useEffect(() => {
+    setCurrentPage(1);
+}, [filter, search]);
 
   // =========================
   // LOAD APPLICATIONS
@@ -392,92 +401,126 @@ const addFooter = (doc, footerImage) => {
   );
 };
 
-  const filtered =
-    filter === "All"
-      ? applications
-      : applications.filter((a) => a.status === filter);
+  const filtered = applications.filter((a) => {
+    const keyword = search.toLowerCase();
+
+    const student = getStudentName(a).toLowerCase();
+
+    const scholarship =
+        a.scholarships?.scholarship_name?.toLowerCase() || "";
+
+    const year =
+        a.academic_year?.toLowerCase() || "";
+
+    const semester =
+        a.semester?.toLowerCase() || "";
+
+    const status =
+        a.status?.toLowerCase() || "";
+
+    const date =
+        new Date(a.application_date)
+            .toLocaleDateString()
+            .toLowerCase();
+
+    const matchesSearch =
+        student.includes(keyword) ||
+        scholarship.includes(keyword) ||
+        year.includes(keyword) ||
+        semester.includes(keyword) ||
+        status.includes(keyword) ||
+        date.includes(keyword);
+
+    const matchesStatus =
+        filter === "All" ||
+        a.status === filter;
+
+    return matchesSearch && matchesStatus;
+});
 
   if (loading) return <p>Loading...</p>;
 
+  const totalPages = Math.ceil(
+    filtered.length / rowsPerPage
+);
 
+const paginated = filtered.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+);
   return (
-    <div style={styles.page}>
+    <div className={styles.page}>
 
-      <div style={styles.header}>
+      <div className={styles.header}>
   <div>
-    <h1 style={styles.title}>Applications</h1>
-    <p style={styles.subtitle}>
+    <h1 className={styles.title}>Applications</h1>
+    <p className={styles.subtitle}>
       Review scholarship applications, approve or reject submissions, and notify applicants.
     </p>
   </div>
 </div>
 
-      {/* FILTER */}
-      <div style={styles.filterContainer}>
-        {["All", "Pending", "Approved", "Rejected"].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            style={{
-  ...styles.filterBtn,
-  ...(filter === f ? styles.filterBtnActive : {}),
-}}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
+<div className={styles.toolbar}>
+
+    <input
+        type="text"
+        placeholder="Search..."
+        value={search}
+        onChange={(e)=>setSearch(e.target.value)}
+        className={styles.search}
+    />
+
+    <select
+        value={filter}
+        onChange={(e)=>setFilter(e.target.value)}
+        className={styles.select}
+    >
+        <option>All</option>
+        <option>Pending</option>
+        <option>Approved</option>
+        <option>Rejected</option>
+    </select>
+
+</div>
 
       {/* TABLE */}
-      {/* TABLE */}
 
-<div style={styles.card}>
-<table style={styles.table}>
-        <thead style={styles.thead}>
+<div className={styles.card}>
+<table className={styles.table}>
+        <thead className={styles.thead}>
           <tr>
-            <th style={styles.th}>Student</th>
-            <th style={styles.th}>Scholarship</th>
-            <th style={styles.th}>AY Approved</th>
-            <th style={styles.th}>Semester Approved</th>
-            <th style={styles.th}>Status</th>
-            <th style={styles.th}>Application Date</th>
-            <th style={styles.th}>Actions</th>
+            <th className={styles.th}>Student</th>
+            <th className={styles.th}>Scholarship</th>
+            <th className={styles.th}>AY Approved</th>
+            <th className={styles.th}>Semester Approved</th>
+            <th className={styles.th}>Status</th>
+            <th className={styles.th}>Application Date</th>
+            <th className={styles.th}>Actions</th>
           </tr>
         </thead>
 
         <tbody>
-          {filtered.map((a) => (
+          {paginated.map((a) => (
             <tr key={a.application_id}>
-              <td style={styles.td}>{getStudentName(a)}</td>
-              <td style={styles.td}>{a.scholarships?.scholarship_name}</td>
-              <td style={styles.td}>{a.academic_year}</td>
-              <td style={styles.td}>{a.semester}</td>
-              <td style={styles.td}>{a.status}</td>
-              <td style={styles.td}>
+              <td className={styles.td}>{getStudentName(a)}</td>
+              <td className={styles.td}>{a.scholarships?.scholarship_name}</td>
+              <td className={styles.td}>{a.academic_year}</td>
+              <td className={styles.td}>{a.semester}</td>
+              <td className={styles.td}>{a.status}</td>
+              <td className={styles.td}>
                 {new Date(a.application_date).toLocaleDateString()}
               </td>
 
               <td
-  style={{
-    ...styles.td,
-    display: "flex",
-    gap: 8,
-    flexWrap: "wrap",
-  }}
->
+  className={styles.td}>
 
-                <button style={{
-    ...styles.actionBtn,
-    background: "#475c6c",
-  }} onClick={() => viewAnswers(a)}>
+                <button className={`${styles.actionBtn} ${styles.viewBtn}`}
+                 onClick={() => viewAnswers(a)}>
                   View
                 </button>
 
                 <button
-  style={{
-    ...styles.actionBtn,
-    background: "#8a8583",
-  }}
+  className={`${styles.actionBtn} ${styles.exportBtn}`}
   onClick={() => exportApplicationPDF(a)}
 >
                   Export
@@ -486,20 +529,14 @@ const addFooter = (doc, footerImage) => {
                 {a.status === "Pending" && (
                   <>
                     <button
-  style={{
-    ...styles.actionBtn,
-    background: "#16a34a",
-  }}
+  className={`${styles.actionBtn} ${styles.approveBtn}`}
   onClick={() => openApproveModal(a)}
 >
   Approve
 </button>
 
                     <button
-  style={{
-    ...styles.actionBtn,
-    background: "#dc2626",
-  }}
+  className={`${styles.actionBtn} ${styles.rejectBtn}`}
   onClick={() => {
     console.log("Reject button clicked");
     openRejectModal(a);
@@ -515,19 +552,39 @@ const addFooter = (doc, footerImage) => {
           ))}
         </tbody>
       </table>
+      <div className={styles.pagination}>
+
+    <button
+        onClick={() =>
+            setCurrentPage((p) => Math.max(1, p - 1))
+        }
+        disabled={currentPage === 1}
+    >
+        Previous
+    </button>
+
+    <span>
+        Page {currentPage} of {totalPages || 1}
+    </span>
+
+    <button
+        onClick={() =>
+            setCurrentPage((p) =>
+                Math.min(totalPages, p + 1)
+            )
+        }
+        disabled={currentPage === totalPages || totalPages === 0}
+    >
+        Next
+    </button>
+
+</div>
       </div>
 
       {/* MODAL */}
       {selectedApp && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.4)",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center"
-        }}>
-          <div style={styles.modal}>
+        <div className={styles.overlay}>
+          <div className={styles.modal}>
 
             <h3>Answers</h3>
 
@@ -549,82 +606,85 @@ const addFooter = (doc, footerImage) => {
       {
 approveOpen && (
 
-<div style={styles.overlay}>
+<div className={styles.overlay}>
+  <div className={styles.modal}>
 
-<div style={styles.modal}>
+    <div className={styles.modalHeader}>
+      <div>
+        <h2 className={styles.modalTitle}>Approve Application</h2>
+        <p className={styles.modalSubtitle}>
+          Review and customize the notification before approving this application.
+        </p>
+      </div>
 
-<h2>Approve Application</h2>
+      <button
+        className={styles.closeBtn}
+        onClick={() => setApproveOpen(false)}
+      >
+        ✕
+      </button>
+    </div>
 
-<input
-style={styles.input}
-placeholder="Notification title"
+    <div className={styles.modalBody}>
 
-value={notificationTitle}
+      <div className={styles.field}>
+        <label className={styles.label}>
+          Notification Title
+        </label>
 
-onChange={(e)=>setNotificationTitle(e.target.value)}
+        <input
+          className={styles.input}
+          value={notificationTitle}
+          onChange={(e)=>setNotificationTitle(e.target.value)}
+        />
+      </div>
 
-/>
+      <div className={styles.field}>
+        <label className={styles.label}>
+          Notification Message
+        </label>
 
-<textarea
-style={{
-  ...styles.input,
-  minHeight: 220,
-  resize: "vertical",
-}}
-placeholder="Notification message"
+        <textarea
+          className={styles.textarea}
+          rows={8}
+          value={notificationMessage}
+          onChange={(e)=>setNotificationMessage(e.target.value)}
+        />
+      </div>
 
-rows={10}
+      <label className={styles.checkboxRow}>
+        <input
+          type="checkbox"
+          checked={sendNotification}
+          onChange={() => setSendNotification(!sendNotification)}
+        />
 
-value={notificationMessage}
+        <span>
+          Send notification to the student
+        </span>
+      </label>
 
-onChange={(e)=>setNotificationMessage(e.target.value)}
+    </div>
 
-/>
+    <div className={styles.modalFooter}>
 
-<label>
+      <button
+        className={styles.secondaryBtn}
+        onClick={() => setApproveOpen(false)}
+      >
+        Cancel
+      </button>
 
-<input
+      <button
+        onClick={approveApplication}
+        className={`${styles.actionBtn} ${styles.approveBtn}`}
+      >
+        Approve Application
+      </button>
 
-type="checkbox"
+    </div>
 
-checked={sendNotification}
-
-onChange={()=>setSendNotification(!sendNotification)}
-
-/>
-
-Send notification
-
-</label>
-
-<div style={styles.modalActions}>
-
-<button
-onClick={()=>setApproveOpen(false)}
->
-
-Cancel
-
-</button>
-
-<button
-onClick={approveApplication}
-style={{
-  background: "#16a34a",
-  color: "#fff",
-  padding: "10px 18px",
-  border: "none",
-  borderRadius: 8,
-  cursor: "pointer",
-}}
->
-Approve Application
-</button>
-
-</div>
-
-</div>
-
+  </div>
 </div>
 
 )
@@ -632,195 +692,89 @@ Approve Application
 
 {
   rejectOpen && (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
+    <div className={styles.overlay}>
+  <div className={styles.modal}>
 
-        <h2>Reject Application</h2>
+    <div className={styles.modalHeader}>
+      <div>
+        <h2 className={styles.modalTitle}>Reject Application</h2>
+        <p className={styles.modalSubtitle}>
+          Review and customize the notification before rejecting this application.
+        </p>
+      </div>
 
-        <input
-          style={styles.input}
-          placeholder="Notification title"
-          value={notificationTitle}
-          onChange={(e) => setNotificationTitle(e.target.value)}
-        />
+      <button
+        className={styles.closeBtn}
+        onClick={() => setRejectOpen(false)}
+      >
+        ✕
+      </button>
+    </div>
 
-        <textarea
-          style={{
-            ...styles.input,
-            minHeight: 220,
-            resize: "vertical",
-          }}
-          rows={10}
-          placeholder="Notification message"
-          value={notificationMessage}
-          onChange={(e) => setNotificationMessage(e.target.value)}
-        />
+    <div className={styles.modalBody}>
 
-        <label>
-          <input
-            type="checkbox"
-            checked={sendNotification}
-            onChange={() => setSendNotification(!sendNotification)}
-          />
-          Send notification
+      <div className={styles.field}>
+        <label className={styles.label}>
+          Notification Title
         </label>
 
-        <div style={styles.modalActions}>
-          <button onClick={() => setRejectOpen(false)}>
-            Cancel
-          </button>
-
-          <button
-            onClick={rejectApplication}
-            style={{
-              background: "#dc2626",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              padding: "10px 18px",
-              cursor: "pointer",
-            }}
-          >
-            Reject Application
-          </button>
-        </div>
-
+        <input
+          className={styles.input}
+          value={notificationTitle}
+          onChange={(e)=>setNotificationTitle(e.target.value)}
+        />
       </div>
+
+      <div className={styles.field}>
+        <label className={styles.label}>
+          Notification Message
+        </label>
+
+        <textarea
+          className={styles.textarea}
+          rows={8}
+          value={notificationMessage}
+          onChange={(e)=>setNotificationMessage(e.target.value)}
+        />
+      </div>
+
+      <label className={styles.checkboxRow}>
+        <input
+          type="checkbox"
+          checked={sendNotification}
+          onChange={() => setSendNotification(!sendNotification)}
+        />
+
+        <span>
+          Send notification to the student
+        </span>
+      </label>
+
     </div>
+
+    <div className={styles.modalFooter}>
+
+      <button
+        className={styles.secondaryBtn}
+        onClick={() => setRejectOpen(false)}
+      >
+        Cancel
+      </button>
+
+      <button
+        onClick={rejectApplication}
+        className={`${styles.actionBtn} ${styles.rejectBtn}`}
+      >
+        Reject Application
+      </button>
+
+    </div>
+
+  </div>
+</div>
   )
 }
 
     </div>
   );
 }
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    padding: 24,
-    background: "#f5f6f8",
-    fontFamily: "Inter, sans-serif",
-    color: "#475c6c",
-  },
-
-  header: {
-    marginBottom: 25,
-  },
-
-  title: {
-    margin: 0,
-    fontSize: 30,
-    fontWeight: 700,
-    color: "#475c6c",
-  },
-
-  subtitle: {
-    marginTop: 6,
-    color: "#8a8583",
-    fontSize: 14,
-  },
-
-  filterContainer: {
-    display: "flex",
-    gap: 10,
-    marginBottom: 20,
-    flexWrap: "wrap",
-  },
-
-  filterBtn: {
-    padding: "10px 18px",
-    borderRadius: 10,
-    border: "1px solid #ddd",
-    background: "#fff",
-    color: "#475c6c",
-    cursor: "pointer",
-    fontWeight: 600,
-    transition: ".2s",
-  },
-
-  filterBtnActive: {
-    background: "#475c6c",
-    color: "#fff",
-    borderColor: "#475c6c",
-  },
-
-  card: {
-    background: "#fff",
-    borderRadius: 16,
-    overflowX: "auto",
-    boxShadow: "0 8px 24px rgba(0,0,0,.06)",
-  },
-
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    minWidth: 1100,
-  },
-
-  thead: {
-    background: "#475c6c",
-  },
-
-  th: {
-    padding: 14,
-    color: "#fff",
-    textAlign: "left",
-    fontWeight: 600,
-    fontSize: 14,
-  },
-
-  td: {
-    padding: 14,
-    borderBottom: "1px solid #ececec",
-    color: "#475c6c",
-    fontSize: 14,
-  },
-
-  actionBtn: {
-    border: "none",
-    borderRadius: 8,
-    padding: "8px 14px",
-    color: "#fff",
-    cursor: "pointer",
-    fontWeight: 600,
-    transition: ".2s",
-  },
-
-  overlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(71,92,108,.35)",
-    backdropFilter: "blur(4px)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 999,
-  },
-
-  modal: {
-    width: "100%",
-    maxWidth: 650,
-    background: "#fff",
-    borderRadius: 16,
-    padding: 28,
-    boxShadow: "0 20px 40px rgba(0,0,0,.15)",
-  },
-
-  input: {
-    width: "100%",
-    padding: 12,
-    borderRadius: 8,
-    border: "1px solid #ddd",
-    marginTop: 10,
-    marginBottom: 15,
-    fontSize: 14,
-    boxSizing: "border-box",
-  },
-
-  modalActions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: 10,
-    marginTop: 20,
-  },
-};
