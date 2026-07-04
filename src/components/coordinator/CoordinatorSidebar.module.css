@@ -137,28 +137,6 @@
   }
 }
 
-.floatingBtn {
-  display: none;
-
-  position: fixed;
-  top: 15px;
-  left: 15px;
-
-  width: 44px;
-  height: 44px;
-
-  border-radius: 10px;
-  border: none;
-
-  background: #2563eb;
-  color: white;
-
-  font-size: 20px;
-
-  z-index: 2000;
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
-}
 
 .closeBtn {
   position: absolute;
@@ -194,12 +172,9 @@
     transform: translateX(0);
   }
 
-  .floatingBtn {
-    display: block;
-  }
 }
 /* default: hide both buttons on desktop */
-.floatingBtn,
+
 .closeBtn {
   display: none;
 }
@@ -207,30 +182,6 @@
 /* mobile behavior */
 @media (max-width: 768px) {
 
-  .floatingBtn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    position: fixed;
-    top: 15px;
-    left: 15px;
-
-    width: 44px;
-    height: 44px;
-
-    border-radius: 10px;
-    border: none;
-
-    background: #2563eb;
-    color: white;
-
-    font-size: 20px;
-
-    z-index: 2000;
-    cursor: pointer;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
-  }
 
   .closeBtn {
     display: block;

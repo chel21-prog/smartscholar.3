@@ -1,21 +1,14 @@
-import { useState } from "react";
+
 import { NavLink } from "react-router-dom";
 import styles from "./CoordinatorSidebar.module.css";
 
-export default function CoordinatorSidebar() {
-const [open, setOpen] = useState(false);
-
+export default function CoordinatorSidebar({
+  open,
+  setOpen,
+}) {
   return (
     <>
-      {/* FLOATING BUTTON (ONLY MOBILE + CLOSED) */}
-      
-<button
-  className={styles.floatingBtn}
-  onClick={() => setOpen(true)}
-  style={{ display: open ? "none" : undefined }}
->
-  ☰
-</button>
+
 
 {/* SIDEBAR */}
 <aside
@@ -42,13 +35,13 @@ const [open, setOpen] = useState(false);
       
 
       <nav className={styles.nav}>
-        <NavLink to="/coordinator/dashboard">Dashboard</NavLink>
-        <NavLink to="/coordinator/scholarships">Scholarships</NavLink>
-        <NavLink to="/coordinator/students">Students</NavLink>
-        <NavLink to="/coordinator/grantees">Grantees</NavLink>
-        <NavLink to="/coordinator/applications">Applications</NavLink>
-        <NavLink to="/coordinator/requirements">Requirements</NavLink>
-        <NavLink to="/coordinator/settings">Settings</NavLink>
+        <NavLink to="/coordinator/dashboard" onClick={() => setOpen(false)}>Dashboard</NavLink>
+        <NavLink to="/coordinator/scholarships" onClick={() => setOpen(false)}>Scholarships</NavLink>
+        <NavLink to="/coordinator/students" onClick={() => setOpen(false)}>Students</NavLink>
+        <NavLink to="/coordinator/grantees" onClick={() => setOpen(false)}>Grantees</NavLink>
+        <NavLink to="/coordinator/applications" onClick={() => setOpen(false)}>Applications</NavLink>
+        <NavLink to="/coordinator/requirements" onClick={() => setOpen(false)}>Requirements</NavLink>
+        <NavLink to="/coordinator/settings" onClick={() => setOpen(false)}>Settings</NavLink>
       </nav>
       </div>
     </aside>

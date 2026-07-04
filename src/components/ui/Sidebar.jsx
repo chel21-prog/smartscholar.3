@@ -1,4 +1,4 @@
-import { useState } from "react";
+
 import { NavLink } from "react-router-dom";
 import styles from "./Sidebar.module.css";
 
@@ -6,21 +6,18 @@ import styles from "./Sidebar.module.css";
  * Unified sidebar used by all three portals.
  * Pass a `links` array of { to, label } objects.
  */
-export default function Sidebar({ roleLabel, links }) {
-  const [open, setOpen] = useState(false);
+export default function Sidebar({
+  roleLabel,
+  links,
+  open,
+  setOpen,
+}) {
   const close = () => setOpen(false);
 
   return (
     <>
       {/* Mobile hamburger — only visible when sidebar is closed */}
-      <button
-        className={styles.floatingBtn}
-        style={{ display: open ? "none" : undefined }}
-        onClick={() => setOpen(true)}
-        aria-label="Open navigation menu"
-      >
-        ☰
-      </button>
+      
 
       <aside className={`${styles.sidebar} ${open ? styles.show : ""}`}>
         <button className={styles.closeBtn} onClick={close} aria-label="Close navigation menu">

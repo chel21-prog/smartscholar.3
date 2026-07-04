@@ -1,21 +1,13 @@
 import { NavLink } from "react-router-dom";
 import styles from "./CashierSidebar.module.css";
-import { useState } from "react";
 
-export default function CashierSidebar() {
-const [open, setOpen] = useState(false);
-
+export default function CashierSidebar({
+  open,
+  setOpen,
+}) {
   return (
     <>
-      {/* FLOATING BUTTON (ONLY MOBILE + CLOSED) */}
-<button
-  className={styles.floatingBtn}
-  onClick={() => setOpen(true)}
-  style={{ display: open ? "none" : undefined }}
->
-  ☰
-</button>
-
+    
 {/* SIDEBAR */}
 <aside
   className={`${styles.sidebar} ${open ? styles.show : ""}`}
@@ -38,9 +30,9 @@ const [open, setOpen] = useState(false);
       
     
       <nav className={styles.nav}>
-        <NavLink to="/cashier/dashboard">Dashboard</NavLink>
-        <NavLink to="/cashier/grantees">Grantees</NavLink>
-        <NavLink to="/cashier/settings">Settings</NavLink>
+        <NavLink to="/cashier/dashboard" onClick={() => setOpen(false)}>Dashboard</NavLink>
+        <NavLink to="/cashier/grantees" onClick={() => setOpen(false)}>Grantees</NavLink>
+        <NavLink to="/cashier/settings" onClick={() => setOpen(false)}>Settings</NavLink>
       </nav>
       </div>
     </aside>

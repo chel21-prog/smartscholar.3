@@ -1,21 +1,15 @@
-import { useState } from "react";
+
 import { NavLink } from "react-router-dom";
 import styles from "./StudentSidebar.module.css";
 
-export default function StudentSidebar() {
-  const [open, setOpen] = useState(false);
+export default function StudentSidebar({
+  open,
+  setOpen,
+}) {
 
   return (
     <>
-      {/* FLOATING BUTTON (ONLY MOBILE + CLOSED) */}
-      <button
-        className={styles.floatingBtn}
-        onClick={() => setOpen(true)}
-        style={{ display: open ? "none" : undefined }}
-        aria-label="Open navigation menu"
-      >
-        ☰
-      </button>
+   
 
       {/* SIDEBAR */}
       <aside className={`${styles.sidebar} ${open ? styles.show : ""}`}>
