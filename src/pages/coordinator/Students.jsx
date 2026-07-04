@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-
+import s from "./Students.module.css";
 const STATUS_OPTIONS = ["Enrolled", "Graduated", "Dropped", "Inactive"];
 
 export default function Students() {
@@ -209,25 +209,17 @@ const paginatedStudents = filteredStudents.slice(
   currentPage * ITEMS_PER_PAGE
 );
   return (
-    <div style={styles.page}>
-      <div style={styles.header}>
+    <div className={s.page}>
+      <div className={s.header}>
   <div>
-    <h1 style={styles.title}>Students</h1>
-    <p style={styles.subtitle}>
+    <h1 className={s.title}>Students</h1>
+    <p className={s.subtitle}>
       Manage student records, enrollment status, and scholarship assignments.
     </p>
   </div>
   
 </div>
-<div
-  style={{
-    display: "flex",
-    gap: 15,
-    marginBottom: 20,
-    flexWrap: "wrap",
-    alignItems: "center",
-  }}
->
+<div className={s.toolbar}>
   <input
     type="text"
     placeholder="Search students..."
@@ -236,11 +228,8 @@ const paginatedStudents = filteredStudents.slice(
       setSearch(e.target.value);
       setCurrentPage(1);
     }}
-    style={{
-      ...styles.input,
-      maxWidth: 320,
-      color: "#475c6c",
-    }}
+    className={s.input}
+style={{ maxWidth:320 }}
   />
 
   <select
@@ -249,11 +238,8 @@ const paginatedStudents = filteredStudents.slice(
       setStatusFilter(e.target.value);
       setCurrentPage(1);
     }}
-    style={{
-      ...styles.input,
-      maxWidth: 180,
-      color: "#475c6c",
-    }}
+    className={s.input}
+style={{ maxWidth:180 }}
   >
     <option value="All">All Status</option>
     <option value="Enrolled">Enrolled</option>
@@ -268,11 +254,8 @@ const paginatedStudents = filteredStudents.slice(
       setCourseFilter(e.target.value);
       setCurrentPage(1);
     }}
-    style={{
-      ...styles.input,
-      maxWidth: 220,
-      color: "#475c6c",
-    }}
+    className={s.input}
+style={{ maxWidth:220 }}
   >
     {courses.map((course) => (
       <option
@@ -287,8 +270,8 @@ const paginatedStudents = filteredStudents.slice(
   </select>
 </div>
       {openGrant && (
-  <div style={styles.overlay}>
-    <div style={styles.modal}>
+  <div className={s.overlay}>
+    <div className={s.modal}>
       <h2>Grant Scholarship</h2>
 
       <p>
@@ -300,7 +283,7 @@ const paginatedStudents = filteredStudents.slice(
       </p>
 
       <select
-        style={styles.input}
+        className={s.input}
         value={selectedScholarship}
         onChange={(e) => setSelectedScholarship(e.target.value)}
       >
@@ -320,7 +303,7 @@ const paginatedStudents = filteredStudents.slice(
   <b>Semester:</b> {academicSettings?.semester}
 </p>
 
-      <button style={styles.statusBtn} onClick={grantScholarship}>
+      <button className={s.statusBtn} onClick={grantScholarship}>
         Grant
       </button>
 
@@ -333,87 +316,69 @@ const paginatedStudents = filteredStudents.slice(
       {loading ? (
         <p>Loading...</p>
       ) : (
-        <div style={styles.card}>
-          <table style={styles.table}>
-            <thead style={styles.thead}>
+        <div className={s.card}>
+          <table className={s.table}>
+            <thead className={s.thead}>
               <tr>
-                <th style={styles.th}>School ID</th>
-                <th style={styles.th}>Name</th>
-                <th style={styles.th}>Email</th>
-                <th style={styles.th}>Course</th>
-                <th style={styles.th}>Year</th>
-                <th style={styles.th}>Gender</th>
-                <th style={styles.th}>Ethnicity</th>
-                <th style={styles.th}>Contact</th>
-                <th style={styles.th}>Enrollement Status</th>
-                <th style={styles.th}>Remarks</th>
-                <th style={styles.th}>Action</th>
+                <th className={s.th}>School ID</th>
+                <th className={s.th}>Name</th>
+                <th className={s.th}>Email</th>
+                <th className={s.th}>Course</th>
+                <th className={s.th}>Year</th>
+                <th className={s.th}>Gender</th>
+                <th className={s.th}>Ethnicity</th>
+                <th className={s.th}>Contact</th>
+                <th className={s.th}>Enrollement Status</th>
+                <th className={s.th}>Remarks</th>
+                <th className={s.th}>Action</th>
               </tr>
             </thead>
 
             <tbody>
-              {paginatedStudents.map((s, index) => (
+              {paginatedStudents.map((student, index) => (
                 <tr
-  key={s.student_id}
-  style={
-    index % 2 === 0
-      ? styles.rowEven
-      : styles.rowOdd
-  }
+  key={student.student_id}
+  className={index % 2 === 0 ? s.rowEven : s.rowOdd}
 >
-                  <td style={styles.td}>{s.school_id}</td>
-                  <td style={styles.td}>{s.users?.first_name} {s.users?.last_name}</td>
-                  <td style={styles.td}>{s.users?.email}</td>
-                  <td style={styles.td}>{s.course}</td>
-                  <td style={styles.td}>{s.year_level}</td>
-                  <td style={styles.td}>{s.gender}</td>
-                  <td style={styles.td}>{s.ethnicity}</td>
-                  <td style={styles.td}>{s.contact_number}</td>
+                  <td className={s.td}>{student.school_id}</td>
+                  <td className={s.td}>{student.users?.first_name} {student.users?.last_name}</td>
+                  <td className={s.td}>{student.users?.email}</td>
+                  <td className={s.td}>{student.course}</td>
+                  <td className={s.td}>{student.year_level}</td>
+                  <td className={s.td}>{student.gender}</td>
+                  <td className={s.td}>{student.ethnicity}</td>
+                  <td className={s.td}>{student.contact_number}</td>
 
                   {/* CLICKABLE STATUS */}
-                  <td style={styles.td}>
-                    <button
-                      onClick={() => updateStatus(s.student_id, s.status)}
-                      style={{
-  ...styles.badge,
-  background:
-    s.status === "Enrolled"
-      ? "#dcfce7"
-      : s.status === "Graduated"
-      ? "#dbeafe"
-      : s.status === "Dropped"
-      ? "#fee2e2"
-      : "#f3f4f6",
-
-  color:
-    s.status === "Enrolled"
-      ? "#166534"
-      : s.status === "Graduated"
-      ? "#1d4ed8"
-      : s.status === "Dropped"
-      ? "#991b1b"
-      : "#475c6c",
-
-  border: "none",
-  cursor: "pointer",
-}}
-                    >
-                      {s.status}
-                    </button>
-                  </td>
+                  <td className={s.td}>
+  <button
+  onClick={() => updateStatus(student.student_id, student.status)}
+  className={`${s.badge} ${
+    student.status === "Enrolled"
+      ? s.statusEnrolled
+      : student.status === "Graduated"
+      ? s.statusGraduated
+      : student.status === "Dropped"
+      ? s.statusDropped
+      : s.statusInactive
+  }`}
+>
+  {student.status}
+</button>
+</td>
 
                   {/* AUTO-SAVE REMARKS */}
-                  <td style={styles.td}>
+                  <td className={s.td}>
                     <textarea
-  value={s.remarks || ""}
+  value={student.remarks || ""}
   onChange={(e) =>
-    updateRemarks(s.student_id, e.target.value)
+    updateRemarks(student.student_id, e.target.value)
   }
   placeholder="None"
-  style={styles.remarkInput}
+   className={s.remarkInput}
 />
                   </td>
-                  <td style={styles.td}>
+                  <td className={s.td}>
                     <button
                       style={{
                       padding: "6px 10px",
@@ -426,7 +391,7 @@ transition: ".2s",
                       cursor: "pointer",
                       }}
                       onClick={() => {
-  setSelectedStudent(s);
+  setSelectedStudent(student);
   setOpenGrant(true);
 }}
                       >
@@ -472,8 +437,8 @@ transition: ".2s",
     }}
   >
     <button
+      className={s.statusBtn}
       style={{
-  ...styles.statusBtn,
   opacity: currentPage === 1 ? .5 : 1,
   cursor: currentPage === 1 ? "not-allowed" : "pointer",
 }}
@@ -491,8 +456,8 @@ transition: ".2s",
     </span>
 
     <button
+    className={s.statusBtn}
       style={{
-  ...styles.statusBtn,
   opacity:
     currentPage === totalPages || totalPages === 0
       ? .5
@@ -517,151 +482,3 @@ transition: ".2s",
     </div>
   );
 }
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    padding: 24,
-    background: "#f5f6f8",
-    fontFamily: "Inter, sans-serif",
-    color: "#475c6c",
-  },
-
-  header: {
-    marginBottom: 24,
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-
-  title: {
-    margin: 0,
-    fontSize: 28,
-    fontWeight: 700,
-    color: "#475c6c",
-  },
-
-  subtitle: {
-    marginTop: 6,
-    color: "#8a8583",
-    fontSize: 14,
-  },
-
-  card: {
-    background: "#fff",
-    borderRadius: 16,
-    padding: 10,
-    boxShadow: "0 8px 24px rgba(0,0,0,.06)",
-    overflowX: "auto",
-  },
-
-  table: {
-  width: "100%",
-  borderCollapse: "collapse",
-  minWidth: 1050, // or even 1000
-},
-
-  thead: {
-    background: "#475c6c",
-  },
-
-  th: {
-  padding: "10px 12px",
-  color: "#fff",
-  textAlign: "left",
-  fontSize: 12,
-  fontWeight: 600,
-  whiteSpace: "nowrap",
-},
-
-  td: {
-  padding: "8px 12px",
-  borderBottom: "1px solid #ececec",
-  color: "#475c6c",
-  fontSize: 13,
-  verticalAlign: "middle",
-},
-
-  badge: {
-  padding: "5px 10px",
-  borderRadius: 999,
-  fontSize: 11,
-  fontWeight: 600,
-},
-
-  input: {
-    width: "100%",
-    padding: "10px 14px",
-    border: "1px solid #d9d9d9",
-    borderRadius: 8,
-    background: "#fff",
-    color: "#475c6c",
-    outline: "none",
-    fontSize: 14,
-    boxSizing: "border-box",
-  },
-
-  overlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(71,92,108,.35)",
-    backdropFilter: "blur(4px)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 999,
-  },
-
-  modal: {
-    width: "100%",
-    maxWidth: 520,
-    background: "#fff",
-    borderRadius: 16,
-    padding: 28,
-    boxShadow: "0 20px 40px rgba(0,0,0,.15)",
-  },
-
-  statusBtn: {
-  padding: "9px 16px",
-  background: "#475c6c",
-  color: "#fff",
-  border: "none",
-  borderRadius: 8,
-  cursor: "pointer",
-  fontWeight: 600,
-  transition: ".2s",
-},
-rowEven: {
-  background: "#fff",
-},
-
-rowOdd: {
-  background: "#f9fafb",
-},
-remarkInput: {
-  width: 180,
-  minWidth: 160,
-  maxWidth: 180,
-
-  minHeight: 72,
-  maxHeight: 72,
-
-  padding: "8px 10px",
-
-  fontSize: 12,
-
-  resize: "none",
-  background: "#fff",
-  color: "#475c6c",
-  overflowY: "auto",
-  overflowX: "hidden",
-
-  scrollbarWidth: "none",
-  msOverflowStyle: "none",
-
-  border: "1px solid #d9d9d9",
-  borderRadius: 8,
-
-  boxSizing: "border-box",
-},
-};
