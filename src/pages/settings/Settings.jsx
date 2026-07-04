@@ -21,7 +21,8 @@ export default function Settings() {
   // Inline error/success messages instead of alert() dialogs
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState(false);
-
+  const [currentPassword, setCurrentPassword] = useState("");
+const [showCurrent, setShowCurrent] = useState(false);
   useEffect(() => {
     getRole();
 
@@ -67,50 +68,68 @@ export default function Settings() {
   };
 
   const changePassword = async () => {
-    setPwError("");
-    setPwSuccess(false);
+  setPwError("");
+  setPwSuccess(false);
 
-    if (!newPassword.trim() || !confirmPassword.trim()) {
-      setPwError("Please fill in both password fields.");
-      return;
-    }
+  if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+    setPwError("Please fill in all three fields.");
+    return;
+  }
 
-    if (!PASSWORD_REGEX.test(newPassword)) {
-      setPwError(
-        "Password must be at least 6 characters and include an uppercase letter, a lowercase letter, and a number."
-      );
-      return;
-    }
+  if (!PASSWORD_REGEX.test(newPassword)) {
+    setPwError("Password must be at least 6 characters and include an uppercase letter, a lowercase letter, and a number.");
+    return;
+  }
 
-    if (newPassword !== confirmPassword) {
-      setPwError("Passwords don't match. Please re-enter.");
-      return;
-    }
+  if (newPassword !== confirmPassword) {
+    setPwError("New passwords don't match.");
+    return;
+  }
 
-    setSaving(true);
+  if (currentPassword === newPassword) {
+    setPwError("New password must be different from your current password.");
+    return;
+  }
 
-    try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+  setSaving(true);
 
-      if (error) {
-        setPwError(error.message);
-        return;
-      }
+  // Re-authenticate with current password first — this verifies they
+  // actually know it without needing the Supabase setting enabled.
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password: currentPassword,
+  });
 
-      setPwSuccess(true);
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (err) {
-      console.error(err);
-      setPwError("Something went wrong. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
+  if (signInError) {
+    setPwError("Current password is incorrect.");
+    setSaving(false);
+    return;
+  }
+
+  // Current password confirmed — now update to the new one.
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+  if (error) {
+    setPwError(error.message);
+    setSaving(false);
+    return;
+  }
+
+  setPwSuccess(true);
+  setCurrentPassword("");
+  setNewPassword("");
+  setConfirmPassword("");
+  setSaving(false);
+};
 
   const passwordValid = PASSWORD_REGEX.test(newPassword);
   const formValid =
-    newPassword && confirmPassword && passwordValid && newPassword === confirmPassword;
+  currentPassword &&
+  newPassword &&
+  confirmPassword &&
+  passwordValid &&
+  newPassword === confirmPassword &&
+  currentPassword !== newPassword;
 
   return (
     <div className={styles.page}>
@@ -141,6 +160,30 @@ export default function Settings() {
         <CardHeader title="Security" subtitle="Change your password." />
 
         <div className={styles.passwordSection}>
+          <Field label="Current password">
+  <div className={styles.passwordRow}>
+    <Input
+      type={showCurrent ? "text" : "password"}
+      placeholder="Enter your current password"
+      value={currentPassword}
+      disabled={saving}
+      onChange={(e) => {
+        setCurrentPassword(e.target.value);
+        setPwError("");
+        setPwSuccess(false);
+      }}
+    />
+    <button
+      type="button"
+      className={styles.eyeBtn}
+      disabled={saving}
+      onClick={() => setShowCurrent((v) => !v)}
+      aria-label={showCurrent ? "Hide password" : "Show password"}
+    >
+      {showCurrent ? "Hide" : "Show"}
+    </button>
+  </div>
+</Field>
           <Field label="New password">
             <div className={styles.passwordRow}>
               <Input
