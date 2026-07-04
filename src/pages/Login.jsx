@@ -13,7 +13,11 @@ export default function Login() {
   const [error, setError] = useState("");
   const [showTerms, setShowTerms] = useState(false);
   const [accepted, setAccepted] = useState(false);
-  
+  const [showForgot,   setShowForgot]   = useState(false);
+const [resetEmail,   setResetEmail]   = useState("");
+const [resetSending, setResetSending] = useState(false);
+const [resetSent,    setResetSent]    = useState(false);
+const [resetError,   setResetError]   = useState("");
   const navigate = useNavigate();
   
 
@@ -125,6 +129,24 @@ export default function Login() {
     },
   });
 };
+const sendReset = async (e) => {
+  e.preventDefault();
+  setResetError("");
+  setResetSending(true);
+
+  const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+
+  setResetSending(false);
+
+  if (error) {
+    setResetError(error.message);
+    return;
+  }
+
+  setResetSent(true);
+};
 
   return (
     <div className={styles.page}>
@@ -198,6 +220,20 @@ export default function Login() {
     aria-label={showPassword ? "Hide password" : "Show password"}
   >
     {showPassword ? <FaEyeSlash /> : <FaEye />}
+  </button>
+</div>
+<div style={{ textAlign: "right", marginTop: -4 }}>
+  <button
+    type="button"
+    style={{ background: "none", border: "none", color: "#2563eb", fontSize: 12, cursor: "pointer", padding: 0, textDecoration: "underline" }}
+    onClick={() => {
+      setShowForgot(true);
+      setResetEmail(email);
+      setResetSent(false);
+      setResetError("");
+    }}
+  >
+    Forgot password?
   </button>
 </div>
 
@@ -280,6 +316,55 @@ export default function Login() {
           </div>
         </div>
       )}
+
+      {showForgot && (
+  <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
+    <div style={{ background: "#fff", borderRadius: 12, padding: 28, width: "100%", maxWidth: 400, boxShadow: "0 20px 50px rgba(0,0,0,0.15)" }}>
+      <h2 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700 }}>Reset password</h2>
+
+      {resetSent ? (
+        <>
+          <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 10, padding: "12px 16px", color: "#166534", fontSize: 13, fontWeight: 600, marginBottom: 16 }}>
+            ✓ Check your email — we sent a reset link to <strong>{resetEmail}</strong>.
+          </div>
+          <button onClick={() => setShowForgot(false)}
+            style={{ padding: "10px 16px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer" }}>
+            Close
+          </button>
+        </>
+      ) : (
+        <form onSubmit={sendReset} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>
+            Enter your account email and we'll send you a link to reset your password.
+          </p>
+          <input
+            type="email"
+            required
+            placeholder="your@email.com"
+            value={resetEmail}
+            onChange={e => setResetEmail(e.target.value)}
+            style={{ padding: 12, borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 14, outline: "none" }}
+          />
+          {resetError && (
+            <div style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 600 }}>
+              {resetError}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button type="button" onClick={() => setShowForgot(false)}
+              style={{ padding: "10px 16px", border: "1px solid #e5e7eb", borderRadius: 8, background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
+              Cancel
+            </button>
+            <button type="submit" disabled={resetSending}
+              style={{ padding: "10px 16px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+              {resetSending ? "Sending…" : "Send reset link"}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  </div>
+)}
       </div>
     </div>
   );

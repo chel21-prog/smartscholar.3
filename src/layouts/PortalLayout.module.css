@@ -19,8 +19,8 @@
   align-items: center;
   height: var(--topbar-height);
   padding: 0 var(--space-6);
-  background: var(--topbar-bg);
-  border-bottom: 1px solid var(--border);
+  background: var(--navy-1000);
+  border-bottom: 1px none var(--border);
   flex-shrink: 0;
   position: sticky;
   top: 0;
