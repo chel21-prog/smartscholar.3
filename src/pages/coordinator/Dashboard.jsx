@@ -736,7 +736,7 @@ const totalScholarships = scholarStats.length;
 </div>
 
     <button
-      style={styles.btnGreen}
+      style={styles.btnPrimary}
       onClick={() => setShowReportModal(true)}
     >
       Generate Report
@@ -953,16 +953,16 @@ const totalScholarships = scholarStats.length;
               ...styles.badge,
               background:
                 selectedApp.status === "Pending"
-                  ? "#FEF3C7"
+                  ? "var(--warning-bg)"
                   : selectedApp.status === "Approved"
-                  ? "#DCFCE7"
-                  : "#FEE2E2",
+                  ? "var(--success-bg)"
+                  : "var(--danger-bg)",
               color:
                 selectedApp.status === "Pending"
-                  ? "#92400E"
+                  ? "var(--warning-text)"
                   : selectedApp.status === "Approved"
-                  ? "#166534"
-                  : "#991B1B",
+                  ? "var(--success-text)"
+                  : "var(--danger-text)",
             }}
           >
             {selectedApp.status}
@@ -1001,7 +1001,7 @@ const totalScholarships = scholarStats.length;
         }}
       >
         <button
-          style={styles.btnRed}
+          style={styles.btnDanger}
           onClick={() => setSelectedApp(null)}
         >
           Close
@@ -1015,7 +1015,7 @@ const totalScholarships = scholarStats.length;
   <div style={styles.overlay}>
     <div
       style={{
-        background: "#fff",
+        background: "var(--surface)",
         width: "900px",
         maxHeight: "90vh",
         overflowY: "auto",
@@ -1293,8 +1293,8 @@ const totalScholarships = scholarStats.length;
 
 <div
   style={{
-    border: "1px solid #ddd",
-    background: "#fff",
+    border:"1px solid var(--border)",
+    background:"var(--surface)",
     maxHeight: 350,
     overflow: "auto",
   }}
@@ -1319,13 +1319,13 @@ const totalScholarships = scholarStats.length;
     </thead>
 
     <tbody>
-{filtered.map((a,index)=>(
+{filteredApplications.map((a,index)=>(
 <tr
     key={a.application_id}
     style={{
         background:index % 2 === 0
-            ? "#fff"
-            : "#f9fafb"
+            ? "var(--surface)"
+      : "var(--surface-muted)"
     }}
 >
           {columns.schoolId && (
@@ -1383,14 +1383,14 @@ const totalScholarships = scholarStats.length;
         }}
       >
         <button
-  style={styles.btnGreen}
+  style={styles.btnPrimary}
   onClick={generatePDF}
 >
   Generate PDF
 </button>
 
         <button
-          style={styles.btnRed}
+          style={styles.btnDanger}
           onClick={() =>
             setShowReportModal(false)
           }
@@ -1408,8 +1408,9 @@ const totalScholarships = scholarStats.length;
 
 const styles = {
   container: {
-    padding: 10,
-  },
+  padding: 10,
+  color: "var(--text-primary)",
+},
 
   header: {
   display: "flex",
@@ -1433,35 +1434,45 @@ cardGrid: {
 },
 
 card: {
-  background: "#fff",
+  background: "var(--surface)",
   borderRadius: 12,
   padding: 20,
-  boxShadow: "0 2px 8px rgba(0,0,0,.08)",
+  boxShadow: "var(--shadow-sm)",
 },
 
 cardLabel: {
   fontSize: 14,
-  color: "#6b7280",
+   color:"var(--text-secondary)",
   marginBottom: 10,
 },
 
 cardValue: {
   fontSize: 32,
   fontWeight: "700",
-  color: "#111827",
+  color:"var(--text-primary)",
 },
 periodItem: {
   display: "flex",
   alignItems: "center",
   gap: 8,
 },
+btnPrimary:{
+    background:"var(--primary)",
+    color:"var(--text-primary)",
+},
+btnDanger:{
+    background:"var(--danger)",
+    color:"var(--text-primary)",
+},
 
 periodInput: {
   padding: "6px 10px",
-  border: "1px solid #d1d5db",
+   border:"1px solid var(--border)",
   borderRadius: 6,
   fontSize: 14,
   minWidth: 150,
+   background:"var(--surface)",
+    color:"var(--text-primary)",
 },
 
 infoGrid: {
@@ -1473,10 +1484,11 @@ infoGrid: {
 },
 
 infoCard: {
-  background: "#fff",
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
   borderRadius: 12,
   padding: 10,
-  boxShadow: "0 2px 8px rgba(0,0,0,.08)",
+  boxShadow: "var(--shadow-sm)",
   height: 260,
   display: "flex",
   flexDirection: "column",
@@ -1486,7 +1498,7 @@ infoTitle: {
   marginBottom: 15,
   fontSize: 18,
   fontWeight: 600,
-  color: "#475c6c",
+  color:"var(--text-primary)",
 },
 
 infoRow: {
@@ -1522,14 +1534,18 @@ filterRow: {
 searchInput: {
   flex: "0 0 320px",
   padding: "10px 14px",
-  border: "1px solid #ddd",
+  background:"var(--surface)",
+    color:"var(--text-primary)",
+    border:"1px solid var(--border)",
   borderRadius: 8,
 },
 
 select: {
   minWidth: 180,
   padding: "10px",
-  border: "1px solid #ddd",
+  background:"var(--surface)",
+    color:"var(--text-primary)",
+    border:"1px solid var(--border)",
   borderRadius: 8,
 },
 studentInfo: {
@@ -1538,7 +1554,7 @@ studentInfo: {
 },
 
 studentName: {
-  color: "#6b7280",
+   color:"var(--text-secondary)",
   fontSize: 13,
   marginTop: 2,
 },
@@ -1551,35 +1567,29 @@ studentCard: {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
   gap: 18,
-  background: "#f9fafb",
+   background:"var(--surface-muted)",
+    border:"1px solid var(--border)",
   padding: 20,
   borderRadius: 10,
   marginBottom: 15,
 },
 
-answersContainer: {
-  display: "flex",
-  flexDirection: "column",
-  gap: 15,
-  maxHeight: 400,
-  overflowY: "auto",
-},
 
 answerCard: {
-  border: "1px solid #e5e7eb",
   borderRadius: 8,
   padding: 15,
-  background: "#fff",
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
 },
 
 question: {
   fontWeight: "600",
   marginBottom: 8,
-  color: "#374151",
+  color:"var(--text-primary)",
 },
 
 answer: {
-  color: "#4b5563",
+  color:"var(--text-secondary)",
   lineHeight: 1.6,
 },
 overlay: {
@@ -1596,8 +1606,8 @@ overlay: {
   padding: 20,
 },
 modal: {
-  background: "#fff",
-
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
   width: "100%",
   maxWidth: 900,
 
@@ -1612,13 +1622,12 @@ modal: {
   boxShadow: "0 15px 40px rgba(0,0,0,.25)",
 },
 answersContainer: {
+  flexDirection: "column",
+  maxHeight: 400,
+  overflowY: "auto",
   display: "flex",
   flexDirection: "column",
   gap: 15,
-
-  maxHeight: 400,
-
-  overflowY: "auto",
 
   scrollbarWidth: "none",
 
@@ -1626,8 +1635,9 @@ answersContainer: {
 },
 tableContainer: {
   width: "100%",
+   background:"var(--surface)",
+    border:"1px solid var(--border)",
   overflowX: "auto",
-  background: "#fff",
   borderRadius: 12,
   boxShadow: "0 2px 10px rgba(0,0,0,.08)",
   padding:10
@@ -1637,7 +1647,7 @@ table: {
   borderCollapse: "collapse",
   minWidth: 900,
   fontSize: 14,
-  background: "#fff",
+  background: "var(--surface)",
   
 },
 th: {
@@ -1645,14 +1655,16 @@ th: {
   color: "#fff",
   padding: "16px 18px",
   textAlign: "left",
-  fontWeight: 600,
+  fontWeight: 600,background:"var(--surface-muted)",
+    color:"var(--text-primary)",
+    borderBottom:"1px solid var(--border)",
   whiteSpace: "nowrap",
 },
 
 td: {
   padding: "16px 18px",
-  borderBottom: "1px solid #eef2f7",
-  color: "#374151",
+  borderBottom:"1px solid var(--border)",
+    color:"var(--text-primary)",
   whiteSpace: "nowrap",
   verticalAlign: "middle",
 },
@@ -1673,6 +1685,6 @@ pageButton: {
     margin: 0,
     fontSize: 28,
     fontWeight: 700,
-    color: "#475c6c",
+    color:"var(--text-primary)",
   },
 };
