@@ -1,0 +1,445 @@
+/* ==========================================
+   PAGE
+========================================== */
+
+.page{
+    min-height:100vh;
+    background:var(--background);
+    color:var(--text-primary);
+
+    font-family:var(--font-sans);
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    padding:24px;
+}
+.container{
+    width:100%;
+    max-width:1300px;
+
+    display:grid;
+    grid-template-columns:1.15fr .85fr;
+
+    background:var(--background);
+
+    border:1px none var(--border);
+
+    border-radius:24px;
+
+    overflow:hidden;
+
+    
+}
+.leftPanel{
+    position:relative;
+    overflow:hidden;
+
+    background:var(--background);
+
+    color:var(--text-primary);
+
+    padding:70px 60px;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+}
+.logo{
+
+    width:220px;
+
+    margin-bottom:30px;
+}
+.brand{
+
+    font-size:42px;
+
+    font-weight:700;
+
+    margin:0;
+}
+.tagline{
+
+    margin-top:16px;
+
+    font-size:16px;
+
+    line-height:1.8;
+
+    opacity:.9;
+
+    max-width:430px;
+}
+.features{
+
+    margin-top:40px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:16px;
+
+    font-size:15px;
+
+    opacity:.95;
+}
+/* ==========================================
+   RIGHT PANEL
+========================================== */
+
+.rightPanel{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:48px;
+    background:var(--background);
+}
+
+.card{
+    width:100%;
+    max-width:430px;
+
+    background:var(--surface);
+
+    border:1px solid var(--border);
+
+    border-radius:20px;
+
+    padding:36px;
+
+    box-shadow:var(--shadow-lg);
+}
+
+.header{
+    text-align:center;
+    margin-bottom:24px;
+}
+
+.title{
+    margin:0;
+    font-size:28px;
+    font-weight:700;
+    color:var(--text-primary);
+}
+
+.subtitle{
+    margin-top:8px;
+    color:var(--text-secondary);
+    font-size:15px;
+}
+
+.form{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.input{
+    width:100%;
+    height:48px;
+    padding:0 16px;
+
+    background:var(--surface);
+    color:var(--text-primary);
+
+    border:1px solid var(--border-strong);
+    border-radius:12px;
+
+    outline:none;
+
+    transition:.2s;
+}
+
+.input:focus{
+    border-color:var(--navy-600);
+    box-shadow:0 0 0 3px var(--navy-100);
+}
+
+.checkbox{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    font-size:14px;
+    color:var(--text-secondary);
+}
+
+.link{
+    color:var(--navy-600);
+    cursor:pointer;
+    text-decoration:none;
+}
+
+.link:hover{
+    text-decoration:underline;
+}
+
+.primaryButton{
+    height:48px;
+    border:none;
+    border-radius:12px;
+
+    background:var(--navy-600);
+    color:white;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+.primaryButton:hover{
+    background:var(--navy-700);
+}
+
+.primaryButton:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+
+.divider{
+    display:flex;
+    align-items:center;
+    gap:12px;
+
+    color:var(--text-secondary);
+
+    margin:6px 0;
+}
+
+.line{
+    flex:1;
+    height:1px;
+    background:var(--border);
+}
+
+.googleButton{
+    height:48px;
+
+    border-radius:12px;
+
+    border:1px solid var(--border);
+
+    background:var(--surface);
+
+    color:var(--text-primary);
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+.googleButton:hover{
+    background:var(--surface-muted);
+}
+
+.signup{
+    margin-top:24px;
+    text-align:center;
+    color:var(--text-secondary);
+}
+
+.signupLink{
+    margin-left:6px;
+    color:var(--navy-600);
+    font-weight:600;
+    text-decoration:none;
+}
+
+.signupLink:hover{
+    text-decoration:underline;
+}
+
+.error{
+    margin-bottom:16px;
+
+    padding:12px;
+
+    border-radius:12px;
+
+    background:#fee2e2;
+    color:#991b1b;
+
+    font-size:14px;
+}
+/* ==========================================
+   TERMS MODAL
+========================================== */
+
+.modalOverlay{
+    position:fixed;
+    inset:0;
+
+    background:rgba(15,23,42,.55);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    z-index:9999;
+
+    padding:24px;
+}
+
+.modal{
+    width:100%;
+    max-width:560px;
+
+    background:var(--surface);
+
+    color:var(--text-primary);
+
+    border:1px solid var(--border);
+
+    border-radius:20px;
+
+    padding:32px;
+
+    box-shadow:var(--shadow-xl);
+}
+
+.modal h2{
+    margin-top:0;
+    margin-bottom:18px;
+}
+
+.modal p{
+    color:var(--text-secondary);
+    line-height:1.7;
+}
+
+.modalButton{
+    margin-top:20px;
+
+    width:100%;
+    height:46px;
+
+    border:none;
+    border-radius:12px;
+
+    background:var(--navy-500);
+
+    color:var(--text-primary);
+
+    cursor:pointer;
+
+    font-weight:600;
+}
+
+.modalButton:hover{
+    background:var(--navy-700);
+}
+/* ==========================================
+   TABLET
+========================================== */
+
+@media (max-width: 1024px){
+
+    .container{
+
+        grid-template-columns:1fr 1fr;
+    }
+
+    .leftPanel{
+
+        padding:48px;
+    }
+
+    .logo{
+
+        width:170px;
+    }
+
+    .brand{
+
+        font-size:34px;
+    }
+
+}
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width:768px){
+
+    .page{
+
+        padding:0;
+        align-items:stretch;
+    }
+
+    .container{
+
+        grid-template-columns:1fr;
+
+        border-radius:0;
+
+        min-height:100vh;
+    }
+
+    .leftPanel{
+
+        display:none;
+    }
+
+    .rightPanel{
+
+        padding:24px;
+    }
+
+    .card{
+
+        max-width:100%;
+
+        box-shadow:none;
+
+        border:none;
+
+        border-radius:20px;
+
+        padding:32px 24px;
+    }
+
+}
+/* ==========================================
+   CARD HEADER
+========================================== */
+
+.cardTop{
+
+    display:flex;
+
+    justify-content:flex-end;
+
+    margin-bottom:12px;
+}
+
+.themeToggle{
+
+    width:42px;
+
+    height:42px;
+
+    border-radius:50%;
+
+    border:1px solid var(--border);
+
+    background:var(--surface);
+
+    color:var(--text-primary);
+
+    cursor:pointer;
+
+    font-size:18px;
+
+    transition:.2s;
+}
+
+.themeToggle:hover{
+
+    background:var(--surface-muted);
+}

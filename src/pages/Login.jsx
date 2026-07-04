@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useNavigate, Link } from "react-router-dom";
-
+import styles from "@/styles/Auth.module.css";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -9,8 +10,15 @@ export default function Login() {
   const [error, setError] = useState("");
   const [showTerms, setShowTerms] = useState(false);
   const [accepted, setAccepted] = useState(false);
-
+  const [theme, setTheme] = useState(
+  localStorage.getItem("theme") || "light"
+);
   const navigate = useNavigate();
+  
+  useEffect(() => {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("theme", theme);
+}, [theme]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -122,38 +130,54 @@ export default function Login() {
 };
 
   return (
-    <div style={styles.wrapper}>
-      
+    <div className={styles.page}>
+      <div className={styles.container}>
       {/* LEFT INTRO PANEL */}
-      <div style={styles.leftPanel}>
-        <img src="/logo.png" style={styles.bigLogo} />
+      <div className={styles.leftPanel}>
+        <img
+    src="/logo.png"
+    alt="SmartScholar Logo"
+    className={styles.logo}
+/>
 
-        <h1 style={styles.brand}>SmartScholar</h1>
+        <h1 className={styles.brand}>SmartScholar</h1>
 
-        <p style={styles.tagline}>
+        <p className={styles.tagline}>
           A centralized scholarship management system designed to streamline
           applications, compliance tracking, and fund distribution.
         </p>
+
+        <div className={styles.features}>
+  <div>✓ Apply for scholarships online</div>
+  <div>✓ Track application progress</div>
+  <div>✓ Submit compliance requirements</div>
+  <div>✓ Receive scholarship notifications</div>
+  <div>✓ Secure document management</div>
+</div>
 
        
       </div>
 
       {/* RIGHT LOGIN PANEL */}
-      <div style={styles.rightPanel}>
-        <div style={styles.card}>
-          
-          <div style={styles.header}>
+      <div className={styles.rightPanel}>
+        <div className={styles.card}>
+          <div className={styles.cardTop}>
+
+    <ThemeToggle />
+
+</div>
+          <div className={styles.header}>
             
-            <h2 style={styles.title}>Welcome</h2>
-            <p style={styles.subtitle}>Login to your account</p>
+            <h2 className={styles.title}>Welcome</h2>
+            <p className={styles.subtitle}>Login to your account</p>
           </div>
 
-          {error && <div style={styles.error}>{error}</div>}
+          {error && <div className={styles.error}>{error}</div>}
 
-          <form onSubmit={handleLogin} style={styles.form}>
+          <form onSubmit={handleLogin} className={styles.form}>
             <input
   type="email"
-  style={styles.input}
+  className={styles.input}
   placeholder="Email address"
   value={email}
   required
@@ -162,7 +186,7 @@ export default function Login() {
 
             <input
   type="password"
-  style={styles.input}
+  className={styles.input}
   placeholder="Password"
   value={password}
   required
@@ -170,7 +194,7 @@ export default function Login() {
 />
 
             {/* TERMS CHECKBOX */}
-            <label style={styles.checkbox}>
+            <label className={styles.checkbox}>
               <input
                 type="checkbox"
                 checked={accepted}
@@ -180,24 +204,24 @@ export default function Login() {
                 I agree to the{" "}
                 <span
                   onClick={() => setShowTerms(true)}
-                  style={styles.link}
+                  className={styles.link}
                 >
                   Terms & Data Privacy Policy
                 </span>
               </span>
             </label>
 
-            <button style={styles.button} disabled={loading}>
+            <button className={styles.primaryButton} disabled={loading}>
               {loading ? "Signing in..." : "Sign In"}
             </button>
-            <div style={styles.divider}>
-  <span style={styles.line}></span>
+            <div className={styles.divider}>
+  <span className={styles.line}></span>
   <span>OR</span>
-  <span style={styles.line}></span>
+  <span className={styles.line}></span>
 </div>
             <button
   type="button"
-  style={styles.googleButton}
+  className={styles.googleButton}
   onClick={handleGoogleLogin}
   disabled={loading}
 >
@@ -207,9 +231,9 @@ export default function Login() {
 
           </form>
 
-          <div style={styles.signup}>
+          <div className={styles.signup}>
             <span>Don’t have an account?</span>
-            <Link to="/signup" style={styles.signupLink}>
+            <Link to="/signup" className={styles.signupLink}>
               Create one
             </Link>
           </div>
@@ -219,8 +243,8 @@ export default function Login() {
 
       {/* TERMS MODAL */}
       {showTerms && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
             <h2>Terms & Data Privacy Policy</h2>
 
             <p>
@@ -241,19 +265,20 @@ export default function Login() {
 
             <button
               onClick={() => setShowTerms(false)}
-              style={styles.modalBtn}
+              className={styles.modalButton}
             >
               Close
             </button>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
 
 /* STYLES */
-const styles = {
+const oldstyles = {
   wrapper: {
     display: "flex",
     minHeight: "100vh",
