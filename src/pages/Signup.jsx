@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useNavigate, Link } from "react-router-dom";
-
+import styles from "@/styles/Auth.module.css";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showTerms, setShowTerms] = useState(false);
@@ -113,54 +116,92 @@ navigate("/Login");
 };
 
   return (
-    <div style={styles.wrapper}>
+    <div className={styles.page}>
+  <div className={styles.container}>
 
-      {/* LEFT PANEL */}
-      <div style={styles.leftPanel}>
-        <img src="/logo.png" style={styles.bigLogo} />
-
-        <h1 style={styles.brand}>SmartScholar</h1>
-
-        <p style={styles.tagline}>
-          A centralized scholarship management system designed to streamline
-          applications, compliance tracking, and fund distribution.
-        </p>
+      {/* LEFT INTRO PANEL */}
+            <div className={styles.leftPanel}>
+              <img
+          src="/logo.png"
+          alt="SmartScholar Logo"
+          className={styles.logo}
+      />
+      
+              <h1 className={styles.brand}>SmartScholar</h1>
+      
+              <p className={styles.tagline}>
+                A centralized scholarship management system designed to streamline
+                applications, compliance tracking, and fund distribution.
+              </p>
+      
+              <div className={styles.features}>
+        <div>✓ Apply for scholarships online</div>
+        <div>✓ Track application progress</div>
+        <div>✓ Submit compliance requirements</div>
+        <div>✓ Receive scholarship notifications</div>
+        <div>✓ Secure document management</div>
       </div>
+      
+             
+            </div>
 
       {/* RIGHT PANEL */}
-      <div style={styles.rightPanel}>
-        <div style={styles.card}>
+      <div className={styles.rightPanel}>
+        <div className={styles.card}>
+          <div className={styles.cardTop}>
+    <ThemeToggle />
+</div>
 
-          <div style={styles.header}>
-            <h2 style={styles.title}>Create Account</h2>
-            <p style={styles.subtitle}>Sign up as a student</p>
+          <div className={styles.header}>
+            <h2 className={styles.title}>Create Account</h2>
+            <p className={styles.subtitle}>Join our community of scholars</p>
           </div>
 
-          {error && <div style={styles.error}>{error}</div>}
+          {error && <div className={styles.error}>{error}</div>}
 
-          <form onSubmit={handleSignup} style={styles.form}>
+         <form
+    onSubmit={handleSignup}
+    className={styles.form}
+>
 
             <input
   type="email"
-  style={styles.input}
+  className={styles.input}
   placeholder="Email address"
   value={email}
   onChange={(e) => setEmail(e.target.value)}
   required
 />
 
-            <input
-  type="password"
-  style={styles.input}
-  placeholder="Password"
-  value={password}
-  minLength={6}
-  required
-  onChange={(e) => setPassword(e.target.value)}
-/>
+            <div className={styles.passwordField}>
+    <input
+        type={showPassword ? "text" : "password"}
+        className={styles.input}
+        placeholder="Password"
+        value={password}
+        minLength={6}
+        required
+        onChange={(e) => setPassword(e.target.value)}
+    />
+
+    <button
+        type="button"
+        className={styles.passwordToggle}
+        onClick={() => setShowPassword(!showPassword)}
+        aria-label={
+            showPassword
+                ? "Hide password"
+                : "Show password"
+        }
+    >
+        {showPassword
+            ? <FaEyeSlash />
+            : <FaEye />}
+    </button>
+</div>
 
             {/* TERMS */}
-            <label style={styles.checkbox}>
+            <label className={styles.checkbox}>
               <input
                 type="checkbox"
                 checked={accepted}
@@ -170,26 +211,26 @@ navigate("/Login");
                 I agree to the{" "}
                 <span
                   onClick={() => setShowTerms(true)}
-                  style={styles.link}
+                  className={styles.link}
                 >
                   Terms & Data Privacy Policy
                 </span>
               </span>
             </label>
 
- <button style={styles.button} disabled={loading}>
+ <button className={styles.primaryButton} disabled={loading}>
               {loading ? "Creating account..." : "Sign Up"}
             </button>
 
-            <div style={styles.divider}>
-  <span style={styles.line}></span>
+            <div className={styles.divider}>
+  <span className={styles.line}></span>
   <span>OR</span>
-  <span style={styles.line}></span>
+  <span className={styles.line}></span>
 </div>
 
           <button
   type="button"
-  style={styles.googleButton}
+  className={styles.googleButton}
   onClick={handleGoogleSignup}
 >
   Continue with Google
@@ -197,9 +238,9 @@ navigate("/Login");
 
           </form>
 
-          <div style={styles.signup}>
+          <div className={styles.signup}>
             <span>Already have an account?</span>
-            <Link to="/Login" style={styles.signupLink}>
+            <Link to="/Login" className={styles.signupLink}>
               Login
             </Link>
           </div>
@@ -209,8 +250,8 @@ navigate("/Login");
 
       {/* TERMS MODAL */}
       {showTerms && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
             <h2>Terms & Data Privacy Policy</h2>
 
             <p>
@@ -230,187 +271,14 @@ navigate("/Login");
 
             <button
               onClick={() => setShowTerms(false)}
-              style={styles.modalBtn}
+              className={styles.modalButton}
             >
               Close
             </button>
           </div>
         </div>
       )}
-
+    </div>
     </div>
   );
 }
-
-/* STYLES */
-const styles = {
-
-  googleButton: {
-  padding: 12,
-  borderRadius: 10,
-  border: "1px solid #ddd",
-  background: "#475c6c",
-  cursor: "pointer",
-  fontWeight: 600,
-},
-
-divider: {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  margin: "5px 0",
-},
-
-line: {
-  flex: 1,
-  height: 1,
-  background: "#ddd",
-},
-  wrapper: {
-    display: "flex",
-    minHeight: "100vh",
-    fontFamily: "Arial",
-  },
-
-  leftPanel: {
-    flex: 1,
-    background: "linear-gradient(135deg, #0f172a, #1e3a8a)",
-    color: "white",
-    padding: 60,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-  },
-
-  bigLogo: {
-    width: 300,
-    marginBottom: 20,
-  },
-
-  brand: {
-    fontSize: 40,
-    fontWeight: "bold",
-    color: "white",
-  },
-
-  tagline: {
-    marginTop: 10,
-    fontSize: 14,
-    opacity: 0.85,
-    maxWidth: 400,
-  },
-
-  rightPanel: {
-    flex: 1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#f1f5f9",
-    padding: 20,
-  },
-
-  card: {
-    width: "100%",
-    maxWidth: 380,
-    background: "#fff",
-    padding: 30,
-    borderRadius: 16,
-    boxShadow: "0 20px 50px rgba(0,0,0,0.15)",
-  },
-
-  header: {
-    textAlign: "center",
-    marginBottom: 20,
-  },
-
-  title: {
-    fontSize: 20,
-    fontWeight: 700,
-  },
-
-  subtitle: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-  },
-
-  input: {
-    padding: 12,
-    borderRadius: 10,
-    border: "1px solid #e5e7eb",
-  },
-
-  checkbox: {
-    fontSize: 12,
-    display: "flex",
-    gap: 8,
-    alignItems: "center",
-  },
-
-  link: {
-    color: "#2563eb",
-    cursor: "pointer",
-    textDecoration: "underline",
-  },
-
-  button: {
-    padding: 12,
-    background: "#2563eb",
-    color: "white",
-    border: "none",
-    borderRadius: 10,
-    fontWeight: 600,
-  },
-
-  error: {
-    background: "#fee2e2",
-    color: "#991b1b",
-    padding: 10,
-    borderRadius: 10,
-    fontSize: 12,
-    marginBottom: 10,
-  },
-
-  signup: {
-    marginTop: 15,
-    textAlign: "center",
-    fontSize: 12,
-  },
-
-  signupLink: {
-    color: "#2563eb",
-    marginLeft: 5,
-    textDecoration: "none",
-    fontWeight: 600,
-  },
-
-  modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  modal: {
-    background: "white",
-    padding: 25,
-    borderRadius: 12,
-    width: 400,
-  },
-
-  modalBtn: {
-    marginTop: 15,
-    padding: 10,
-    background: "#2563eb",
-    color: "white",
-    border: "none",
-    borderRadius: 8,
-  },
-};

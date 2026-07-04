@@ -1,24 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useNavigate, Link } from "react-router-dom";
 import styles from "@/styles/Auth.module.css";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showTerms, setShowTerms] = useState(false);
   const [accepted, setAccepted] = useState(false);
-  const [theme, setTheme] = useState(
-  localStorage.getItem("theme") || "light"
-);
+  
   const navigate = useNavigate();
   
-  useEffect(() => {
-  document.documentElement.setAttribute("data-theme", theme);
-  localStorage.setItem("theme", theme);
-}, [theme]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -184,14 +181,25 @@ export default function Login() {
   onChange={(e) => setEmail(e.target.value)}
 />
 
-            <input
-  type="password"
-  className={styles.input}
-  placeholder="Password"
-  value={password}
-  required
-  onChange={(e) => setPassword(e.target.value)}
-/>
+            <div className={styles.passwordField}>
+  <input
+    type={showPassword ? "text" : "password"}
+    className={styles.input}
+    placeholder="Password"
+    value={password}
+    required
+    onChange={(e) => setPassword(e.target.value)}
+  />
+
+  <button
+    type="button"
+    className={styles.passwordToggle}
+    onClick={() => setShowPassword(!showPassword)}
+    aria-label={showPassword ? "Hide password" : "Show password"}
+  >
+    {showPassword ? <FaEyeSlash /> : <FaEye />}
+  </button>
+</div>
 
             {/* TERMS CHECKBOX */}
             <label className={styles.checkbox}>
@@ -276,186 +284,3 @@ export default function Login() {
     </div>
   );
 }
-
-/* STYLES */
-const oldstyles = {
-  wrapper: {
-    display: "flex",
-    minHeight: "100vh",
-    fontFamily: "Arial",
-  },
-
-  leftPanel: {
-    flex: 1,
-    background: "linear-gradient(135deg, #0f172a, #1e3a8a)",
-    color: "white",
-    padding: 60,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-  },
-
-  bigLogo: {
-    width: 300,
-    marginBottom: 20,
-  },
-
-  brand: {
-    fontSize: 40,
-    fontWeight: "bold",
-    color: "white",
-  },
-
-  tagline: {
-    marginTop: 10,
-    fontSize: 14,
-    opacity: 0.85,
-    maxWidth: 400,
-  },
-
-  list: {
-    marginTop: 20,
-    fontSize: 14,
-    lineHeight: 2,
-  },
-
-  rightPanel: {
-    flex: 1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#f1f5f9",
-    padding: 20,
-  },
-
-  card: {
-    width: "100%",
-    maxWidth: 380,
-    background: "#fff",
-    padding: 30,
-    borderRadius: 16,
-    boxShadow: "0 20px 50px rgba(0,0,0,0.15)",
-  },
-
-  header: {
-    textAlign: "center",
-    marginBottom: 20,
-  },
-
-  logo: {
-    width: 60,
-    marginBottom: 10,
-  },
-
-  title: {
-    fontSize: 20,
-    fontWeight: 700,
-  },
-
-  subtitle: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-  },
-
-  input: {
-    padding: 12,
-    borderRadius: 10,
-    border: "1px solid #e5e7eb",
-  },
-
-  checkbox: {
-    fontSize: 12,
-    display: "flex",
-    gap: 8,
-    alignItems: "center",
-  },
-
-  link: {
-    color: "#2563eb",
-    cursor: "pointer",
-    textDecoration: "underline",
-  },
-
-  button: {
-    padding: 12,
-    background: "#2563eb",
-    color: "white",
-    border: "none",
-    borderRadius: 10,
-    fontWeight: 600,
-  },
-
-  error: {
-    background: "#fee2e2",
-    color: "#991b1b",
-    padding: 10,
-    borderRadius: 10,
-    fontSize: 12,
-    marginBottom: 10,
-  },
-
-  signup: {
-    marginTop: 15,
-    textAlign: "center",
-    fontSize: 12,
-  },
-
-  signupLink: {
-    color: "#2563eb",
-    marginLeft: 5,
-    textDecoration: "none",
-    fontWeight: 600,
-  },
-
-  modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  modal: {
-    background: "white",
-    padding: 25,
-    borderRadius: 12,
-    width: 400,
-  },
-
-  modalBtn: {
-    marginTop: 15,
-    padding: 10,
-    background: "#2563eb",
-    color: "white",
-    border: "none",
-    borderRadius: 8,
-  },
-  googleButton: {
-  padding: 12,
-  borderRadius: 10,
-  border: "1px solid #ddd",
-  background: "#475c6c",
-  cursor: "pointer",
-  fontWeight: 600,
-},
-
-divider: {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  margin: "5px 0",
-},
-
-line: {
-  flex: 1,
-  height: 1,
-  background: "#ddd",
-},
-};
