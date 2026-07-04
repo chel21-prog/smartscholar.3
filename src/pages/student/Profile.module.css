@@ -1,0 +1,70 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--ink-400);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.saveStatus {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-400);
+  white-space: nowrap;
+}
+
+.saveStatus[data-state="saving"] {
+  color: var(--warning-600);
+}
+
+.saveStatus[data-state="saved"] {
+  color: var(--success-600);
+}
+
+.noRequirements {
+  color: var(--ink-400);
+  font-size: var(--text-sm);
+  padding: var(--space-6) 0;
+  text-align: center;
+}
+
+.reqName {
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.reqDesc {
+  color: var(--ink-500);
+}
+
+.statusToggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--radius-full);
+}
+
+.statusToggle:hover {
+  filter: brightness(0.97);
+}
+
+.statusToggle:focus-visible {
+  outline: 2px solid var(--navy-600);
+  outline-offset: 3px;
+}

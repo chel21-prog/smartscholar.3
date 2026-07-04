@@ -1,0 +1,175 @@
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+
+  position: fixed;
+  top: 0;
+  left: 0;
+
+  background: var(--navy-950);
+  color: var(--ink-200);
+
+  padding: var(--space-4) var(--space-3);
+
+  display: flex;
+  flex-direction: column;
+
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  overflow-y: auto;
+
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge Legacy */
+  z-index: 100;
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none; /* Chrome, Edge, Safari */
+}
+
+/* ================= LOGO ================= */
+.logoBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: var(--space-4) var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.logo {
+  width: 84px;
+  height: 84px;
+
+  object-fit: contain;
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  padding: 8px;
+
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.logo:hover {
+  transform: scale(1.05);
+}
+
+.title {
+  margin-top: var(--space-2);
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: 0.3px;
+  font-size: var(--text-md);
+}
+
+/* ================= NAV ================= */
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav a {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--ink-200);
+
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-md);
+  border-left: 3px solid transparent;
+
+  font-size: var(--text-sm);
+  font-weight: 500;
+
+  transition: background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.nav a:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--white);
+}
+
+/* active link (NavLink auto adds .active) - the gold left rail is the
+   one signature brand touch carried into the persistent navigation. */
+.nav a.active {
+  background: rgba(195, 158, 88, 0.12);
+  color: var(--white);
+  font-weight: 700;
+  border-left-color: var(--gold-500);
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--duration-base) var(--ease-out);
+  }
+
+  .sidebar.show {
+    transform: translateX(0);
+  }
+}
+
+/* default: hide both mobile buttons on desktop */
+.floatingBtn,
+.closeBtn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .floatingBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    position: fixed;
+    top: var(--space-4);
+    left: var(--space-4);
+
+    width: 44px;
+    height: 44px;
+
+    border-radius: var(--radius-md);
+    border: none;
+
+    background: var(--navy-600);
+    color: var(--white);
+
+    font-size: 20px;
+
+    z-index: 200;
+    cursor: pointer;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .closeBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+
+    color: var(--white);
+    font-size: 16px;
+
+    cursor: pointer;
+  }
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(10, 21, 32, 0.55);
+  z-index: 90;
+}

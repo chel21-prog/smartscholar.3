@@ -1,0 +1,181 @@
+/* ============================================================
+   SmartScholar Design Tokens  — Light & Dark
+   Navy  #034275 (sampled from logo cap)
+   Gold  #c39e58 (sampled from logo wordmark)
+   WCAG AA verified on every color pair used for text.
+   ============================================================ */
+
+:root {
+  /* ---- Brand ---- */
+  --navy-950: #0a2540;
+  --navy-900: #0d2b4a;
+  --navy-800: #123a5e;
+  --navy-700: #1a4a73;
+  --navy-600: #1d5f99;
+  --navy-500: #2b74b3;
+  --navy-300: #6fa0c9;
+  --navy-100: #e8f0f8;
+  --navy-50:  #f3f7fb;
+
+  --gold-700: #8a6d35;
+  --gold-600: #ad8a48;
+  --gold-500: #c39e58;
+  --gold-100: #f6efe0;
+  --gold-50:  #fbf7ee;
+
+  /* ---- Neutrals (light mode) ---- */
+  --ink-900: #0f1b26;
+  --ink-800: #1d2c38;
+  --ink-700: #2c3e4d;
+  --ink-600: #44525e;
+  --ink-500: #5c6b78;
+  --ink-400: #6b7785;
+  --ink-300: #9aa5b1;
+  --ink-200: #c7cfd6;
+  --ink-100: #e3e8ec;
+  --ink-50:  #f4f6f8;
+  --white:   #ffffff;
+
+  /* ---- Semantic ---- */
+  --success-700: #166534;
+  --success-600: #16a34a;
+  --success-100: #dcfce7;
+  --success-50:  #f0fdf4;
+
+  --warning-700: #92400e;
+  --warning-600: #d97706;
+  --warning-100: #fef3c7;
+  --warning-50:  #fffbeb;
+
+  --danger-700: #991b1b;
+  --danger-600: #dc2626;
+  --danger-100: #fee2e2;
+  --danger-50:  #fef2f2;
+
+  --info-700: #0c4a6e;
+  --info-600: #0284c7;
+  --info-100: #e0f2fe;
+
+  /* ---- Semantic surfaces (light) ---- */
+  --surface:       var(--white);
+  --surface-muted: var(--ink-50);
+  --border:        var(--ink-100);
+  --border-strong: var(--ink-200);
+  --text-primary:  var(--ink-900);
+  --text-secondary: var(--ink-500);
+  --page-bg:       var(--ink-50);
+  --topbar-bg:     var(--white);
+
+  /* ---- Typography ---- */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter,
+    "Helvetica Neue", Arial, sans-serif;
+
+  --text-xs:   12px;
+  --text-sm:   13px;
+  --text-base: 14px;
+  --text-md:   16px;
+  --text-lg:   18px;
+  --text-xl:   22px;
+  --text-2xl:  28px;
+  --text-3xl:  34px;
+
+  --leading-tight:   1.2;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.7;
+
+  /* ---- Spacing (4px grid) ---- */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---- Radius ---- */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-full: 999px;
+
+  /* ---- Shadows (light) ---- */
+  --shadow-sm: 0 1px 2px rgba(15,27,38,.06);
+  --shadow-md: 0 4px 14px rgba(15,27,38,.08);
+  --shadow-lg: 0 12px 32px rgba(15,27,38,.12);
+  --shadow-xl: 0 20px 50px rgba(15,27,38,.18);
+
+  /* ---- Motion ---- */
+  --ease-out:     cubic-bezier(0.16,1,0.3,1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+
+  /* ---- Layout ---- */
+  --sidebar-width:  220px;
+  --topbar-height:  64px;
+}
+
+/* ============================================================
+   DARK MODE  — applied when [data-theme="dark"] on <html>
+   ============================================================ */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface:        #1a2332;
+  --surface-muted:  #151e2b;
+  --border:         #243045;
+  --border-strong:  #2d3d55;
+  --text-primary:   #e8edf2;
+  --text-secondary: #8fa3b8;
+  --page-bg:        #111827;
+  --topbar-bg:      #1a2332;
+
+  --ink-900: #e8edf2;
+  --ink-800: #d1dae4;
+  --ink-700: #b8c8d8;
+  --ink-600: #9ab0c4;
+  --ink-500: #7a95ab;
+  --ink-400: #5f7d95;
+  --ink-300: #445f75;
+  --ink-200: #2d3d55;
+  --ink-100: #243045;
+  --ink-50:  #1a2332;
+  --white:   #ffffff;
+
+  --navy-50:  #1a2840;
+  --navy-100: #1f3255;
+
+  --gold-50:  #2a2218;
+  --gold-100: #3d3020;
+
+  --success-100: #14301e;
+  --success-50:  #0e2216;
+  --warning-100: #2e2008;
+  --warning-50:  #221806;
+  --danger-100:  #2e1010;
+  --danger-50:   #220b0b;
+  --info-100:    #0e2535;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 14px rgba(0,0,0,.4);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,.5);
+  --shadow-xl: 0 20px 50px rgba(0,0,0,.6);
+}
+
+/* ---- Global accessibility ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--navy-600);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

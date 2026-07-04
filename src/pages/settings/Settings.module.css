@@ -1,0 +1,135 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 640px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--ink-400);
+}
+
+/* ---- Account info rows ---- */
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+.infoLabel {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-500);
+}
+
+.infoValue {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+/* ---- Password section ---- */
+.passwordSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.passwordRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.passwordRow .input {
+  flex: 1;
+}
+
+.eyeBtn {
+  flex-shrink: 0;
+  padding: 0 var(--space-3);
+  height: 44px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  color: var(--ink-600);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.eyeBtn:hover:not(:disabled) {
+  background: var(--ink-50);
+}
+
+.eyeBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tipBox {
+  background: var(--gold-50);
+  border: 1px solid var(--gold-100);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--ink-600);
+}
+
+.tipBox strong {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--ink-800);
+}
+
+.tipBox ul {
+  margin: 0;
+  padding-left: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pwError {
+  background: var(--danger-50);
+  border: 1px solid var(--danger-100);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  color: var(--danger-700);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin: 0;
+}
+
+.pwSuccess {
+  background: var(--success-50);
+  border: 1px solid var(--success-100);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  color: var(--success-700);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* ---- Session / logout ---- */
+.logoutHint {
+  font-size: var(--text-sm);
+  color: var(--ink-400);
+  margin-bottom: var(--space-5);
+}

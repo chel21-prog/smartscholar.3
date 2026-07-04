@@ -1,0 +1,125 @@
+.wrapper {
+  position: relative;
+}
+
+.bell {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  background: var(--surface);
+  font-size: 20px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.bell:hover {
+  background: var(--ink-50);
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  background: var(--danger-600);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--surface);
+}
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(44px + 8px);
+
+  /* Responsive: cap at 360px but never overflow the viewport.
+     calc(100vw - 32px) ensures 16px margin on each side on any phone.
+     Previously this was a hard-coded 360px that would clip off-screen
+     on devices narrower than ~390px. */
+  width: 360px;
+  max-width: calc(100vw - 32px);
+
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+}
+
+.dropdownTitle {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink-900);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+
+.empty {
+  padding: var(--space-5) var(--space-4);
+  text-align: center;
+  color: var(--ink-400);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.item {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.item:hover {
+  background: var(--ink-50);
+}
+
+.itemUnread {
+  background: var(--navy-50);
+}
+
+.itemUnread:hover {
+  background: var(--navy-100);
+}
+
+.itemTitle {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink-900);
+  margin-bottom: 2px;
+}
+
+.itemMessage {
+  font-size: var(--text-xs);
+  color: var(--ink-600);
+  margin: 0 0 4px;
+  line-height: var(--leading-normal);
+}
+
+.itemTime {
+  font-size: 11px;
+  color: var(--ink-300);
+}

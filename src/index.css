@@ -1,0 +1,50 @@
+/* Base resets. Tokens live in styles/tokens.css (imported first). */
+
+:root {
+  font: 14px/1.5 var(--font-sans);
+  color-scheme: light dark;
+  color: var(--text-primary);
+  background: var(--page-bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--text-primary);
+  transition: background-color var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out);
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+h1 { font-size: var(--text-2xl); line-height: var(--leading-tight); }
+h2 { font-size: var(--text-xl);  line-height: var(--leading-tight); }
+h3 { font-size: var(--text-md);  }
+
+p  { margin: 0; }
+a  { color: var(--navy-600); }
+
+/* Mobile sidebar offset — was incorrectly nested inside :root before */
+@media (max-width: 768px) {
+  .app-main { margin-left: 0 !important; padding-top: 76px !important; }
+}
