@@ -1,174 +1,137 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import Button from "@/components/ui/Button";
-import { Card, Badge, EmptyState } from "@/components/ui/Card";
+import { Badge, EmptyState } from "@/components/ui/Card";
 import { TableWrap, Table } from "@/components/ui/Table";
-import Modal from "@/components/ui/Modal";
-import { Field, Input } from "@/components/ui/Input";
 import PageLoader from "@/components/ui/PageLoader";
-import styles from "./Dashboard.module.css";
+import s from "./Dashboard.module.css";
 
 export default function Dashboard() {
-  const [scholarships, setScholarships] = useState([]);
-  const [requirementsMap, setRequirementsMap] = useState([]);
-  const [studentReq, setStudentReq] = useState([]);
-  const [studentId, setStudentId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [applications, setApplications] = useState([]);
-  const [formFields, setFormFields] = useState([]);
-  const [formAnswers, setFormAnswers] = useState({});
-  const [selectedScholarship, setSelectedScholarship] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [formMeta, setFormMeta] = useState(null);
-  const [academic, setAcademic] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
+  const [scholarships,   setScholarships]   = useState([]);
+  const [requirementsMap,setRequirementsMap] = useState([]);
+  const [studentReq,     setStudentReq]     = useState([]);
+  const [studentId,      setStudentId]      = useState(null);
+  const [loading,        setLoading]        = useState(true);
+  const [applications,   setApplications]   = useState([]);
+  const [academic,       setAcademic]       = useState(null);
 
+  // apply modal
+  const [showForm,            setShowForm]           = useState(false);
+  const [selectedScholarship, setSelectedScholarship]= useState(null);
+  const [formMeta,            setFormMeta]           = useState(null);
+  const [formFields,          setFormFields]         = useState([]);
+  const [formAnswers,         setFormAnswers]        = useState({});
+  const [submitting,          setSubmitting]         = useState(false);
+  const [formError,           setFormError]          = useState("");
+  const [formLoading,         setFormLoading]        = useState(false);
+
+  // keep a ref to answers so submitApplication always sees the latest
+  // without needing to close over stale state
+  const answersRef = useRef({});
+  answersRef.current = formAnswers;
+
+  useEffect(() => { load(); loadAcademic(); }, []);
+
+  // ── Escape key closes modal ──────────────────────────────
   useEffect(() => {
-    load();
-    loadAcademic();
-  }, []);
+    if (!showForm) return;
+    const onKey = (e) => { if (e.key === "Escape") closeApply(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showForm]);
 
+  // ── data ────────────────────────────────────────────────
   const load = async () => {
     setLoading(true);
-
     try {
       const { data: authData } = await supabase.auth.getUser();
       const user = authData?.user;
       if (!user) return;
 
       const { data: userRow } = await supabase
-        .from("users")
-        .select("user_id")
-        .eq("auth_id", user.id)
-        .single();
+        .from("users").select("user_id").eq("auth_id", user.id).single();
 
       const { data: studentRow } = await supabase
-        .from("students")
-        .select("student_id")
-        .eq("user_id", userRow.user_id)
-        .single();
+        .from("students").select("student_id").eq("user_id", userRow.user_id).single();
 
       const sid = studentRow.student_id;
       setStudentId(sid);
 
-      const { data: appData } = await supabase
-        .from("scholarship_applications")
-        .select("*")
-        .eq("student_id", sid);
+      const [{ data: appData }, { data: scholData }, { data: reqMap }, { data: studData }] =
+        await Promise.all([
+          supabase.from("scholarship_applications").select("*").eq("student_id", sid),
+          supabase.from("scholarships").select("*"),
+          supabase.from("scholarship_requirements").select("*"),
+          supabase.from("student_eligibility_profile").select("*").eq("student_id", sid),
+        ]);
 
-      setApplications(appData || []);
-
-      const { data: scholarshipsData } = await supabase
-        .from("scholarships")
-        .select("*");
-
-      const { data: reqMap } = await supabase
-        .from("scholarship_requirements")
-        .select("*");
-
-      const { data: studentData } = await supabase
-        .from("student_eligibility_profile")
-        .select("*")
-        .eq("student_id", sid);
-
-      setScholarships(scholarshipsData || []);
-      setRequirementsMap(reqMap || []);
-      setStudentReq(studentData || []);
-    } catch (err) {
-      console.error(err);
-    }
-
+      setApplications(appData    || []);
+      setScholarships(scholData  || []);
+      setRequirementsMap(reqMap  || []);
+      setStudentReq(studData     || []);
+    } catch (err) { console.error(err); }
     setLoading(false);
   };
 
   const loadAcademic = async () => {
-    const { data } = await supabase
-      .from("academic_settings")
-      .select("*")
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .single();
-
+    const { data } = await supabase.from("academic_settings")
+      .select("*").order("updated_at", { ascending: false }).limit(1).single();
     setAcademic(data);
   };
 
-  const getApplication = (scholarshipId) =>
-    applications.find((a) => a.scholarship_id === scholarshipId);
+  // ── eligibility ─────────────────────────────────────────
+  const getApplication = (id) => applications.find((a) => a.scholarship_id === id);
 
   const isEligible = (scholarship) => {
     const required = requirementsMap
-      .filter(
-        (r) =>
-          r.scholarship_id === scholarship.scholarship_id &&
-          r.eligibility_requirement_id
-      )
+      .filter((r) => r.scholarship_id === scholarship.scholarship_id && r.eligibility_requirement_id)
       .map((r) => r.eligibility_requirement_id);
-
     if (!required.length) return true;
-
     return required.every((reqId) => {
       const match = studentReq.find((r) => r.eligibility_requirement_id === reqId);
       return match?.status === "Compliant";
     });
   };
 
-  const getNotEligibleReasons = (scholarship) => {
+  const getReasons = (scholarship) => {
     const required = requirementsMap.filter(
-      (r) =>
-        r.scholarship_id === scholarship.scholarship_id &&
-        r.eligibility_requirement_id
+      (r) => r.scholarship_id === scholarship.scholarship_id && r.eligibility_requirement_id
     );
-
-    const reasons = [];
-
-    required.forEach((r) => {
-      const studentRecord = studentReq.find(
-        (s) => s.eligibility_requirement_id === r.eligibility_requirement_id
-      );
-
-      const requirementName = r.requirement_name || "Requirement";
-
-      if (!studentRecord) {
-        reasons.push(`${requirementName} — Not submitted`);
-        return;
-      }
-
-      if (studentRecord.status !== "Compliant") {
-        reasons.push(`${requirementName} — ${studentRecord.status}`);
-      }
+    return required.flatMap((r) => {
+      const rec = studentReq.find((s) => s.eligibility_requirement_id === r.eligibility_requirement_id);
+      const name = r.requirement_name || "Requirement";
+      if (!rec)                      return [`${name} — Not submitted`];
+      if (rec.status !== "Compliant") return [`${name} — ${rec.status}`];
+      return [];
     });
-
-    return reasons;
   };
 
+  // ── apply modal ─────────────────────────────────────────
   const openApply = async (scholarship) => {
-    setFormError("");
     setSelectedScholarship(scholarship);
-    setShowForm(true);
     setFormMeta(null);
     setFormFields([]);
     setFormAnswers({});
+    answersRef.current = {};
+    setFormError("");
+    setFormLoading(true);
+    setShowForm(true);
 
     const { data: form } = await supabase
       .from("scholarship_application_forms")
-      .select("*")
-      .eq("scholarship_id", scholarship.scholarship_id)
-      .single();
+      .select("*").eq("scholarship_id", scholarship.scholarship_id).single();
 
     if (!form) {
       setFormError("No application form has been set up for this scholarship yet.");
+      setFormLoading(false);
       return;
     }
-
     setFormMeta(form);
 
     const { data: fields } = await supabase
-      .from("scholarship_form_fields")
-      .select("*")
-      .eq("form_id", form.form_id);
+      .from("scholarship_form_fields").select("*").eq("form_id", form.form_id);
 
     setFormFields(fields || []);
+    setFormLoading(false);
   };
 
   const closeApply = () => {
@@ -177,137 +140,103 @@ export default function Dashboard() {
     setFormMeta(null);
     setFormFields([]);
     setFormAnswers({});
+    answersRef.current = {};
     setFormError("");
   };
 
+  // onChange handler is stable — uses functional updater, not closing
+  // over formAnswers, so React never sees a "changed" handler reference
+  const handleAnswer = (fieldId, value) => {
+    setFormAnswers((prev) => ({ ...prev, [fieldId]: value }));
+  };
+
   const submitApplication = async () => {
-    const missing = formFields.filter((f) => !String(formAnswers[f.field_id] || "").trim());
-    if (missing.length > 0) {
+    const answers = answersRef.current;
+    const missing = formFields.filter((f) => !String(answers[f.field_id] || "").trim());
+    if (missing.length) {
       setFormError(`Please fill in: ${missing.map((f) => f.label).join(", ")}`);
       return;
     }
-
     setSubmitting(true);
     setFormError("");
 
     const { data: app, error: appError } = await supabase
       .from("scholarship_applications")
       .insert({
-        student_id: studentId,
+        student_id:    studentId,
         scholarship_id: selectedScholarship.scholarship_id,
-        status: "Pending",
-        academic_year: academic?.academic_year,
-        semester: academic?.semester,
-      })
-      .select()
-      .single();
+        status:         "Pending",
+        academic_year:  academic?.academic_year,
+        semester:       academic?.semester,
+      }).select().single();
 
-    if (appError) {
-      setFormError(appError.message);
-      setSubmitting(false);
-      return;
-    }
+    if (appError) { setFormError(appError.message); setSubmitting(false); return; }
 
-    const responses = Object.entries(formAnswers).map(([fieldId, answer]) => ({
-      application_id: app.application_id,
-      field_id: fieldId,
-      answer,
+    const responses = Object.entries(answers).map(([fieldId, answer]) => ({
+      application_id: app.application_id, field_id: fieldId, answer,
     }));
-
-    const { error: resError } = await supabase
-      .from("application_form_responses")
-      .insert(responses);
-
-    if (resError) {
-      setFormError(resError.message);
-      setSubmitting(false);
-      return;
-    }
+    const { error: resError } = await supabase.from("application_form_responses").insert(responses);
+    if (resError) { setFormError(resError.message); setSubmitting(false); return; }
 
     setSubmitting(false);
     closeApply();
     load();
   };
 
-  const eligible = scholarships.filter(isEligible);
-  const notEligible = scholarships.filter((s) => !isEligible(s));
+  const eligible    = scholarships.filter(isEligible);
+  const notEligible = scholarships.filter((sc) => !isEligible(sc));
 
   if (loading) return <PageLoader label="Loading your scholarships…" />;
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
+    <div className={s.page}>
+      <div className={s.header}>
         <h1>Scholarship Dashboard</h1>
-        <p className={styles.subtitle}>
-          Browse open scholarships and track which ones you currently qualify for.
-        </p>
+        <p className={s.subtitle}>Browse open scholarships and track which ones you qualify for.</p>
       </div>
 
-      {/* STATS */}
-      <div className={styles.statsRow}>
-        <Card className={styles.statCard}>
-          <div className={styles.statNumber}>{scholarships.length}</div>
-          <div className={styles.statLabel}>Total scholarships</div>
-        </Card>
-
-        <Card className={styles.statCard}>
-          <div className={`${styles.statNumber} ${styles.statSuccess}`}>
-            {eligible.length}
-          </div>
-          <div className={styles.statLabel}>You're eligible for</div>
-        </Card>
-
-        <Card className={styles.statCard}>
-          <div className={`${styles.statNumber} ${styles.statDanger}`}>
-            {notEligible.length}
-          </div>
-          <div className={styles.statLabel}>Not eligible yet</div>
-        </Card>
+      {/* stats */}
+      <div className={s.statsRow}>
+        <div className={s.statCard}>
+          <div className={s.statNum}>{scholarships.length}</div>
+          <div className={s.statLbl}>Total scholarships</div>
+        </div>
+        <div className={s.statCard}>
+          <div className={`${s.statNum} ${s.statSuccess}`}>{eligible.length}</div>
+          <div className={s.statLbl}>Eligible</div>
+        </div>
+        <div className={s.statCard}>
+          <div className={`${s.statNum} ${s.statDanger}`}>{notEligible.length}</div>
+          <div className={s.statLbl}>Not eligible yet</div>
+        </div>
       </div>
 
-      {/* ELIGIBLE */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>
-          <span className={styles.dotSuccess} /> Eligible scholarships
-        </h2>
-
+      {/* eligible */}
+      <section className={s.section}>
+        <h2 className={s.sectionTitle}><span className={s.dotSuccess} /> Eligible scholarships</h2>
         {eligible.length === 0 ? (
-          <Card>
-            <EmptyState
-              icon="🎓"
-              title="No eligible scholarships right now"
-              description="Once a scholarship's requirements match your compliance profile, it'll show up here ready to apply."
-            />
-          </Card>
+          <div className={s.emptyCard}>
+            <EmptyState icon="🎓" title="No eligible scholarships right now"
+              description="Once your compliance profile matches a scholarship's requirements, it'll appear here." />
+          </div>
         ) : (
           <TableWrap>
             <Table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Deadline</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Name</th><th>Description</th><th>Amount</th><th>Deadline</th><th>Action</th></tr></thead>
               <tbody>
-                {eligible.map((s) => {
-                  const application = getApplication(s.scholarship_id);
+                {eligible.map((sc) => {
+                  const app = getApplication(sc.scholarship_id);
                   return (
-                    <tr key={s.scholarship_id}>
-                      <td className={styles.nameCell}>{s.scholarship_name}</td>
-                      <td className={styles.descCell}>{s.description}</td>
-                      <td>₱{Number(s.amount || 0).toLocaleString()}</td>
-                      <td>{s.submission_deadline || "—"}</td>
+                    <tr key={sc.scholarship_id}>
+                      <td className={s.nameCell}>{sc.scholarship_name}</td>
+                      <td className={s.descCell}>{sc.description}</td>
+                      <td>₱{Number(sc.amount || 0).toLocaleString()}</td>
+                      <td>{sc.submission_deadline || "—"}</td>
                       <td>
-                        {application ? (
-                          <Badge status={application.status} />
-                        ) : (
-                          <Button size="sm" onClick={() => openApply(s)}>
-                            Apply
-                          </Button>
-                        )}
+                        {app
+                          ? <Badge status={app.status} />
+                          : <button className={s.applyBtn} onClick={() => openApply(sc)}>Apply</button>
+                        }
                       </td>
                     </tr>
                   );
@@ -318,51 +247,32 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* NOT ELIGIBLE */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>
-          <span className={styles.dotDanger} /> Not eligible yet
-        </h2>
-
+      {/* not eligible */}
+      <section className={s.section}>
+        <h2 className={s.sectionTitle}><span className={s.dotDanger} /> Not eligible yet</h2>
         {notEligible.length === 0 ? (
-          <Card>
-            <EmptyState
-              icon="✅"
-              title="You're eligible for everything currently listed"
-              description="Nice work keeping your compliance profile up to date."
-            />
-          </Card>
+          <div className={s.emptyCard}>
+            <EmptyState icon="✅" title="You're eligible for everything listed"
+              description="Nice work keeping your compliance profile up to date." />
+          </div>
         ) : (
           <TableWrap>
             <Table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Deadline</th>
-                  <th>Why not eligible</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Name</th><th>Description</th><th>Amount</th><th>Deadline</th><th>Why not eligible</th></tr></thead>
               <tbody>
-                {notEligible.map((s) => {
-                  const reasons = getNotEligibleReasons(s);
+                {notEligible.map((sc) => {
+                  const reasons = getReasons(sc);
                   return (
-                    <tr key={s.scholarship_id}>
-                      <td className={styles.nameCell}>{s.scholarship_name}</td>
-                      <td className={styles.descCell}>{s.description}</td>
-                      <td>₱{Number(s.amount || 0).toLocaleString()}</td>
-                      <td>{s.submission_deadline || "—"}</td>
+                    <tr key={sc.scholarship_id}>
+                      <td className={s.nameCell}>{sc.scholarship_name}</td>
+                      <td className={s.descCell}>{sc.description}</td>
+                      <td>₱{Number(sc.amount || 0).toLocaleString()}</td>
+                      <td>{sc.submission_deadline || "—"}</td>
                       <td>
-                        {reasons.length === 0 ? (
-                          <Badge tone="success">Eligible</Badge>
-                        ) : (
-                          <ul className={styles.reasonList}>
-                            {reasons.map((r, i) => (
-                              <li key={i}>{r}</li>
-                            ))}
-                          </ul>
-                        )}
+                        {reasons.length === 0
+                          ? <Badge tone="success">Eligible</Badge>
+                          : <ul className={s.reasonList}>{reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
+                        }
                       </td>
                     </tr>
                   );
@@ -373,81 +283,80 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* APPLY MODAL */}
-      <Modal
-        open={showForm}
-        onClose={closeApply}
-        title={selectedScholarship?.scholarship_name}
-        size="md"
-        footer={
-          <>
-            <Button variant="secondary" onClick={closeApply} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button
-              onClick={submitApplication}
-              loading={submitting}
-              disabled={!formMeta || formFields.length === 0}
-            >
-              Submit application
-            </Button>
-          </>
-        }
-      >
-        {!formMeta && !formError && (
-          <PageLoader label="Loading application form…" />
-        )}
+      {/* ── Apply modal ─────────────────────────────────────
+          Rendered directly here — NOT via the shared Modal component.
+          Keeping state and inputs in the same component means no props
+          cross component boundaries on every keystroke, so React never
+          re-creates input elements and focus is never lost.          */}
+      {showForm && (
+        <div className={s.overlay} onMouseDown={(e) => e.target === e.currentTarget && closeApply()}>
+          <div className={s.modal} role="dialog" aria-modal="true" aria-label="Apply for scholarship">
+            <div className={s.modalHead}>
+              <h2 className={s.modalTitle}>{selectedScholarship?.scholarship_name}</h2>
+              <button className={s.modalClose} onClick={closeApply} aria-label="Close">✕</button>
+            </div>
 
-        {formError && !formMeta && (
-          <p className={styles.formErrorBlock}>{formError}</p>
-        )}
+            <div className={s.modalBody}>
+              {formLoading && <PageLoader label="Loading application form…" />}
 
-        {formMeta && (
-          <>
-            {formMeta.form_title && (
-              <p className={styles.formSubtitle}>{formMeta.form_title}</p>
-            )}
+              {!formLoading && formError && !formMeta && (
+                <p className={s.errBlock}>{formError}</p>
+              )}
 
-            {formMeta.terms_and_conditions && (
-              <p className={styles.terms}>{formMeta.terms_and_conditions}</p>
-            )}
+              {!formLoading && formMeta && (
+                <>
+                  {formMeta.form_title && <p className={s.formSub}>{formMeta.form_title}</p>}
+                  {formMeta.terms_and_conditions && <p className={s.terms}>{formMeta.terms_and_conditions}</p>}
 
-            {academic && (
-              <div className={styles.academicBox}>
-                <strong>Current academic period</strong>
-                <span>
-                  {academic.academic_year} · {academic.semester}
-                </span>
-              </div>
-            )}
+                  {academic && (
+                    <div className={s.academicBox}>
+                      <strong>Academic period</strong>
+                      <span>{academic.academic_year} · {academic.semester}</span>
+                    </div>
+                  )}
 
-            {formFields.length === 0 ? (
-              <p className={styles.formErrorBlock}>
-                This scholarship doesn't have any application questions configured yet.
-              </p>
-            ) : (
-              <div className={styles.formFields}>
-                {formFields.map((field) => (
-                  <Field key={field.field_id} label={field.label} required>
-                    <Input
-                      type={field.field_type === "number" ? "number" : "text"}
-                      value={formAnswers[field.field_id] || ""}
-                      onChange={(e) =>
-                        setFormAnswers({
-                          ...formAnswers,
-                          [field.field_id]: e.target.value,
-                        })
-                      }
-                    />
-                  </Field>
-                ))}
-              </div>
-            )}
+                  {formFields.length === 0 ? (
+                    <p className={s.errBlock}>No questions configured for this scholarship yet.</p>
+                  ) : (
+                    <div className={s.fieldList}>
+                      {formFields.map((field) => (
+                        <div key={field.field_id} className={s.fieldItem}>
+                          <label className={s.fieldLabel} htmlFor={`ff-${field.field_id}`}>
+                            {field.label} <span className={s.req}>*</span>
+                          </label>
+                          {/* Plain <input> — no wrapper component, no prop drilling.
+                              handleAnswer uses a functional updater so the onChange
+                              reference is stable across re-renders. */}
+                          <input
+                            id={`ff-${field.field_id}`}
+                            className={s.fieldInput}
+                            type={field.field_type === "number" ? "number" : "text"}
+                            value={formAnswers[field.field_id] || ""}
+                            onChange={(e) => handleAnswer(field.field_id, e.target.value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-            {formError && <p className={styles.formErrorInline}>{formError}</p>}
-          </>
-        )}
-      </Modal>
+                  {formError && <p className={s.errInline}>{formError}</p>}
+                </>
+              )}
+            </div>
+
+            <div className={s.modalFoot}>
+              <button className={s.btnSecondary} onClick={closeApply} disabled={submitting}>Cancel</button>
+              <button
+                className={s.btnPrimary}
+                onClick={submitApplication}
+                disabled={submitting || !formMeta || formFields.length === 0}
+              >
+                {submitting ? "Submitting…" : "Submit application"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
