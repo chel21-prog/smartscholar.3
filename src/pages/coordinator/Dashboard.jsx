@@ -75,7 +75,7 @@ export default function CoordinatorDashboard() {
   const [reportLayout,   setReportLayout]  = useState("portrait");
   const [reportTitle,    setReportTitle]   = useState("SCHOLARSHIP REPORT");
   const [columns,        setColumns]       = useState({ schoolId:true, studentName:true, scholarship:true, course:true, yearLevel:true, academicYear:true, semester:true, status:true });
-  const [signatories,    setSignatories]   = useState([{ name:"", position:"" }]);
+  const [signatories,    setSignatories]   = useState([{ label:"", name:"", position:"" }]);
   const [filterOptions,  setFilterOptions] = useState({ scholarships:[], courses:[], yearLevels:[], statuses:[], academicYears:[] });
   const [reportFilters,  setReportFilters] = useState({ academicYear:"All", semester:"All", scholarship:"All", course:"All", yearLevel:"All", status:"All" });
 
@@ -265,9 +265,9 @@ export default function CoordinatorDashboard() {
       schoolId:     "School ID",
       studentName:  "Name",
       scholarship:  "Scholarship",
-      course:       "Program",
-      yearLevel:    "Year Level",
-      academicYear: "Academic Year",
+      course:       "Course",
+      yearLevel:    "Year",
+      academicYear: "Acad. Year",
       semester:     "Semester",
       status:       "Status",
     };
@@ -300,7 +300,7 @@ export default function CoordinatorDashboard() {
         lineWidth:    0.18,
         font:         "helvetica",
         overflow:     "linebreak",
-        minCellWidth: 22,
+        minCellWidth: 18,
       },
       headStyles: {
         fillColor:   NAVY,
@@ -337,49 +337,54 @@ export default function CoordinatorDashboard() {
     // ── Signatories (only if at least one has content) ────────────────────
     const validSigs = signatories.filter(s => s.name.trim() || s.position.trim());
     if (validSigs.length > 0) {
-      let y = (doc.lastAutoTable.finalY || 140) + 18;
+      let y = (doc.lastAutoTable.finalY || 140) + 14;
 
-      if (y + 30 > ph - FOOTER_H - 10) {
+      if (y + 45 > ph - FOOTER_H - 10) {
         doc.addPage();
         drawHeader();
         drawFooter(doc.internal.getNumberOfPages());
         y = HEADER_H + 20;
       }
 
-      doc.setTextColor(...NAVY);
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.text("PREPARED AND CERTIFIED BY:", 14, y);
-
-      y += 12;
-      const sigW = (pw - 28) / validSigs.length;
+      // Each signatory gets a fixed-width column starting from the left.
+      // Max 3 per row so they never get too narrow.
+      const COL_W    = 60;   // mm per signatory column
+      const LINE_W   = 52;   // width of the signature line
+      const SIG_H    = 18;   // blank space above the line for the actual signature
 
       validSigs.forEach((sig, i) => {
-        const x      = 14 + i * sigW;
-        const slotCx = x + (sigW - 4) / 2;   // center of this slot
-        const lineHalf = 30;                   // half-width of the signature line
+        const x = 14 + i * (COL_W + 4);
 
-        // Line — only if name is filled
+        // Label (e.g. "Prepared by") — small caps above everything
+        if (sig.label) {
+          doc.setTextColor(...MUTED);
+          doc.setFontSize(7.5); doc.setFont("helvetica", "bold");
+          doc.text(sig.label.toUpperCase(), x, y);
+        }
+
+        // Blank space for the actual handwritten signature
+        // (SIG_H mm of empty space between label and the line)
+        const lineY = y + SIG_H;
+
+        // Signature line — only if name is provided
         if (sig.name.trim()) {
           doc.setDrawColor(...NAVY);
-          doc.setLineWidth(0.6);
-          doc.line(slotCx - lineHalf, y, slotCx + lineHalf, y);
+          doc.setLineWidth(0.5);
+          doc.line(x, lineY, x + LINE_W, lineY);
         }
 
-        // Name — centered below the line
+        // Name — bold, left-aligned, just below the line
         if (sig.name.trim()) {
           doc.setTextColor(...NAVY);
-          doc.setFontSize(9);
-          doc.setFont("helvetica", "bold");
-          doc.text(sig.name.toUpperCase(), slotCx, y + 6, { align: "center" });
+          doc.setFontSize(8.5); doc.setFont("helvetica", "bold");
+          doc.text(sig.name.toUpperCase(), x, lineY + 5);
         }
 
-        // Position — centered below the name
+        // Position — muted, left-aligned, below the name
         if (sig.position.trim()) {
           doc.setTextColor(...BODY);
-          doc.setFontSize(8);
-          doc.setFont("helvetica", "normal");
-          doc.text(sig.position, slotCx, y + 12, { align: "center" });
+          doc.setFontSize(7.5); doc.setFont("helvetica", "normal");
+          doc.text(sig.position, x, lineY + 11);
         }
       });
     }
@@ -415,7 +420,7 @@ export default function CoordinatorDashboard() {
             </select>
           </div>
           <button style={st.btnGreen} onClick={()=>setShowReportModal(true)}>
-            Generate Report
+            📄 Generate Report
           </button>
         </div>
       </div>
@@ -617,22 +622,43 @@ export default function CoordinatorDashboard() {
               {/* Signatories */}
               <div>
                 <p style={st.sectionLabel}>Signatories <span style={{fontWeight:400,textTransform:"none",letterSpacing:0,color:"var(--text-secondary)"}}>— leave blank to omit from PDF</span></p>
-                {signatories.map((sig,i)=>(
-                  <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
-                    <input style={{...st.inp,flex:1}} placeholder="Full name" value={sig.name}
-                      onChange={e=>updateSignatory(i,"name",e.target.value)} />
-                    <input style={{...st.inp,flex:1}} placeholder="Position / Title" value={sig.position}
-                      onChange={e=>updateSignatory(i,"position",e.target.value)} />
-                    {signatories.length>1 && (
-                      <button onClick={()=>setSignatories(signatories.filter((_,idx)=>idx!==i))}
-                        style={{padding:"8px 12px",background:"var(--danger-50)",color:"var(--danger-700)",border:"1px solid var(--danger-100)",borderRadius:8,cursor:"pointer",fontWeight:600,fontSize:13,whiteSpace:"nowrap"}}>
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button onClick={()=>setSignatories([...signatories,{name:"",position:""}])}
-                  style={{marginTop:4,padding:"7px 14px",background:"var(--gold-50)",color:"var(--gold-700)",border:"1px solid var(--gold-100)",borderRadius:8,cursor:"pointer",fontWeight:600,fontSize:13}}>
+                <div style={{display:"grid", gridTemplateColumns:`repeat(${signatories.length}, 1fr)`, gap:12, marginBottom:10}}>
+                  {signatories.map((sig,i)=>(
+                    <div key={i} style={{display:"flex",flexDirection:"column",gap:6,background:"var(--surface-muted)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px",position:"relative"}}>
+                      {signatories.length>1 && (
+                        <button onClick={()=>setSignatories(signatories.filter((_,idx)=>idx!==i))}
+                          style={{position:"absolute",top:8,right:8,width:22,height:22,background:"var(--danger-50)",color:"var(--danger-700)",border:"1px solid var(--danger-100)",borderRadius:6,cursor:"pointer",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>
+                          ✕
+                        </button>
+                      )}
+                      <div>
+                        <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:".3px",display:"block",marginBottom:4}}>Label</label>
+                        <select style={{...st.inp,height:38,fontSize:13}} value={sig.label}
+                          onChange={e=>updateSignatory(i,"label",e.target.value)}>
+                          <option value="">Select label…</option>
+                          <option value="Prepared by">Prepared by</option>
+                          <option value="Reviewed by">Reviewed by</option>
+                          <option value="Approved by">Approved by</option>
+                          <option value="Certified by">Certified by</option>
+                          <option value="Noted by">Noted by</option>
+                          <option value="Verified by">Verified by</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:".3px",display:"block",marginBottom:4}}>Full Name</label>
+                        <input style={{...st.inp,height:38,fontSize:13}} placeholder="e.g. Juan Dela Cruz" value={sig.name}
+                          onChange={e=>updateSignatory(i,"name",e.target.value)} />
+                      </div>
+                      <div>
+                        <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:".3px",display:"block",marginBottom:4}}>Position / Title</label>
+                        <input style={{...st.inp,height:38,fontSize:13}} placeholder="e.g. Scholarship Coordinator" value={sig.position}
+                          onChange={e=>updateSignatory(i,"position",e.target.value)} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={()=>setSignatories([...signatories,{label:"",name:"",position:""}])}
+                  style={{padding:"7px 14px",background:"var(--gold-50)",color:"var(--gold-700)",border:"1px solid var(--gold-100)",borderRadius:8,cursor:"pointer",fontWeight:600,fontSize:13}}>
                   + Add Signatory
                 </button>
               </div>
