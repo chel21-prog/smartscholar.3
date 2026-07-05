@@ -3,1688 +3,720 @@ import { supabase } from "@/lib/supabase";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+// ─── stable style objects defined outside the component ──────────────────────
+const st = {
+  container:   { padding: 10 },
+  header:      { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:30, flexWrap:"wrap", gap:12 },
+  headerRight: { display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" },
+  title:       { margin:0, fontSize:28, fontWeight:700, color:"var(--text-primary)" },
+  periodItem:  { display:"flex", alignItems:"center", gap:8 },
+  periodInput: { padding:"6px 10px", border:"1px solid var(--border-strong)", borderRadius:6, fontSize:14, minWidth:150, background:"var(--surface)", color:"var(--text-primary)" },
+  cardGrid:    { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:20, marginBottom:30 },
+  card:        { background:"var(--surface)", borderRadius:12, padding:20, boxShadow:"var(--shadow-sm)", border:"1px solid var(--border)" },
+  cardLabel:   { fontSize:14, color:"var(--text-secondary)", marginBottom:10 },
+  cardValue:   { fontSize:32, fontWeight:700, color:"var(--text-primary)" },
+  infoGrid:    { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:20, marginBottom:30 },
+  infoCard:    { background:"var(--surface)", borderRadius:12, padding:10, boxShadow:"var(--shadow-sm)", border:"1px solid var(--border)", height:260, display:"flex", flexDirection:"column" },
+  infoTitle:   { marginBottom:15, fontSize:18, fontWeight:600, color:"var(--text-primary)", padding:"0 6px" },
+  infoRow:     { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 6px", borderBottom:"1px solid var(--border)" },
+  cardContent: { flex:1, overflow:"auto", paddingRight:6, scrollbarWidth:"none" },
+  countBadge:  { borderRadius:20, padding:"3px 10px", fontSize:13, fontWeight:600, color:"#fff" },
+  overlay:     { position:"fixed", inset:0, background:"rgba(10,21,32,.55)", backdropFilter:"blur(2px)", display:"flex", justifyContent:"center", alignItems:"center", zIndex:9999, padding:20 },
+  modal:       { background:"var(--surface)", width:"100%", maxWidth:900, maxHeight:"90vh", overflowY:"auto", borderRadius:16, boxShadow:"var(--shadow-xl)", border:"1px solid var(--border)", display:"flex", flexDirection:"column" },
+  modalHead:   { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"20px 28px", borderBottom:"1px solid var(--border)", flexShrink:0 },
+  modalTitle:  { margin:0, fontSize:20, fontWeight:700, color:"var(--text-primary)" },
+  modalBody:   { flex:1, overflowY:"auto", padding:"24px 28px", display:"flex", flexDirection:"column", gap:20 },
+  modalFoot:   { display:"flex", justifyContent:"flex-end", gap:10, padding:"16px 28px", borderTop:"1px solid var(--border)", flexShrink:0 },
+  closeBtn:    { width:32, height:32, border:"none", borderRadius:8, background:"var(--surface-muted)", color:"var(--text-secondary)", fontSize:14, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" },
+  btnGreen:    { padding:"10px 18px", background:"#16a34a", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:14 },
+  btnRed:      { padding:"10px 18px", background:"var(--surface)", color:"var(--text-primary)", border:"1px solid var(--border-strong)", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:14 },
+  btnBlue:     { padding:"10px 18px", background:"var(--navy-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:14 },
+  btnSm:       { padding:"6px 12px", background:"var(--navy-600)", color:"#fff", border:"none", borderRadius:6, fontWeight:600, cursor:"pointer", fontSize:12 },
+  sectionLabel:{ fontSize:12, fontWeight:700, color:"var(--text-secondary)", textTransform:"uppercase", letterSpacing:".5px", marginBottom:8 },
+  // form elements inside the modal — defined here so they never re-create in JSX
+  sel:         { width:"100%", height:42, padding:"0 12px", background:"var(--surface)", color:"var(--text-primary)", border:"1px solid var(--border-strong)", borderRadius:8, fontSize:14, outline:"none" },
+  inp:         { width:"100%", height:42, padding:"0 12px", boxSizing:"border-box", background:"var(--surface)", color:"var(--text-primary)", border:"1px solid var(--border-strong)", borderRadius:8, fontSize:14, outline:"none" },
+  checkLabel:  { display:"flex", alignItems:"center", gap:8, padding:"8px 12px", border:"1px solid var(--border)", borderRadius:8, background:"var(--surface)", fontSize:14, color:"var(--text-primary)", cursor:"pointer" },
+  previewWrap: { border:"1px solid var(--border)", borderRadius:10, overflow:"auto", maxHeight:280, background:"var(--surface)" },
+  previewTable:{ width:"100%", borderCollapse:"collapse", fontSize:12, minWidth:600 },
+  previewTh:   { background:"var(--navy-900)", color:"#fff", padding:"10px 12px", textAlign:"left", fontWeight:600, fontSize:11, textTransform:"uppercase", letterSpacing:".3px", whiteSpace:"nowrap" },
+  previewTd:   { padding:"8px 12px", borderBottom:"1px solid var(--border)", color:"var(--text-primary)", verticalAlign:"middle" },
+  sigRow:      { display:"flex", gap:8, alignItems:"center", marginBottom:8 },
+  studentCard: { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:18, background:"var(--surface-muted)", padding:20, borderRadius:10, marginBottom:15, border:"1px solid var(--border)" },
+  badge:       { display:"inline-block", padding:"4px 12px", borderRadius:999, fontSize:12, fontWeight:600 },
+  answersWrap: { display:"flex", flexDirection:"column", gap:12, maxHeight:400, overflowY:"auto", scrollbarWidth:"none" },
+  answerCard:  { border:"1px solid var(--border)", borderRadius:8, padding:15, background:"var(--surface)" },
+  question:    { fontWeight:600, marginBottom:8, color:"var(--text-primary)", fontSize:12, textTransform:"uppercase", letterSpacing:".3px" },
+  answer:      { color:"var(--text-secondary)", lineHeight:1.6 },
+};
+
+const COLUMN_LABELS = {
+  schoolId:     "School ID",
+  studentName:  "Student Name",
+  scholarship:  "Scholarship",
+  course:       "Course",
+  yearLevel:    "Year Level",
+  academicYear: "Academic Year",
+  semester:     "Semester",
+  status:       "Status",
+};
+
 export default function CoordinatorDashboard() {
-  const [applications, setApplications] = useState([]);
-  const [selectedApp, setSelectedApp] = useState(null);
-  const [answers, setAnswers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [academic, setAcademic] = useState(null);
-  const [scholarStats, setScholarStats] = useState([]);
+  const [applications,   setApplications]   = useState([]);
+  const [selectedApp,    setSelectedApp]    = useState(null);
+  const [answers,        setAnswers]        = useState([]);
+  const [loading,        setLoading]        = useState(true);
+  const [academic,       setAcademic]       = useState(null);
+  const [scholarStats,   setScholarStats]   = useState([]);
   const [upcomingDeadlines, setUpcomingDeadlines] = useState([]);
-const [showReportModal, setShowReportModal] = useState(false);
-const [form, setForm] = useState({
-  academic_year: "",
-  semester: "",
-});
-// Pagination
+  const [showReportModal,setShowReportModal]= useState(false);
+  const [generating,     setGenerating]    = useState(false);
+  const [form,           setForm]          = useState({ academic_year:"", semester:"" });
+  const [reportLayout,   setReportLayout]  = useState("portrait");
+  const [reportTitle,    setReportTitle]   = useState("SCHOLARSHIP REPORT");
+  const [columns,        setColumns]       = useState({ schoolId:true, studentName:true, scholarship:true, course:true, yearLevel:true, academicYear:true, semester:true, status:true });
+  const [signatories,    setSignatories]   = useState([{ name:"", position:"" }]);
+  const [filterOptions,  setFilterOptions] = useState({ scholarships:[], courses:[], yearLevels:[], statuses:[], academicYears:[] });
+  const [reportFilters,  setReportFilters] = useState({ academicYear:"All", semester:"All", scholarship:"All", course:"All", yearLevel:"All", status:"All" });
 
-const [reportLayout, setReportLayout] = useState("portrait");
-
-const [columns, setColumns] = useState({
-  schoolId: true,
-  studentName: true,
-  scholarship: true,
-  course: true,
-  yearLevel: true,
-  academicYear: true,
-  semester: true,
-  status: true,
-});
-
-const [signatories, setSignatories] = useState([
-  {
-    name: "",
-    position: "",
-  },
-]);
-
-const [filterOptions, setFilterOptions] = useState({
-  scholarships: [],
-  courses: [],
-  yearLevels: [],
-  statuses: [],
-  academicYears: [],
-});
-
-
-  useEffect(() => {
-  load();
-  loadAcademic();
-  loadScholarStats();
-  loadUpcomingDeadlines();
-}, []);
+  useEffect(() => { load(); loadAcademic(); loadScholarStats(); loadUpcomingDeadlines(); }, []);
 
   const load = async () => {
     setLoading(true);
-
-    const { data } = await supabase
-  .from("scholarship_applications")
-  .select(`
-    application_id,
-    status,
-    application_date,
-    scholarship_id,
-    academic_year,
-    semester,
-    students (
-      school_id,
-      course,
-      year_level,
-
-      users (
-        first_name,
-        middle_name,
-        last_name
-      )
-    ),
-
-    scholarships (
-      scholarship_name
-    )
-  `)
-  .order("application_date", { ascending: false });
-
-    setApplications(data || []);
-    const scholarships = [
-  ...new Set(
-    (data || []).map(
-      (a) => a.scholarships?.scholarship_name
-    )
-  ),
-];
-
-const courses = [
-  ...new Set(
-    (data || []).map(
-      (a) => a.students?.course
-    )
-  ),
-];
-
-const yearLevels = [
-  ...new Set(
-    (data || []).map(
-      (a) => a.students?.year_level
-    )
-  ),
-];
-
-const statuses = [
-  ...new Set(
-    (data || []).map(
-      (a) => a.status
-    )
-  ),
-];
-
-const academicYears = [
-  ...new Set(
-    (data || [])
-      .map((a) => a.academic_year)
-      .filter(Boolean)
-  ),
-];
-
-setFilterOptions({
-  scholarships,
-  courses,
-  yearLevels,
-  statuses,
-  academicYears,
-});
-
-
+    const { data } = await supabase.from("scholarship_applications").select(`
+      application_id,status,application_date,scholarship_id,academic_year,semester,
+      students(school_id,course,year_level,users(first_name,middle_name,last_name)),
+      scholarships(scholarship_name)
+    `).order("application_date",{ascending:false});
+    setApplications(data||[]);
+    const d = data||[];
+    setFilterOptions({
+      scholarships: [...new Set(d.map(a=>a.scholarships?.scholarship_name).filter(Boolean))],
+      courses:      [...new Set(d.map(a=>a.students?.course).filter(Boolean))],
+      yearLevels:   [...new Set(d.map(a=>a.students?.year_level).filter(Boolean))],
+      statuses:     [...new Set(d.map(a=>a.status).filter(Boolean))],
+      academicYears:[...new Set(d.map(a=>a.academic_year).filter(Boolean))],
+    });
     setLoading(false);
   };
-  
-  const [reportFilters, setReportFilters] = useState({
-  reportType: "grantees",
-  academicYear: "All",
-  semester: "All",
-  scholarship: "All",
-  course: "All",
-  yearLevel: "All",
-  status: "All",
-});
+
+  const loadAcademic = async () => {
+    const { data } = await supabase.from("academic_settings").select("*").order("updated_at",{ascending:false}).limit(1).single();
+    if (data) { setAcademic(data); setForm({ academic_year:data.academic_year, semester:data.semester }); }
+  };
 
   const loadScholarStats = async () => {
-  // Get all scholarships with slot capacity
-  const { data: scholarships, error: scholarshipError } =
-    await supabase
-      .from("scholarships")
-      .select(`
-        scholarship_id,
-        scholarship_name,
-        slots
-      `);
+    const [{ data:scholarships }, { data:grantees }] = await Promise.all([
+      supabase.from("scholarships").select("scholarship_id,scholarship_name,slots"),
+      supabase.from("grantees").select("scholarship_id,status"),
+    ]);
+    setScholarStats((scholarships||[]).map(s=>({
+      ...s, occupied:(grantees||[]).filter(g=>g.scholarship_id===s.scholarship_id&&g.status==="Active").length,
+    })));
+  };
 
-  if (scholarshipError) {
-    console.error(scholarshipError);
-    return;
-  }
+  const loadUpcomingDeadlines = async () => {
+    const { data } = await supabase.from("scholarships").select("scholarship_name,submission_deadline")
+      .eq("status","Active").order("submission_deadline",{ascending:true}).limit(5);
+    setUpcomingDeadlines(data||[]);
+  };
 
-  // Get every grantee
-  const { data: grantees, error: granteeError } =
-    await supabase
-      .from("grantees")
-      .select(`
-        scholarship_id,
-        status
-      `);
+  const saveAcademic = async () => {
+    if (!academic) return;
+    await supabase.from("academic_settings").update({ academic_year:form.academic_year, semester:form.semester, updated_at:new Date().toISOString() }).eq("id",academic.id);
+    setAcademic({...academic,...form});
+  };
 
-  if (granteeError) {
-    console.error(granteeError);
-    return;
-  }
+  const saveSemester = async (val) => {
+    const f = {...form,semester:val}; setForm(f);
+    if (!academic) return;
+    await supabase.from("academic_settings").update({ ...f, updated_at:new Date().toISOString() }).eq("id",academic.id);
+    setAcademic({...academic,...f});
+  };
 
-  const stats = scholarships.map((scholarship) => {
-    const occupied = grantees.filter(
-      (g) =>
-        g.scholarship_id === scholarship.scholarship_id &&
-        g.status === "Active"
-    ).length;
+  const viewAnswers = async (app) => {
+    setSelectedApp(app);
+    const { data } = await supabase.from("application_form_responses").select("answer,scholarship_form_fields(label)").eq("application_id",app.application_id);
+    setAnswers(data||[]);
+  };
 
-    return {
-      scholarship_id: scholarship.scholarship_id,
-      scholarship_name: scholarship.scholarship_name,
-      occupied,
-      slots: scholarship.slots,
-    };
-  });
+  const updateSignatory = (i, field, value) => {
+    const updated = signatories.map((s,idx)=>idx===i?{...s,[field]:value}:s);
+    setSignatories(updated);
+  };
 
-  setScholarStats(stats);
-};
-
-const loadUpcomingDeadlines = async () => {
-  const { data, error } = await supabase
-    .from("scholarships")
-    .select(`
-      scholarship_name,
-      submission_deadline
-    `)
-    .eq("status", "Active")
-    .order("submission_deadline", { ascending: true })
-    .limit(5);
-
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  setUpcomingDeadlines(data || []);
-};
-
-const loadImage = (src) => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = src;
-    img.onload = () => resolve(img);
-  });
-};
-
-const filteredApplications =
-  applications.filter((a) => {
-
-    if (
-      reportFilters.scholarship !== "All" &&
-      a.scholarships?.scholarship_name !==
-        reportFilters.scholarship
-    )
-      return false;
-
-    if (
-      reportFilters.course !== "All" &&
-      a.students?.course !==
-        reportFilters.course
-    )
-      return false;
-
-    if (
-      reportFilters.yearLevel !== "All" &&
-      String(a.students?.year_level) !==
-        reportFilters.yearLevel
-    )
-      return false;
-
-    if (
-      reportFilters.status !== "All" &&
-      a.status !== reportFilters.status
-    )
-      return false;
-
-    if (
-  reportFilters.academicYear !== "All" &&
-  a.academic_year !== reportFilters.academicYear
-)
-  return false;
-
-if (
-  reportFilters.semester &&
-  reportFilters.semester !== "All" &&
-  a.semester !== reportFilters.semester
-)
-  return false;
-
+  const filtered = applications.filter(a=>{
+    if (reportFilters.scholarship!=="All" && a.scholarships?.scholarship_name!==reportFilters.scholarship) return false;
+    if (reportFilters.course!=="All"      && a.students?.course!==reportFilters.course) return false;
+    if (reportFilters.yearLevel!=="All"   && String(a.students?.year_level)!==reportFilters.yearLevel) return false;
+    if (reportFilters.status!=="All"      && a.status!==reportFilters.status) return false;
+    if (reportFilters.academicYear!=="All"&& a.academic_year!==reportFilters.academicYear) return false;
+    if (reportFilters.semester && reportFilters.semester!=="All" && a.semester!==reportFilters.semester) return false;
     return true;
   });
 
-  
-const generatePDF = async () => {
-  const doc = new jsPDF(
-    reportLayout === "landscape"
-      ? "landscape"
-      : "portrait"
-  );
+  // ── PDF generation ────────────────────────────────────────────────────────
+  const generatePDF = async () => {
+    setGenerating(true);
 
-  // Load images from public folder
-  const headerImg = await loadImage("/header.png");
-  const footerImg = await loadImage("/footer.png");
+    const isLandscape = reportLayout === "landscape";
+    const doc = new jsPDF({ orientation: isLandscape ? "landscape" : "portrait", unit: "mm" });
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
+    const pw = doc.internal.pageSize.getWidth();
+    const ph = doc.internal.pageSize.getHeight();
 
-  const headers = [];
+    const NAVY  = [13,  43,  74];
+    const GOLD  = [195, 158, 88];
+    const WHITE = [255, 255, 255];
+    const LIGHT = [243, 247, 251];
+    const BODY  = [44,  62,  77];
+    const MUTED = [100, 116, 132];
 
-  if (columns.schoolId) headers.push("School ID");
-  if (columns.studentName) headers.push("Student Name");
-  if (columns.scholarship) headers.push("Scholarship");
-  if (columns.course) headers.push("Course");
-  if (columns.yearLevel) headers.push("Year Level");
-  if (columns.academicYear) headers.push("Academic Year");
-  if (columns.semester) headers.push("Semester");
-  if (columns.status) headers.push("Status");
-
-
-  
-  const rows = filteredApplications.map((a) => {
-    const row = [];
-
-    if (columns.schoolId)
-      row.push(a.students?.school_id);
-
-    if (columns.studentName)
-      row.push(
-        `${a.students?.users?.first_name || ""} ${
-          a.students?.users?.last_name || ""
-        }`
-      );
-
-    if (columns.scholarship)
-      row.push(a.scholarships?.scholarship_name);
-
-    if (columns.course)
-      row.push(a.students?.course);
-
-    if (columns.yearLevel)
-      row.push(a.students?.year_level);
-
-    if (columns.academicYear)
-    row.push(a.academic_year);
-
-    if (columns.semester)
-    row.push(a.semester);
-
-    if (columns.status)
-      row.push(a.status);
-
-    return row;
-  });
-
-  // Header
-  doc.addImage(
-    headerImg,
-    "PNG",
-    0,
-    0,
-    pageWidth,
-    25
-  );
-
-  doc.setFontSize(14);
-  doc.text(
-    "Scholarship Report",
-    pageWidth / 2,
-    35,
-    { align: "center" }
-  );
-
-  autoTable(doc, {
-    head: [headers],
-    body: rows,
-    startY: 45,
-
-    margin: {
-      top: 40,
-      bottom: 30,
-    },
-
-    didDrawPage: (data) => {
-      // Header every page
-      doc.addImage(
-        headerImg,
-        "PNG",
-        0,
-        0,
-        pageWidth,
-        25
-      );
-
-      // Footer every page
-      doc.addImage(
-        footerImg,
-        "PNG",
-        0,
-        pageHeight - 20,
-        pageWidth,
-        20
-      );
-
-      // Page Number
-      doc.setFontSize(10);
-      doc.text(
-        `Page ${doc.internal.getNumberOfPages()}`,
-        pageWidth - 20,
-        pageHeight - 8
-      );
-    },
-  });
-
-  // Signatories
-  let y =
-    doc.lastAutoTable.finalY + 20;
-
-  signatories.forEach((s, index) => {
-    const x =
-      20 +
-      index *
-        ((pageWidth - 40) /
-          signatories.length);
-
-    doc.line(x, y, x + 50, y);
-
-    doc.text(
-      s.name || "",
-      x,
-      y + 5
-    );
-
-    doc.text(
-      s.position || "",
-      x,
-      y + 12
-    );
-  });
-
-  doc.save("Scholarship_Report.pdf");
-};
-
-
-
-const exportReport = async () => {
-  const { data, error } = await supabase
-.from("grantees")
-.select(`
-  semester,
-  academic_year,
-
-  students (
-  student_id,
-  school_id,
-  course,
-  year_level,
-
-  users (
-    first_name,
-    middle_name,
-    last_name
-  )
-),
-
-  scholarships (
-    scholarship_name,
-    amount
-  )
-`)
-.order("scholarship_id");
-
-if (error) {
-  alert(error.message);
-  return;
-}
-
-const doc = new jsPDF("landscape");
-
-doc.setFontSize(14);
-
-doc.text(
-  `MASTERLIST OF SCHOLARS/GRANTEES, AY ${academic?.academic_year}`,
-  14,
-  15
-);
-
-const rows = data.map((g, index) => [
-
-  g.scholarships?.scholarship_name,
-
-  index + 1,
-
-  g.students?.users?.last_name,
-
-  g.students?.users?.first_name,
-
-  g.students?.users?.middle_name
-    ?.charAt(0)
-    .toUpperCase() || "",
-
-  g.students?.course,
-
-  g.students?.year_level,
-
-  g.students?.year_level,
-
-  g.scholarships?.amount,
-
-  g.semester
-
-]);
-
-autoTable(doc, {
-
-  head: [[
-    "Scholarship Grant",
-    "Seq",
-    "Last",
-    "First",
-    "MI",
-    "Program",
-    "Year",
-    "Level",
-    "Amount",
-    "Granted/Sem"
-  ]],
-
-  body: rows,
-
-  startY: 25,
-
-  theme: "grid",
-
-  styles: {
-    fontSize: 8
-  }
-
-});
-
-doc.save(
-  `Masterlist_${academic?.academic_year}.pdf`
-);
-
-};
-
-  const loadAcademic = async () => {
-  const { data, error } = await supabase
-    .from("academic_settings")
-    .select("*")
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .single();
-
-  if (!error && data) {
-    setAcademic(data);
-
-    setForm({
-      academic_year: data.academic_year,
-      semester: data.semester,
+    const loadImg = (src) => new Promise(resolve => {
+      const img = new Image(); img.src = src;
+      img.onload  = () => resolve(img);
+      img.onerror = () => resolve(null);
     });
-  }
-};
+    const [headerImg, footerImg] = await Promise.all([
+      loadImg("/header.png"),
+      loadImg("/footer.png"),
+    ]);
 
-const updateStatus = async (id, status) => {
-  const { error } = await supabase
-    .from("scholarship_applications")
-    .update({ status })
-    .eq("application_id", id);
+    const HEADER_H = headerImg ? 30 : 22;
+    const FOOTER_H = footerImg ? 18 : 14;
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+    // ── reusable header / footer ──────────────────────────────────────────
+    const drawHeader = () => {
+      doc.setFillColor(...NAVY);
+      doc.rect(0, 0, pw, HEADER_H, "F");
 
-  load();
-};
+      if (headerImg) {
+        // fill the full page width — same fix as footer
+        doc.addImage(headerImg, "PNG", 0, 0, pw, HEADER_H);
+      } else {
+        doc.setTextColor(...WHITE);
+        doc.setFontSize(13); doc.setFont("helvetica", "bold");
+        doc.text("SmartScholar", pw / 2, HEADER_H / 2 - 2, { align: "center" });
+        doc.setFontSize(8);  doc.setFont("helvetica", "normal");
+        doc.text("Scholarship Management System", pw / 2, HEADER_H / 2 + 4, { align: "center" });
+      }
 
-  // VIEW ANSWERS
-  const viewAnswers = async (app) => {
-    
-    setSelectedApp(app);
+      doc.setFillColor(...GOLD);
+      doc.rect(0, HEADER_H, pw, 1.2, "F");
+    };
 
-    const { data } = await supabase
-      .from("application_form_responses")
-      .select(`
-        answer,
-        scholarship_form_fields (
-          label
-        )
-      `)
-      .eq("application_id", app.application_id);
+    const drawFooter = (pageNum) => {
+      doc.setFillColor(...GOLD);
+      doc.rect(0, ph - FOOTER_H - 1.2, pw, 1.2, "F");
+      doc.setFillColor(...NAVY);
+      doc.rect(0, ph - FOOTER_H, pw, FOOTER_H, "F");
 
-    setAnswers(data || []);
+      if (footerImg) {
+        // fill the full page width
+        doc.addImage(footerImg, "PNG", 0, ph - FOOTER_H, pw, FOOTER_H);
+      } else {
+        doc.setTextColor(...WHITE);
+        doc.setFontSize(7); doc.setFont("helvetica", "normal");
+        const dateStr = new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+        doc.text(`Generated: ${dateStr}`, 8, ph - FOOTER_H / 2 + 2);
+        doc.text("SmartScholar · For Official Use Only", pw / 2, ph - FOOTER_H / 2 + 2, { align: "center" });
+      }
+
+      // page number — bottom right, sitting just above the footer band
+      doc.setTextColor(...NAVY);
+      doc.setFontSize(7.5); doc.setFont("helvetica", "bold");
+      doc.text(`Page ${pageNum}`, pw - 14, ph - FOOTER_H - 4, { align: "right" });
+    };
+
+    // ── cover block ───────────────────────────────────────────────────────
+    drawHeader();
+    drawFooter(1);
+
+    const coverTitleY = HEADER_H + 22;
+
+    // light background panel — smaller, no pills/stat boxes below it
+    doc.setFillColor(...LIGHT);
+    doc.rect(14, HEADER_H + 6, pw - 28, 24, "F");
+
+    // main title
+    doc.setTextColor(...NAVY);
+    doc.setFontSize(20); doc.setFont("helvetica", "bold");
+    doc.text(reportTitle || "SCHOLARSHIP REPORT", pw / 2, coverTitleY, { align: "center" });
+
+    // gold underline
+    const tw = doc.getTextWidth(reportTitle || "SCHOLARSHIP REPORT");
+    doc.setDrawColor(...GOLD); doc.setLineWidth(1);
+    doc.line(pw / 2 - tw / 2, coverTitleY + 2, pw / 2 + tw / 2, coverTitleY + 2);
+
+    // subtitle (academic period)
+    const subLine = [
+      academic?.academic_year && `AY ${academic.academic_year}`,
+      academic?.semester,
+    ].filter(Boolean).join("  ·  ");
+    if (subLine) {
+      doc.setFontSize(9); doc.setFont("helvetica", "normal");
+      doc.setTextColor(...MUTED);
+      doc.text(subLine, pw / 2, coverTitleY + 10, { align: "center" });
+    }
+
+    // ── data table — starts right after the title block ───────────────────
+    // # column always first, then the selected columns
+    const SHORT_LABELS = {
+      schoolId:     "School ID",
+      studentName:  "Name",
+      scholarship:  "Scholarship",
+      course:       "Program",
+      yearLevel:    "Year Level",
+      academicYear: "Academic Year",
+      semester:     "Semester",
+      status:       "Status",
+    };
+    const headers = ["#", ...Object.entries(SHORT_LABELS).filter(([k]) => columns[k]).map(([, v]) => v)];
+    const rows = filtered.map((a, idx) => {
+      const row = [String(idx + 1)];
+      if (columns.schoolId)     row.push(a.students?.school_id || "—");
+      if (columns.studentName)  row.push(`${a.students?.users?.first_name || ""} ${a.students?.users?.last_name || ""}`.trim() || "—");
+      if (columns.scholarship)  row.push(a.scholarships?.scholarship_name || "—");
+      if (columns.course)       row.push(a.students?.course || "—");
+      if (columns.yearLevel)    row.push(String(a.students?.year_level || "—"));
+      if (columns.academicYear) row.push(a.academic_year || "—");
+      if (columns.semester)     row.push(a.semester || "—");
+      if (columns.status)       row.push(a.status || "—");
+      return row;
+    });
+
+    const statusColIdx = headers.indexOf("Status");
+
+    autoTable(doc, {
+      head:   [headers],
+      body:   rows,
+      startY: HEADER_H + 38,
+      margin: { top: HEADER_H + 3, bottom: FOOTER_H + 6, left: 14, right: 14 },
+      styles: {
+        fontSize:     8.5,
+        cellPadding:  { top: 5, bottom: 5, left: 5, right: 5 },
+        textColor:    BODY,
+        lineColor:    [210, 220, 228],
+        lineWidth:    0.18,
+        font:         "helvetica",
+        overflow:     "linebreak",
+        minCellWidth: 22,
+      },
+      headStyles: {
+        fillColor:   NAVY,
+        textColor:   WHITE,
+        fontStyle:   "bold",
+        fontSize:    7.5,
+        cellPadding: { top: 6, bottom: 6, left: 5, right: 5 },
+      },
+      alternateRowStyles: { fillColor: LIGHT },
+      // # column — narrow and centered
+      columnStyles: {
+        0: { halign: "center", cellWidth: 10, textColor: MUTED },
+      },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.column.index === statusColIdx && statusColIdx !== -1) {
+          const val = data.cell.raw;
+          data.cell.styles.fontStyle = "bold";
+          if      (val === "Approved") data.cell.styles.textColor = [22,  163, 74];
+          else if (val === "Rejected") data.cell.styles.textColor = [220, 38,  38];
+          else if (val === "Pending")  data.cell.styles.textColor = [217, 119, 6];
+          else if (val === "Active")   data.cell.styles.textColor = [22,  163, 74];
+          else                         data.cell.styles.textColor = MUTED;
+        }
+      },
+      didDrawPage: (data) => {
+        drawHeader();
+        drawFooter(data.pageNumber);
+      },
+    });
+
+    const ay  = academic?.academic_year?.replace(/[^a-zA-Z0-9]/g, "_") || "Report";
+    const sem = academic?.semester?.replace(/\s+/g, "_") || "";
+
+    // ── Signatories (only if at least one has content) ────────────────────
+    const validSigs = signatories.filter(s => s.name.trim() || s.position.trim());
+    if (validSigs.length > 0) {
+      let y = (doc.lastAutoTable.finalY || 140) + 18;
+
+      if (y + 30 > ph - FOOTER_H - 10) {
+        doc.addPage();
+        drawHeader();
+        drawFooter(doc.internal.getNumberOfPages());
+        y = HEADER_H + 20;
+      }
+
+      doc.setTextColor(...NAVY);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text("PREPARED AND CERTIFIED BY:", 14, y);
+
+      y += 12;
+      const sigW = (pw - 28) / validSigs.length;
+
+      validSigs.forEach((sig, i) => {
+        const x      = 14 + i * sigW;
+        const slotCx = x + (sigW - 4) / 2;   // center of this slot
+        const lineHalf = 30;                   // half-width of the signature line
+
+        // Line — only if name is filled
+        if (sig.name.trim()) {
+          doc.setDrawColor(...NAVY);
+          doc.setLineWidth(0.6);
+          doc.line(slotCx - lineHalf, y, slotCx + lineHalf, y);
+        }
+
+        // Name — centered below the line
+        if (sig.name.trim()) {
+          doc.setTextColor(...NAVY);
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "bold");
+          doc.text(sig.name.toUpperCase(), slotCx, y + 6, { align: "center" });
+        }
+
+        // Position — centered below the name
+        if (sig.position.trim()) {
+          doc.setTextColor(...BODY);
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "normal");
+          doc.text(sig.position, slotCx, y + 12, { align: "center" });
+        }
+      });
+    }
+
+    doc.save(`SmartScholar_Report_${ay}${sem ? "_" + sem : ""}.pdf`);
+    setGenerating(false);
   };
 
-  
-  const approveApplication = async (app) => {
-  // STEP 1: update status
-  const { error } = await supabase
-    .from("scholarship_applications")
-    .update({ status: "Approved" })
-    .eq("application_id", app.application_id);
+  const totalApplicants   = applications.length;
+  const totalGrantees     = scholarStats.reduce((s,x)=>s+(x.occupied||0),0);
+  const pendingCount      = applications.filter(a=>a.status==="Pending").length;
+  const totalScholarships = scholarStats.length;
 
-  if (error) return alert(error.message);
-
-  // STEP 2: insert into grantees table
-  const { error: insertError } = await supabase
-    .from("grantees")
-    .insert({
-  student_id: app.students.student_id,
-  scholarship_id: app.scholarship_id,
-  application_id: app.application_id,
-  status: "Active",
-
-  academic_year: app.academic_year,
-  semester: app.semester,
-})
-
-  if (insertError) {
-    return alert(insertError.message);
-  }
-
-  // STEP 3: update UI
-  setApplications((prev) =>
-    prev.map((a) =>
-      a.application_id === app.application_id
-        ? { ...a, status: "Approved" }
-        : a
-    )
-  );
-};
-
-  const saveAcademic = async () => {
-  if (!academic) return;
-
-  const { error } = await supabase
-    .from("academic_settings")
-    .update({
-      academic_year: form.academic_year,
-      semester: form.semester,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", academic.id);
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  setAcademic({
-    ...academic,
-    academic_year: form.academic_year,
-    semester: form.semester,
-  });
-};
-
-
-  if (loading) return <p style={styles.loading}>Loading...</p>;
-  
-  const addSignatory = () => {
-  setSignatories([
-    ...signatories,
-    {
-      name: "",
-      position: "",
-    },
-  ]);
-};
-
-const removeSignatory = (index) => {
-  setSignatories(
-    signatories.filter((_, i) => i !== index)
-  );
-};
-
-const updateSignatory = (index, field, value) => {
-  const updated = [...signatories];
-
-  updated[index][field] = value;
-
-  setSignatories(updated);
-};
-
-const totalApplicants = applications.length;
-
-const totalGrantees = scholarStats.reduce(
-  (sum, s) => sum + (s.occupied || 0),
-  0
-);
-
-const pendingApplications = applications.filter(
-  (a) => a.status === "Pending"
-).length;
-
-const totalScholarships = scholarStats.length;
+  if (loading) return <p style={{padding:20,color:"var(--text-secondary)"}}>Loading...</p>;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-  <h1 style={styles.title}>
-    Dashboard
-  </h1>
-
-  <div style={styles.headerRight}>
-
-    <div style={styles.periodItem}>
-  <label>AY</label>
-
-  <input
-    style={styles.periodInput}
-    value={form.academic_year}
-    onChange={(e) =>
-      setForm({
-        ...form,
-        academic_year: e.target.value,
-      })
-    }
-    onBlur={() => saveAcademic()}
-  />
-</div>
-
-<div style={styles.periodItem}>
-  <label>Semester</label>
-
-  <select
-    style={styles.periodInput}
-    value={form.semester}
-    onChange={async (e) => {
-  const updatedForm = {
-    ...form,
-    semester: e.target.value,
-  };
-
-  setForm(updatedForm);
-
-  if (!academic) return;
-
-  const { error } = await supabase
-    .from("academic_settings")
-    .update({
-      academic_year: updatedForm.academic_year,
-      semester: updatedForm.semester,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", academic.id);
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  setAcademic(updatedForm);
-}}
-  >
-    <option>1st Semester</option>
-    <option>2nd Semester</option>
-  </select>
-</div>
-
-    <button
-      style={styles.btnPrimary}
-      onClick={() => setShowReportModal(true)}
-    >
-      Generate Report
-    </button>
-
-  </div>
-</div>
-<div style={styles.cardGrid}>
-
-  <div style={styles.card}>
-  <p style={styles.cardLabel}>Applications This Month</p>
-  <h2 style={styles.cardValue}>
-    {
-      applications.filter(a => {
-        const date = new Date(a.application_date);
-        const now = new Date();
-        return (
-          date.getMonth() === now.getMonth() &&
-          date.getFullYear() === now.getFullYear()
-        );
-      }).length
-    }
-  </h2>
-</div>
-
-  <div style={styles.card}>
-    <p style={styles.cardLabel}>Grantees</p>
-    <h2 style={styles.cardValue}>{totalGrantees}</h2>
-  </div>
-
-  <div style={styles.card}>
-  <p style={styles.cardLabel}>Acceptance Rate</p>
-  <h2 style={styles.cardValue}>
-    {
-      totalApplicants
-        ? Math.round(
-            (applications.filter(a => a.status === "Approved").length /
-              totalApplicants) *
-              100
-          )
-        : 0
-    }%
-  </h2>
-</div>
-
-  <div style={styles.card}>
-    <p style={styles.cardLabel}>Scholarships</p>
-    <h2 style={styles.cardValue}>{totalScholarships}</h2>
-  </div>
-
-  
-
-</div>
-
-
-<div style={styles.infoGrid}>
-
-  {/* Scholarship Count */}
-  <div style={styles.infoCard}>
-    <h3 style={styles.infoTitle}>Scholarships</h3>
-     <div style={styles.cardContent}>
-    {scholarStats.map((s) => (
-  <div
-    key={s.scholarship_id}
-    style={styles.infoRow}
-  >
-    <span>{s.scholarship_name}</span>
-
-    <span
-      style={{
-        ...styles.countBadge,
-        background:
-          s.occupied >= s.slots
-            ? "#dc2626"
-            : s.occupied >= s.slots * 0.8
-            ? "#f59e0b"
-            : "#16a34a",
-      }}
-    >
-      {s.occupied} / {s.slots}
-    </span>
-  </div>
-))}
-</div>
-  </div>
-
-  {/* Upcoming Deadlines */}
-  <div style={styles.infoCard}>
-    <h3 style={styles.infoTitle}>
-      Upcoming Deadlines
-    </h3>
-     <div style={styles.cardContent}>
-      {upcomingDeadlines.map((d, index) => (
-      <div key={index} style={styles.infoRow}>
-        <span>{d.scholarship_name}</span>
-
-        <span>
-          {new Date(
-            d.submission_deadline
-          ).toLocaleDateString()}
-        </span>
-      </div>
-    ))}</div>
-  </div>
-
-  {/* Recent Activity */}
-  <div style={styles.infoCard}>
-    <h3 style={styles.infoTitle}>
-      Recent Activity
-    </h3>
-    <div style={styles.cardContent}>
-    {applications.slice(0,5).map((a) => (
-      <div
-        key={a.application_id}
-        style={styles.infoRow}
-      >
-        <span>
-          {a.students?.users?.first_name}
-        </span>
-
-        <span>{a.status}</span>
-      </div>
-    ))}</div>
-  </div>
-
-  {/* Report Summary */}
-  <div style={styles.infoCard}>
-    <h3 style={styles.infoTitle}>
-      Report Summary
-    </h3>
-     <div style={styles.cardContent}>
-    <div style={styles.infoRow}>
-      <span>Applications</span>
-
-      <strong>{totalApplicants}</strong>
-    </div>
-
-    <div style={styles.infoRow}>
-      <span>Approved</span>
-
-      <strong>
-        {
-          applications.filter(
-            a => a.status === "Approved"
-          ).length
-        }
-      </strong>
-    </div>
-
-    <div style={styles.infoRow}>
-      <span>Pending</span>
-
-      <strong>{pendingApplications}</strong>
-    </div>
-
-    <div style={styles.infoRow}>
-      <span>Rejected</span>
-
-      <strong>
-        {
-          applications.filter(
-            a => a.status === "Rejected"
-          ).length
-        }
-      </strong>
-    </div>
-    </div>
-
-  </div>
-
-</div>
-    
-      {/* VIEW MODAL */}
-{selectedApp && (
-  <div
-    style={styles.overlay}
-    onClick={() => setSelectedApp(null)}
-  >
-    <div
-      style={styles.modal}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <h2 style={styles.modalTitle}>
-        Application Details
-      </h2>
-
-      <div style={styles.studentCard}>
-        <div>
-          <strong>School ID</strong>
-          <p>{selectedApp.students?.school_id}</p>
-        </div>
-
-        <div>
-          <strong>Student</strong>
-          <p>
-            {selectedApp.students?.users?.first_name}{" "}
-            {selectedApp.students?.users?.middle_name
-              ? selectedApp.students.users.middle_name.charAt(0) + ". "
-              : ""}
-            {selectedApp.students?.users?.last_name}
-          </p>
-        </div>
-
-        <div>
-          <strong>Scholarship</strong>
-          <p>{selectedApp.scholarships?.scholarship_name}</p>
-        </div>
-
-        <div>
-          <strong>Status</strong>
-
-          <span
-            style={{
-              ...styles.badge,
-              background:
-                selectedApp.status === "Pending"
-                  ? "var(--warning-bg)"
-                  : selectedApp.status === "Approved"
-                  ? "var(--success-bg)"
-                  : "var(--danger-bg)",
-              color:
-                selectedApp.status === "Pending"
-                  ? "var(--warning-text)"
-                  : selectedApp.status === "Approved"
-                  ? "var(--success-text)"
-                  : "var(--danger-text)",
-            }}
-          >
-            {selectedApp.status}
-          </span>
+    <div style={st.container}>
+      {/* ── header ── */}
+      <div style={st.header}>
+        <h1 style={st.title}>Dashboard</h1>
+        <div style={st.headerRight}>
+          <div style={st.periodItem}>
+            <label style={{fontSize:13,color:"var(--text-secondary)"}}>AY</label>
+            <input style={st.periodInput} value={form.academic_year}
+              onChange={e=>setForm({...form,academic_year:e.target.value})}
+              onBlur={saveAcademic} />
+          </div>
+          <div style={st.periodItem}>
+            <label style={{fontSize:13,color:"var(--text-secondary)"}}>Semester</label>
+            <select style={st.periodInput} value={form.semester} onChange={e=>saveSemester(e.target.value)}>
+              <option>1st Semester</option>
+              <option>2nd Semester</option>
+            </select>
+          </div>
+          <button style={st.btnGreen} onClick={()=>setShowReportModal(true)}>
+            Generate Report
+          </button>
         </div>
       </div>
 
-      <hr style={{ margin: "20px 0" }} />
-
-      <h3 style={{ marginBottom: 15 }}>
-        Submitted Answers
-      </h3>
-
-      <div style={styles.answersContainer}>
-        {answers.map((r, i) => (
-          <div
-            key={i}
-            style={styles.answerCard}
-          >
-            <div style={styles.question}>
-              {r.scholarship_form_fields?.label}
-            </div>
-
-            <div style={styles.answer}>
-              {r.answer}
-            </div>
+      {/* ── stat cards ── */}
+      <div style={st.cardGrid}>
+        {[
+          ["Applications This Month", applications.filter(a=>{const d=new Date(a.application_date),n=new Date();return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear()}).length],
+          ["Grantees", totalGrantees],
+          ["Acceptance Rate", totalApplicants ? Math.round(applications.filter(a=>a.status==="Approved").length/totalApplicants*100)+"%" : "0%"],
+          ["Scholarships", totalScholarships],
+        ].map(([label,val])=>(
+          <div key={label} style={st.card}>
+            <p style={st.cardLabel}>{label}</p>
+            <h2 style={st.cardValue}>{val}</h2>
           </div>
         ))}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginTop: 20,
-        }}
-      >
-        <button
-          style={styles.btnDanger}
-          onClick={() => setSelectedApp(null)}
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-      {showReportModal && (
-  <div style={styles.overlay}>
-    <div
-      style={{
-        background: "var(--surface)",
-        width: "900px",
-        maxHeight: "90vh",
-        overflowY: "auto",
-        padding: 20,
-        borderRadius: 10,
-      }}
-    >
-      <h2>Report Builder</h2>
-
-      <hr />
-
-      <h3>Layout</h3>
-
-      <select
-        value={reportLayout}
-        onChange={(e) =>
-          setReportLayout(e.target.value)
-        }
-      >
-        <option value="portrait">
-          Portrait
-        </option>
-
-        <option value="landscape">
-          Landscape
-        </option>
-      </select>
-
-      <h3>Filters</h3>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(2,1fr)",
-          gap: 10,
-        }}
-      >
-        <select
-          value={reportFilters.reportType}
-          onChange={(e) =>
-            setReportFilters({
-              ...reportFilters,
-              reportType: e.target.value,
-            })
-          }
-        >
-          <option value="grantees">
-            Grantees
-          </option>
-
-          <option value="applications">
-            Applications
-          </option>
-
-          <option value="scholarships">
-            Scholarships
-          </option>
-        </select>
-
-        <select
-  value={reportFilters.academicYear}
-  onChange={(e) =>
-    setReportFilters({
-      ...reportFilters,
-      academicYear: e.target.value,
-    })
-  }
->
-  <option value="All">
-    All Academic Years
-  </option>
-
-  {filterOptions.academicYears.map((ay) => (
-    <option key={ay} value={ay}>
-      {ay}
-    </option>
-  ))}
-</select>
-
-        <select
-          value={reportFilters.semester}
-          onChange={(e) =>
-            setReportFilters({
-              ...reportFilters,
-              semester: e.target.value,
-            })
-          }
-        >
-          <option value="">
-            All Semesters
-          </option>
-
-          <option>
-            1st Semester
-          </option>
-
-          <option>
-            2nd Semester
-          </option>
-        </select>
-
-        <select
-  value={reportFilters.scholarship}
-  onChange={(e) =>
-    setReportFilters({
-      ...reportFilters,
-      scholarship: e.target.value,
-    })
-  }
->
-  <option value="All">
-    All Scholarships
-  </option>
-
-  {filterOptions.scholarships.map((scholarship) => (
-    <option
-      key={scholarship}
-      value={scholarship}
-    >
-      {scholarship}
-    </option>
-  ))}
-</select>
-
-<select
-  value={reportFilters.status}
-  onChange={(e) =>
-    setReportFilters({
-      ...reportFilters,
-      status: e.target.value,
-    })
-  }
->
-  <option value="All">
-    All Statuses
-  </option>
-
-  {filterOptions.statuses.map((status) => (
-    <option
-      key={status}
-      value={status}
-    >
-      {status}
-    </option>
-  ))}
-</select>
-
-        <select
-  value={reportFilters.course}
-  onChange={(e) =>
-    setReportFilters({
-      ...reportFilters,
-      course: e.target.value,
-    })
-  }
->
-  <option value="All">
-    All Courses
-  </option>
-
-  {filterOptions.courses.map((course) => (
-    <option
-      key={course}
-      value={course}
-    >
-      {course}
-    </option>
-  ))}
-</select>
-
-        <select
-  value={reportFilters.yearLevel}
-  onChange={(e) =>
-    setReportFilters({
-      ...reportFilters,
-      yearLevel: e.target.value,
-    })
-  }
->
-  <option value="All">
-    All Year Levels
-  </option>
-
-  {filterOptions.yearLevels.map((level) => (
-    <option
-      key={level}
-      value={level}
-    >
-      {level}
-    </option>
-  ))}
-</select>
-      </div>
-
-      <h3>Columns</h3>
-
-      {Object.keys(columns).map((key) => (
-        <label
-          key={key}
-          style={{
-            display: "block",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={columns[key]}
-            onChange={() =>
-              setColumns({
-                ...columns,
-                [key]:
-                  !columns[key],
-              })
-            }
-          />
-
-          {key}
-        </label>
-      ))}
-
-      <h3>Signatories</h3>
-
-      {signatories.map((s, index) => (
-        <div
-          key={index}
-          style={{
-            display: "flex",
-            gap: 8,
-            marginBottom: 8,
-          }}
-        >
-          <input
-            placeholder="Name"
-            value={s.name}
-            onChange={(e) =>
-              updateSignatory(
-                index,
-                "name",
-                e.target.value
-              )
-            }
-          />
-
-          <input
-            placeholder="Position"
-            value={s.position}
-            onChange={(e) =>
-              updateSignatory(
-                index,
-                "position",
-                e.target.value
-              )
-            }
-          />
-
-          <button
-            onClick={() =>
-              removeSignatory(index)
-            }
-          >
-            Delete
-          </button>
+      {/* ── info grid ── */}
+      <div style={st.infoGrid}>
+        <div style={st.infoCard}>
+          <h3 style={st.infoTitle}>Scholarship Slots</h3>
+          <div style={st.cardContent}>
+            {scholarStats.map(s=>(
+              <div key={s.scholarship_id} style={st.infoRow}>
+                <span style={{fontSize:13,color:"var(--text-primary)"}}>{s.scholarship_name}</span>
+                <span style={{...st.countBadge, background:s.occupied>=s.slots?"#dc2626":s.occupied>=s.slots*.8?"#d97706":"#16a34a"}}>
+                  {s.occupied}/{s.slots}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      ))}
 
-      <button
-        onClick={addSignatory}
-      >
-        Add Signatory
-      </button>
+        <div style={st.infoCard}>
+          <h3 style={st.infoTitle}>Upcoming Deadlines</h3>
+          <div style={st.cardContent}>
+            {upcomingDeadlines.map((d,i)=>(
+              <div key={i} style={st.infoRow}>
+                <span style={{fontSize:13,color:"var(--text-primary)"}}>{d.scholarship_name}</span>
+                <span style={{fontSize:12,color:"var(--text-secondary)"}}>{new Date(d.submission_deadline).toLocaleDateString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-      <hr />
+        <div style={st.infoCard}>
+          <h3 style={st.infoTitle}>Recent Activity</h3>
+          <div style={st.cardContent}>
+            {applications.slice(0,5).map(a=>(
+              <div key={a.application_id} style={st.infoRow}>
+                <span style={{fontSize:13,color:"var(--text-primary)"}}>{a.students?.users?.first_name} {a.students?.users?.last_name}</span>
+                <span style={{fontSize:12,color:"var(--text-secondary)"}}>{a.status}</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-      <h3>Preview</h3>
-
-<div
-  style={{
-    border:"1px solid var(--border)",
-    background:"var(--surface)",
-    maxHeight: 350,
-    overflow: "auto",
-  }}
->
-  <table
-    style={{
-      width: "100%",
-      borderCollapse: "collapse",
-    }}
-  >
-    <thead>
-      <tr>
-        {columns.schoolId && <th>School ID</th>}
-        {columns.studentName && <th>Student Name</th>}
-        {columns.scholarship && <th>Scholarship</th>}
-        {columns.course && <th>Course</th>}
-        {columns.yearLevel && <th>Year Level</th>}
-        {columns.academicYear && <th>Academic Year</th>}
-        {columns.semester && <th>Semester</th>}
-        {columns.status && <th>Status</th>}
-      </tr>
-    </thead>
-
-    <tbody>
-{filteredApplications.map((a,index)=>(
-<tr
-    key={a.application_id}
-    style={{
-        background:index % 2 === 0
-            ? "var(--surface)"
-      : "var(--surface-muted)"
-    }}
->
-          {columns.schoolId && (
-            <td>{a.students?.school_id}</td>
-          )}
-
-          {columns.studentName && (
-            <td>
-              {a.students?.users?.first_name}{" "}
-              {a.students?.users?.last_name}
-            </td>
-          )}
-
-          {columns.scholarship && (
-            <td>
-              {a.scholarships?.scholarship_name}
-            </td>
-          )}
-
-          {columns.course && (
-            <td>
-              {a.students?.course || "-"}
-            </td>
-          )}
-
-          {columns.yearLevel && (
-            <td>
-              {a.students?.year_level || "-"}
-            </td>
-          )}
-
-          {columns.academicYear && (
-            <td>{a.academic_year}</td>
-          )}
-
-          {columns.semester && (
-            <td>{a.semester}</td>
-          )}
-
-          {columns.status && (
-            <td>{a.status}</td>
-          )}
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
-
-      <br />
-
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-        }}
-      >
-        <button
-  style={styles.btnPrimary}
-  onClick={generatePDF}
->
-  Generate PDF
-</button>
-
-        <button
-          style={styles.btnDanger}
-          onClick={() =>
-            setShowReportModal(false)
-          }
-        >
-          Close
-        </button>
+        <div style={st.infoCard}>
+          <h3 style={st.infoTitle}>Summary</h3>
+          <div style={st.cardContent}>
+            {[["Total",totalApplicants],["Approved",applications.filter(a=>a.status==="Approved").length],["Pending",pendingCount],["Rejected",applications.filter(a=>a.status==="Rejected").length]].map(([l,v])=>(
+              <div key={l} style={st.infoRow}>
+                <span style={{fontSize:13,color:"var(--text-primary)"}}>{l}</span>
+                <strong style={{color:"var(--text-primary)"}}>{v}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-)}
 
+      {/* ── View answers modal ── */}
+      {selectedApp && (
+        <div style={st.overlay} onMouseDown={e=>e.target===e.currentTarget&&setSelectedApp(null)}>
+          <div style={{...st.modal,maxWidth:640}}>
+            <div style={st.modalHead}>
+              <h2 style={st.modalTitle}>Application Details</h2>
+              <button style={st.closeBtn} onClick={()=>setSelectedApp(null)}>✕</button>
+            </div>
+            <div style={st.modalBody}>
+              <div style={st.studentCard}>
+                {[["School ID",selectedApp.students?.school_id],["Student",`${selectedApp.students?.users?.first_name||""} ${selectedApp.students?.users?.middle_name?selectedApp.students.users.middle_name.charAt(0)+". ":""}${selectedApp.students?.users?.last_name||""}`],["Scholarship",selectedApp.scholarships?.scholarship_name]].map(([l,v])=>(
+                  <div key={l}><strong style={{fontSize:11,color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:".3px"}}>{l}</strong><p style={{margin:"4px 0 0",color:"var(--text-primary)"}}>{v}</p></div>
+                ))}
+                <div>
+                  <strong style={{fontSize:11,color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:".3px"}}>Status</strong>
+                  <p style={{margin:"4px 0 0"}}>
+                    <span style={{...st.badge,background:selectedApp.status==="Approved"?"var(--success-100)":selectedApp.status==="Rejected"?"var(--danger-100)":"var(--warning-100)",color:selectedApp.status==="Approved"?"var(--success-700)":selectedApp.status==="Rejected"?"var(--danger-700)":"var(--warning-700)"}}>
+                      {selectedApp.status}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <h3 style={{margin:0,color:"var(--text-primary)"}}>Submitted Answers</h3>
+              <div style={st.answersWrap}>
+                {answers.map((r,i)=>(
+                  <div key={i} style={st.answerCard}>
+                    <div style={st.question}>{r.scholarship_form_fields?.label}</div>
+                    <div style={st.answer}>{r.answer}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={st.modalFoot}>
+              <button style={st.btnRed} onClick={()=>setSelectedApp(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Report modal ── */}
+      {showReportModal && (
+        <div style={st.overlay} onMouseDown={e=>e.target===e.currentTarget&&setShowReportModal(false)}>
+          <div style={st.modal}>
+            <div style={st.modalHead}>
+              <div>
+                <h2 style={st.modalTitle}>Generate Report</h2>
+                <p style={{margin:0,fontSize:13,color:"var(--text-secondary)"}}>Customize filters and columns, then export to PDF.</p>
+              </div>
+              <button style={st.closeBtn} onClick={()=>setShowReportModal(false)}>✕</button>
+            </div>
+
+            <div style={st.modalBody}>
+
+              {/* Report Title */}
+              <div>
+                <p style={st.sectionLabel}>Report Title</p>
+                <input
+                  style={{...st.inp, fontSize:15, fontWeight:600}}
+                  value={reportTitle}
+                  placeholder="e.g. Grantees Report — 1st Semester"
+                  onChange={e => setReportTitle(e.target.value)}
+                />
+              </div>
+
+              {/* Layout */}
+              <div>
+                <p style={st.sectionLabel}>Page Orientation</p>
+                <div style={{display:"flex", gap:8}}>
+                  {[["portrait","⬜ Portrait"],["landscape","⬛ Landscape"]].map(([v,label])=>(
+                    <button key={v} onClick={()=>setReportLayout(v)} style={{
+                      padding:"10px 20px",
+                      borderRadius:8,
+                      border: reportLayout===v ? "2px solid var(--navy-600)" : "1px solid var(--border-strong)",
+                      background: reportLayout===v ? "var(--navy-50)" : "var(--surface)",
+                      color: reportLayout===v ? "var(--navy-700)" : "var(--text-primary)",
+                      fontWeight: reportLayout===v ? 700 : 500,
+                      fontSize:14, cursor:"pointer",
+                    }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div>
+                <p style={st.sectionLabel}>Filters</p>
+                <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))", gap:10}}>
+                  {[
+                    ["Academic Year", "academicYear", ["All",...filterOptions.academicYears]],
+                    ["Semester",      "semester",     ["All","1st Semester","2nd Semester"]],
+                    ["Scholarship",   "scholarship",  ["All",...filterOptions.scholarships]],
+                    ["Status",        "status",       ["All",...filterOptions.statuses]],
+                    ["Course",        "course",       ["All",...filterOptions.courses]],
+                    ["Year Level",    "yearLevel",    ["All",...filterOptions.yearLevels]],
+                  ].map(([label,key,opts])=>(
+                    <div key={key}>
+                      <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>{label}</label>
+                      <select style={st.sel} value={reportFilters[key]}
+                        onChange={e=>setReportFilters({...reportFilters,[key]:e.target.value})}>
+                        {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Columns */}
+              <div>
+                <p style={st.sectionLabel}>Columns to include</p>
+                <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))", gap:8}}>
+                  {Object.entries(COLUMN_LABELS).map(([key,label])=>(
+                    <label key={key} style={{
+                      ...st.checkLabel,
+                      background:   columns[key] ? "var(--navy-50)"  : "var(--surface)",
+                      borderColor:  columns[key] ? "var(--navy-300)" : "var(--border)",
+                      fontWeight:   columns[key] ? 600 : 400,
+                      color:        columns[key] ? "var(--navy-700)" : "var(--text-primary)",
+                    }}>
+                      <input type="checkbox" checked={columns[key]} onChange={()=>setColumns({...columns,[key]:!columns[key]})} />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Signatories */}
+              <div>
+                <p style={st.sectionLabel}>Signatories <span style={{fontWeight:400,textTransform:"none",letterSpacing:0,color:"var(--text-secondary)"}}>— leave blank to omit from PDF</span></p>
+                {signatories.map((sig,i)=>(
+                  <div key={i} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
+                    <input style={{...st.inp,flex:1}} placeholder="Full name" value={sig.name}
+                      onChange={e=>updateSignatory(i,"name",e.target.value)} />
+                    <input style={{...st.inp,flex:1}} placeholder="Position / Title" value={sig.position}
+                      onChange={e=>updateSignatory(i,"position",e.target.value)} />
+                    {signatories.length>1 && (
+                      <button onClick={()=>setSignatories(signatories.filter((_,idx)=>idx!==i))}
+                        style={{padding:"8px 12px",background:"var(--danger-50)",color:"var(--danger-700)",border:"1px solid var(--danger-100)",borderRadius:8,cursor:"pointer",fontWeight:600,fontSize:13,whiteSpace:"nowrap"}}>
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button onClick={()=>setSignatories([...signatories,{name:"",position:""}])}
+                  style={{marginTop:4,padding:"7px 14px",background:"var(--gold-50)",color:"var(--gold-700)",border:"1px solid var(--gold-100)",borderRadius:8,cursor:"pointer",fontWeight:600,fontSize:13}}>
+                  + Add Signatory
+                </button>
+              </div>
+
+              {/* Live preview */}
+              <div>
+                <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8}}>
+                  <p style={{...st.sectionLabel, margin:0}}>
+                    Preview
+                    <span style={{marginLeft:8, fontWeight:400, textTransform:"none", letterSpacing:0, color:"var(--text-secondary)"}}>
+                      — {filtered.length} record{filtered.length!==1?"s":""}
+                    </span>
+                  </p>
+                </div>
+                <div style={st.previewWrap}>
+                  <table style={st.previewTable}>
+                    <thead>
+                      <tr>
+                        {Object.entries(COLUMN_LABELS).filter(([k])=>columns[k]).map(([,l])=>(
+                          <th key={l} style={st.previewTh}>{l}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.slice(0,8).map((a,i)=>(
+                        <tr key={a.application_id} style={{background:i%2===0?"var(--surface)":"var(--surface-muted)"}}>
+                          {columns.schoolId     && <td style={st.previewTd}>{a.students?.school_id||"—"}</td>}
+                          {columns.studentName  && <td style={st.previewTd}>{a.students?.users?.first_name} {a.students?.users?.last_name}</td>}
+                          {columns.scholarship  && <td style={st.previewTd}>{a.scholarships?.scholarship_name||"—"}</td>}
+                          {columns.course       && <td style={st.previewTd}>{a.students?.course||"—"}</td>}
+                          {columns.yearLevel    && <td style={st.previewTd}>{a.students?.year_level||"—"}</td>}
+                          {columns.academicYear && <td style={st.previewTd}>{a.academic_year||"—"}</td>}
+                          {columns.semester     && <td style={st.previewTd}>{a.semester||"—"}</td>}
+                          {columns.status       && (
+                            <td style={st.previewTd}>
+                              <span style={{
+                                padding:"3px 10px", borderRadius:999, fontSize:11, fontWeight:700,
+                                background: a.status==="Approved"?"var(--success-100)": a.status==="Rejected"?"var(--danger-100)": a.status==="Pending"?"var(--warning-100)":"var(--ink-100)",
+                                color:      a.status==="Approved"?"var(--success-700)": a.status==="Rejected"?"var(--danger-700)": a.status==="Pending"?"var(--warning-700)":"var(--ink-600)",
+                              }}>
+                                {a.status}
+                              </span>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                      {filtered.length===0 && (
+                        <tr>
+                          <td colSpan={Object.values(columns).filter(Boolean).length}
+                            style={{...st.previewTd, textAlign:"center", color:"var(--text-secondary)", padding:28}}>
+                            No records match these filters
+                          </td>
+                        </tr>
+                      )}
+                      {filtered.length>8 && (
+                        <tr>
+                          <td colSpan={Object.values(columns).filter(Boolean).length}
+                            style={{...st.previewTd, textAlign:"center", color:"var(--text-secondary)", fontStyle:"italic", fontSize:12}}>
+                            …and {filtered.length-8} more row{filtered.length-8!==1?"s":""}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+
+            <div style={st.modalFoot}>
+              <button style={st.btnRed} onClick={()=>setShowReportModal(false)} disabled={generating}>
+                Cancel
+              </button>
+              <button
+                style={{...st.btnBlue, opacity: generating||filtered.length===0 ? .55 : 1, cursor: generating||filtered.length===0 ? "not-allowed" : "pointer"}}
+                onClick={generatePDF}
+                disabled={generating||filtered.length===0}
+              >
+                {generating ? "Generating…" : `Export PDF  (${filtered.length} record${filtered.length!==1?"s":""})`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-const styles = {
-  container: {
-  padding: 10,
-  color: "var(--text-primary)",
-},
-
-  header: {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 30,
-},
-
-headerRight: {
-  display: "flex",
-  alignItems: "right",
-  gap: 10,
-},
-
-cardGrid: {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: 20,
-  marginBottom: 30,
-},
-
-card: {
-  background: "var(--surface)",
-  borderRadius: 12,
-  padding: 20,
-  boxShadow: "var(--shadow-sm)",
-},
-
-cardLabel: {
-  fontSize: 14,
-   color:"var(--text-secondary)",
-  marginBottom: 10,
-},
-
-cardValue: {
-  fontSize: 32,
-  fontWeight: "700",
-  color:"var(--text-primary)",
-},
-periodItem: {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-},
-btnPrimary:{
-    background:"var(--primary)",
-    color:"var(--text-primary)",
-},
-btnDanger:{
-    background:"var(--danger)",
-    color:"var(--text-primary)",
-},
-
-periodInput: {
-  padding: "6px 10px",
-   border:"1px solid var(--border)",
-  borderRadius: 6,
-  fontSize: 14,
-  minWidth: 150,
-   background:"var(--surface)",
-    color:"var(--text-primary)",
-},
-
-infoGrid: {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: 20,
-  marginBottom: 30,
-},
-
-infoCard: {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 12,
-  padding: 10,
-  boxShadow: "var(--shadow-sm)",
-  height: 260,
-  display: "flex",
-  flexDirection: "column",
-},
-
-infoTitle: {
-  marginBottom: 15,
-  fontSize: 18,
-  fontWeight: 600,
-  color:"var(--text-primary)",
-},
-
-infoRow: {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "8px 0",
-  borderBottom: "1px solid #eee",
-},
-
-countBadge: {
-  background: "#475c6c",
-  color: "#fff",
-  borderRadius: 20,
-  padding: "3px 10px",
-  fontSize: 13,
-  fontWeight: "600",
-},
-cardContent: {
-  flex: 1,
-  overflow: "auto",
-  paddingRight: 6,
-  scrollbarWidth: "none",
-},
-
-filterRow: {
-  display: "flex",
-  gap: 12,
-  marginBottom: 20,
-  flexWrap: "wrap",
-},
-
-searchInput: {
-  flex: "0 0 320px",
-  padding: "10px 14px",
-  background:"var(--surface)",
-    color:"var(--text-primary)",
-    border:"1px solid var(--border)",
-  borderRadius: 8,
-},
-
-select: {
-  minWidth: 180,
-  padding: "10px",
-  background:"var(--surface)",
-    color:"var(--text-primary)",
-    border:"1px solid var(--border)",
-  borderRadius: 8,
-},
-studentInfo: {
-  display: "flex",
-  flexDirection: "column",
-},
-
-studentName: {
-   color:"var(--text-secondary)",
-  fontSize: 13,
-  marginTop: 2,
-},
-
-modalTitle: {
-  marginBottom: 20,
-},
-
-studentCard: {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-  gap: 18,
-   background:"var(--surface-muted)",
-    border:"1px solid var(--border)",
-  padding: 20,
-  borderRadius: 10,
-  marginBottom: 15,
-},
-
-
-answerCard: {
-  borderRadius: 8,
-  padding: 15,
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-},
-
-question: {
-  fontWeight: "600",
-  marginBottom: 8,
-  color:"var(--text-primary)",
-},
-
-answer: {
-  color:"var(--text-secondary)",
-  lineHeight: 1.6,
-},
-overlay: {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0,0,0,.45)",
-
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-
-  zIndex: 9999,
-
-  padding: 20,
-},
-modal: {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  width: "100%",
-  maxWidth: 900,
-
-  maxHeight: "90vh",
-
-  overflowY: "auto",
-
-  borderRadius: 14,
-
-  padding: 30,
-
-  boxShadow: "0 15px 40px rgba(0,0,0,.25)",
-},
-answersContainer: {
-  flexDirection: "column",
-  maxHeight: 400,
-  overflowY: "auto",
-  display: "flex",
-  flexDirection: "column",
-  gap: 15,
-
-  scrollbarWidth: "none",
-
-  msOverflowStyle: "none",
-},
-tableContainer: {
-  width: "100%",
-   background:"var(--surface)",
-    border:"1px solid var(--border)",
-  overflowX: "auto",
-  borderRadius: 12,
-  boxShadow: "0 2px 10px rgba(0,0,0,.08)",
-  padding:10
-},
-table: {
-  width: "100%",
-  borderCollapse: "collapse",
-  minWidth: 900,
-  fontSize: 14,
-  background: "var(--surface)",
-  
-},
-th: {
-  background: "#475c6c",
-  color: "#fff",
-  padding: "16px 18px",
-  textAlign: "left",
-  fontWeight: 600,background:"var(--surface-muted)",
-    color:"var(--text-primary)",
-    borderBottom:"1px solid var(--border)",
-  whiteSpace: "nowrap",
-},
-
-td: {
-  padding: "16px 18px",
-  borderBottom:"1px solid var(--border)",
-    color:"var(--text-primary)",
-  whiteSpace: "nowrap",
-  verticalAlign: "middle",
-},
-actions: {
-  display: "flex",
-  gap: 8,
-  flexWrap: "wrap",
-},
-pageButton: {
-  padding: "8px 14px",
-  border: "1px solid #475c6c",
-  borderRadius: 8,
-  background: "#475c6c",
-  color: "#fff",
-  cursor: "pointer",
-},
- title: {
-    margin: 0,
-    fontSize: 28,
-    fontWeight: 700,
-    color:"var(--text-primary)",
-  },
-};
