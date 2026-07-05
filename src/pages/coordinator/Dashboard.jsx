@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import AnnouncementModal from "@/components/ui/AnnouncementModal";
 
 // ─── stable style objects defined outside the component ──────────────────────
 const st = {
@@ -69,7 +70,8 @@ export default function CoordinatorDashboard() {
   const [academic,       setAcademic]       = useState(null);
   const [scholarStats,   setScholarStats]   = useState([]);
   const [upcomingDeadlines, setUpcomingDeadlines] = useState([]);
-  const [showReportModal,setShowReportModal]= useState(false);
+  const [showReportModal,    setShowReportModal]    = useState(false);
+  const [showAnnouncement,   setShowAnnouncement]   = useState(false);
   const [generating,     setGenerating]    = useState(false);
   const [form,           setForm]          = useState({ academic_year:"", semester:"" });
   const [reportLayout,   setReportLayout]  = useState("portrait");
@@ -420,7 +422,10 @@ export default function CoordinatorDashboard() {
             </select>
           </div>
           <button style={st.btnGreen} onClick={()=>setShowReportModal(true)}>
-            📄 Generate Report
+            Generate Report
+          </button>
+          <button style={{...st.btnGreen, background:"var(--navy-700)"}} onClick={()=>setShowAnnouncement(true)}>
+            Announcements
           </button>
         </div>
       </div>
@@ -743,6 +748,11 @@ export default function CoordinatorDashboard() {
           </div>
         </div>
       )}
+
+      <AnnouncementModal
+        open={showAnnouncement}
+        onClose={() => setShowAnnouncement(false)}
+      />
     </div>
   );
 }
