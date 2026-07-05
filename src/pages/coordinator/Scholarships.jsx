@@ -261,7 +261,7 @@ export default function Scholarships() {
       {/* table */}
       <div className={s.tableWrap}>
         <table className={s.table}>
-          <thead>
+          <thead className={s.thead}>
             <tr>
               {["Name","Sponsor","Description","Amount","Slots","Deadline","Status","Reqs","Form","Action"]
                 .map(h => <th key={h} className={s.th}>{h}</th>)}

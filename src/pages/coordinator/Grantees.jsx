@@ -195,12 +195,18 @@ const paginated = tableRows.slice(
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
 );
-const startRow = (currentPage - 1) * rowsPerPage + 1;
+const startRow =
+  tableRows.length === 0
+    ? 0
+    : (currentPage - 1) * rowsPerPage + 1;
 
-const endRow = Math.min(
-    currentPage * rowsPerPage,
-    tableRows.length
-);
+const endRow =
+  tableRows.length === 0
+    ? 0
+    : Math.min(
+        currentPage * rowsPerPage,
+        tableRows.length
+      );
 
   return (
     <div className={styles.page}>
@@ -299,7 +305,7 @@ const endRow = Math.min(
 
       <div className={styles.tableContainer}>
         <table className={styles.table}>
-          <thead>
+          <thead className={styles.thead}>
             <tr>
               <th className={styles.th}>School ID</th>
               <th className={styles.th}>Student Name</th>
@@ -383,38 +389,41 @@ const endRow = Math.min(
   })}
 </tbody>
         </table>
-        <div className={styles.pagination}>
-
-    <button
-        onClick={() =>
-            setCurrentPage(p => Math.max(1,p-1))
-        }
-        disabled={currentPage===1}
-    >
-        Previous
-    </button>
-
-    <span>
-    Showing {startRow}-{endRow} of {tableRows.length} scholarship records
-</span>
-
-<span>
-    Page {currentPage} of {totalPages}
-</span>
-
-    <button
-        onClick={() =>
-            setCurrentPage(p=>Math.min(totalPages,p+1))
-        }
-        disabled={currentPage===totalPages}
-    >
-        Next
-    </button>
-
-    
-
-</div>
+        
       </div>
+      <div className={styles.pagination}>
+  <span className={styles.pageInfo}>
+    {tableRows.length === 0
+      ? "0"
+      : `${startRow}–${endRow}`}{" "}
+    of {tableRows.length}
+  </span>
+
+  <div className={styles.pageButtons}>
+    <button
+      className={styles.pageBtn}
+      disabled={currentPage === 1}
+      onClick={() => setCurrentPage((p) => p - 1)}
+    >
+      Previous
+    </button>
+
+    <span className={styles.pageInfo}>
+      Page {tableRows.length === 0 ? 0 : currentPage} of {totalPages || 1}
+    </span>
+
+    <button
+      className={styles.pageBtn}
+      disabled={
+        currentPage >= totalPages ||
+        totalPages === 0
+      }
+      onClick={() => setCurrentPage((p) => p + 1)}
+    >
+      Next
+    </button>
+  </div>
+</div>
     </div>
   );
 }

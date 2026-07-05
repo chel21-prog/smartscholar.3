@@ -316,9 +316,9 @@ style={{ maxWidth:220 }}
       {loading ? (
         <p>Loading...</p>
       ) : (
-        <div className={s.card}>
+        <div className={s.tableWrap}>
           <table className={s.table}>
-            <thead className={s.thead}>
+            <thead>
               <tr>
                 <th className={s.th}>School ID</th>
                 <th className={s.th}>Name</th>
@@ -406,74 +406,38 @@ transition: ".2s",
         </div>
         
       )}
-      <div
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 20,
-    flexWrap: "wrap",
-    gap: 10,
-  }}
->
-  <span>
-    Showing{" "}
+      <div className={s.pagination}>
+  <span className={s.pageInfo}>
     {filteredStudents.length === 0
-      ? 0
-      : (currentPage - 1) * ITEMS_PER_PAGE + 1}
-    {" - "}
-    {Math.min(
-      currentPage * ITEMS_PER_PAGE,
-      filteredStudents.length
-    )}{" "}
+      ? "0"
+      : `${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(
+          currentPage * ITEMS_PER_PAGE,
+          filteredStudents.length
+        )}`}{" "}
     of {filteredStudents.length}
   </span>
 
-  <div
-    style={{
-      display: "flex",
-      gap: 8,
-      alignItems: "center",
-    }}
-  >
+  <div className={s.pageButtons}>
     <button
-      className={s.statusBtn}
-      style={{
-  opacity: currentPage === 1 ? .5 : 1,
-  cursor: currentPage === 1 ? "not-allowed" : "pointer",
-}}
+      className={s.pageBtn}
       disabled={currentPage === 1}
-      onClick={() =>
-        setCurrentPage((p) => p - 1)
-      }
+      onClick={() => setCurrentPage((p) => p - 1)}
     >
       Previous
     </button>
 
-    <span>
+    <span className={s.pageInfo}>
       Page {totalPages === 0 ? 0 : currentPage} of{" "}
       {totalPages || 1}
     </span>
 
     <button
-    className={s.statusBtn}
-      style={{
-  opacity:
-    currentPage === totalPages || totalPages === 0
-      ? .5
-      : 1,
-  cursor:
-    currentPage === totalPages || totalPages === 0
-      ? "not-allowed"
-      : "pointer",
-}}
+      className={s.pageBtn}
       disabled={
-        currentPage === totalPages ||
+        currentPage >= totalPages ||
         totalPages === 0
       }
-      onClick={() =>
-        setCurrentPage((p) => p + 1)
-      }
+      onClick={() => setCurrentPage((p) => p + 1)}
     >
       Next
     </button>

@@ -552,35 +552,44 @@ const paginated = filtered.slice(
           ))}
         </tbody>
       </table>
-      <div className={styles.pagination}>
+      
+      </div>
+<div className={styles.pagination}>
+  <span className={styles.pageInfo}>
+    Showing{" "}
+    {filtered.length === 0
+      ? 0
+      : (currentPage - 1) * rowsPerPage + 1}
+    {" - "}
+    {Math.min(currentPage * rowsPerPage, filtered.length)} of{" "}
+    {filtered.length}
+  </span>
 
+  <div className={styles.pageButtons}>
     <button
-        onClick={() =>
-            setCurrentPage((p) => Math.max(1, p - 1))
-        }
-        disabled={currentPage === 1}
+      className={styles.pageBtn}
+      disabled={currentPage === 1}
+      onClick={() => setCurrentPage((p) => p - 1)}
     >
-        Previous
+      Previous
     </button>
 
-    <span>
-        Page {currentPage} of {totalPages || 1}
+    <span className={styles.pageInfo}>
+      Page {totalPages === 0 ? 0 : currentPage} of {totalPages || 1}
     </span>
 
     <button
-        onClick={() =>
-            setCurrentPage((p) =>
-                Math.min(totalPages, p + 1)
-            )
-        }
-        disabled={currentPage === totalPages || totalPages === 0}
+      className={styles.pageBtn}
+      disabled={
+        currentPage === totalPages ||
+        totalPages === 0
+      }
+      onClick={() => setCurrentPage((p) => p + 1)}
     >
-        Next
+      Next
     </button>
-
+  </div>
 </div>
-      </div>
-
       {/* MODAL */}
       {selectedApp && (
         <div className={styles.overlay}>
