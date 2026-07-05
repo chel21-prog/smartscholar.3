@@ -32,6 +32,7 @@ export default function Scholarships() {
   const [sponsor,     setSponsor]     = useState("");
   const [description, setDescription] = useState("");
   const [amount,      setAmount]      = useState("");
+  const [budget, setBudget] = useState("");
   const [slots,       setSlots]       = useState("");
   const [deadline,    setDeadline]    = useState("");
 
@@ -62,7 +63,16 @@ export default function Scholarships() {
   useEffect(() => { load(); }, []);
 
   const load = async () => {
-    const { data }       = await supabase.from("scholarships").select("*");
+    const { data } = await supabase
+.from("scholarships")
+.select(`
+    *,
+    grantees(
+        fund_releases(
+            amount_released
+        )
+    )
+`);
     const { data: app }  = await supabase.from("application_requirements").select("*");
     const { data: elig } = await supabase.from("eligibility_requirements").select("*");
     setList(data || []);
@@ -136,10 +146,18 @@ export default function Scholarships() {
   const removeField = (i) => setFields(fields.filter((_, idx) => idx !== i));
 
   const reset = () => {
-    setName(""); setSponsor(""); setDescription(""); setAmount("");
-    setSlots(""); setDeadline(""); setSelectedReq([]); setFormTitle("");
-    setTerms(""); setFields([]);
-  };
+    setName("");
+    setSponsor("");
+    setDescription("");
+    setAmount("");
+    setBudget("");
+    setSlots("");
+    setDeadline("");
+    setSelectedReq([]);
+    setFormTitle("");
+    setTerms("");
+    setFields([]);
+};
 
   const closeModal = () => {
     setOpen(false); setViewOpen(false); setViewFormOpen(false);
@@ -151,6 +169,7 @@ export default function Scholarships() {
     setEditMode(true); setEditingId(sch.scholarship_id);
     setName(sch.scholarship_name || ""); setSponsor(sch.sponsor || "");
     setDescription(sch.description || ""); setAmount(sch.amount || "");
+    setBudget(sch.total_budget || "");
     setSlots(sch.slots || ""); setDeadline(sch.submission_deadline || "");
 
     const { data: form } = await supabase.from("scholarship_application_forms")
@@ -168,8 +187,17 @@ export default function Scholarships() {
   const createScholarship = async () => {
     if (!name || !formTitle || !terms) return alert("Name, form title, and terms are required");
     const { data: sch, error } = await supabase.from("scholarships")
-      .insert({ scholarship_name: name, sponsor, description, amount: parseInt(amount || 0), slots: parseInt(slots || 0), submission_deadline: deadline, status: "Active" })
-      .select().single();
+      .insert({
+    scholarship_name:name,
+    sponsor,
+    description,
+    amount:parseFloat(amount || 0),
+    total_budget:parseFloat(budget || 0),
+    slots:parseInt(slots || 0),
+    submission_deadline:deadline,
+    status:"Active"
+})
+.select().single();
     if (error) return alert(error.message);
 
     if (selectedReq.length) await supabase.from("scholarship_requirements").insert(
@@ -190,8 +218,16 @@ export default function Scholarships() {
   const updateScholarship = async () => {
     if (!editingId) return alert("No scholarship selected");
     const { error } = await supabase.from("scholarships")
-      .update({ scholarship_name: name, sponsor, description, amount: parseInt(amount || 0), slots: parseInt(slots || 0), submission_deadline: deadline })
-      .eq("scholarship_id", editingId);
+      .update({
+    scholarship_name:name,
+    sponsor,
+    description,
+    amount:parseFloat(amount || 0),
+    total_budget:parseFloat(budget || 0),
+    slots:parseInt(slots || 0),
+    submission_deadline:deadline
+})
+.eq("scholarship_id", editingId);
     if (error) return alert(error.message);
 
     await supabase.from("scholarship_requirements").delete().eq("scholarship_id", editingId);
@@ -229,6 +265,22 @@ export default function Scholarships() {
     setViewFormOpen(true);
   };
 
+  const releasedAmount = (sch) => {
+
+    if (!sch.grantees) return 0;
+
+    return sch.grantees.reduce((total, grantee) => {
+
+        const released = grantee.fund_releases || [];
+
+        return total + released.reduce(
+            (sum, fund) => sum + Number(fund.amount_released || 0),
+            0
+        );
+
+    }, 0);
+};
+
   // ── render ───────────────────────────────────────────────
   return (
     <div className={s.page}>
@@ -263,7 +315,21 @@ export default function Scholarships() {
         <table className={s.table}>
           <thead className={s.thead}>
             <tr>
-              {["Name","Sponsor","Description","Amount","Slots","Deadline","Status","Reqs","Form","Action"]
+              {[
+"Name",
+"Sponsor",
+"Description",
+"Amount",
+"Budget",
+"Released",
+"Remaining",
+"Slots",
+"Deadline",
+"Status",
+"Reqs",
+"Form",
+"Action"
+]
                 .map(h => <th key={h} className={s.th}>{h}</th>)}
             </tr>
           </thead>
@@ -274,6 +340,17 @@ export default function Scholarships() {
                 <td className={s.td}>{sch.sponsor}</td>
                 <td className={s.tdDesc}>{sch.description}</td>
                 <td className={s.td}>₱{Number(sch.amount || 0).toLocaleString()}</td>
+                <td className={s.td}>
+₱{Number(sch.total_budget || 0).toLocaleString()}
+</td>
+
+<td className={s.td}>
+₱{releasedAmount(sch).toLocaleString()}
+</td>
+
+<td className={s.td}>
+₱{(Number(sch.total_budget||0)-releasedAmount(sch)).toLocaleString()}
+</td>
                 <td className={s.td}>{sch.slots}</td>
                 <td className={s.td}>{sch.submission_deadline || "—"}</td>
                 <td className={s.td}>
@@ -398,6 +475,19 @@ export default function Scholarships() {
                     <label className={s.label}>Amount per grantee (₱)</label>
                     <input className={s.input} placeholder="e.g. 5000" value={amount} onChange={e => setAmount(e.target.value)} />
                   </div>
+                  <div className={s.fieldWrap}>
+    <label className={s.label}>
+        Total Budget (₱)
+    </label>
+
+    <input
+        className={s.input}
+        type="number"
+        placeholder="e.g. 500000"
+        value={budget}
+        onChange={(e)=>setBudget(e.target.value)}
+    />
+</div>
                   <div className={s.fieldWrap}>
                     <label className={s.label}>Slots available</label>
                     <input className={s.input} type="number" placeholder="e.g. 20" value={slots} onChange={e => setSlots(e.target.value)} />
