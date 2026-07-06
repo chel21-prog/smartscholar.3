@@ -338,7 +338,11 @@ export default function Scholarships() {
               <tr key={sch.scholarship_id} className={s.tr}>
                 <td className={s.td}>{sch.scholarship_name}</td>
                 <td className={s.td}>{sch.sponsor}</td>
-                <td className={s.tdDesc}>{sch.description}</td>
+                <td className={s.td}>
+    <div className={s.descriptionBox}>
+        {sch.description}
+    </div>
+</td>
                 <td className={s.td}>₱{Number(sch.amount || 0).toLocaleString()}</td>
                 <td className={s.td}>
 ₱{Number(sch.total_budget || 0).toLocaleString()}

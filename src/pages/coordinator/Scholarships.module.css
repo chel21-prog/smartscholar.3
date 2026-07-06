@@ -91,8 +91,33 @@
 .tr:nth-child(even) { background: var(--surface-muted); }
 .tr:hover { background: var(--navy-50); }
 .td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text-primary); }
-.tdDesc { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); color: var(--text-secondary); max-width: 220px; }
+.tdDesc{
+    max-width:260px;
 
+    max-height:72px;
+    overflow-y:auto;
+    overflow-x:hidden;
+
+    white-space:pre-wrap;
+    word-break:break-word;
+
+    padding:10px;
+}
+/* Chrome, Edge, Safari */
+.tdDesc::-webkit-scrollbar{
+    width:0;
+    height:0;
+}
+
+/* Firefox */
+.tdDesc{
+    scrollbar-width:none;
+}
+
+/* IE */
+.tdDesc{
+    -ms-overflow-style:none;
+}
 /* ── badges ── */
 .badge {
   display: inline-block; padding: 4px 10px; border-radius: var(--radius-full);
@@ -215,6 +240,34 @@
 .inlineForm { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: flex-end; }
 .inlineForm .input { height: 38px; min-width: 160px; flex: 1; }
 
+.descriptionBox{
+    width:260px;
+    height:70px;
+
+    overflow-y:auto;
+    overflow-x:hidden;
+
+    white-space:pre-wrap;
+    word-break:break-word;
+
+    line-height:1.4;
+}
+
+/* Chrome */
+.descriptionBox::-webkit-scrollbar{
+    width:0;
+    height:0;
+}
+
+/* Firefox */
+.descriptionBox{
+    scrollbar-width:none;
+}
+
+/* IE */
+.descriptionBox{
+    -ms-overflow-style:none;
+}
 /* ── field builder ── */
 .fieldBuilder { display: grid; grid-template-columns: 1fr 1fr auto; gap: var(--space-3); align-items: end; }
 @media (max-width: 560px) { .fieldBuilder { grid-template-columns: 1fr; } }
