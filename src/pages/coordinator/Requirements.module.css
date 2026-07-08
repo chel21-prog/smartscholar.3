@@ -282,3 +282,179 @@
     font-size:13px;
     line-height:1.5;
 }
+/* ── Template controls ── */
+.tplBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tplBtns {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.tplBtn {
+  padding: 6px 11px;
+  background: var(--navy-50);
+  color: var(--navy-700);
+  border: 1px solid var(--navy-100);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--duration-fast);
+}
+.tplBtn:hover { background: var(--navy-100); }
+
+.tplBtnSecondary {
+  padding: 6px 11px;
+  background: var(--gold-50);
+  color: var(--gold-700);
+  border: 1px solid var(--gold-100);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--duration-fast);
+}
+.tplBtnSecondary:hover { background: var(--gold-100); }
+
+.tplPicker {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.tplPicker::-webkit-scrollbar { display: none; }
+
+.tplEmpty {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: var(--space-3) 0;
+  margin: 0;
+}
+
+.tplCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.tplCardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tplCardName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tplCardMeta {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.tplCardActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.tplUseBtn {
+  padding: 5px 12px;
+  background: var(--navy-600);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tplUseBtn:hover { background: var(--navy-700); }
+.tplUseBtn:disabled { opacity: .55; cursor: not-allowed; }
+
+.tplDelBtn {
+  padding: 5px 10px;
+  background: var(--danger-50);
+  color: var(--danger-700);
+  border: 1px solid var(--danger-100);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tplDelBtn:hover { background: var(--danger-100); }
+
+.tplSaveRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tplHint {
+  font-size: 12px;
+  color: var(--navy-600);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* ── Requirement card with checkbox support ── */
+.reqLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.reqRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.reqCheck {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.deleteBtn {
+  padding: 4px 10px;
+  background: var(--danger-50);
+  color: var(--danger-700);
+  border: 1px solid var(--danger-100);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.deleteBtn:hover { background: var(--danger-100); }

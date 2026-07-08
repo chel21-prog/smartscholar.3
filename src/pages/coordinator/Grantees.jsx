@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import Modal from "@/components/ui/Modal";
 import styles from "./Grantees.module.css";
+
+const VERIFICATION_LABELS = {
+  Verified: "Verified",
+  "Pending Review": "Pending Review",
+  Ineligible: "Ineligible",
+};
 
 export default function Grantees() {
   const [rows, setRows] = useState([]);
@@ -12,9 +19,33 @@ const [rowsPerPage, setRowsPerPage] = useState(10);
 const [scholarshipFilter, setScholarshipFilter] = useState("All");
 const [semesterFilter, setSemesterFilter] = useState("All");
 const [yearFilter, setYearFilter] = useState("All");
+  const [currentUserId, setCurrentUserId] = useState(null);
+
+  // ── verification modal ────────────────────────────────────
+  const [verifyTarget, setVerifyTarget] = useState(null); // the row being verified
+  const [regStatus, setRegStatus] = useState("");
+  const [regYearLevel, setRegYearLevel] = useState("");
+  const [verifyRemarks, setVerifyRemarks] = useState("");
+  const [verifyResult, setVerifyResult] = useState("");
+  const [terminationReason, setTerminationReason] = useState("");
+  const [savingVerification, setSavingVerification] = useState(false);
+
   useEffect(() => {
     load();
+    loadCurrentUser();
   }, []);
+
+  const loadCurrentUser = async () => {
+    const { data } = await supabase.auth.getUser();
+    const authUser = data?.user;
+    if (!authUser) return;
+    const { data: userRow } = await supabase
+      .from("users")
+      .select("user_id")
+      .eq("auth_id", authUser.id)
+      .single();
+    setCurrentUserId(userRow?.user_id ?? null);
+  };
   useEffect(() => {
   setCurrentPage(1);
 }, [
@@ -38,9 +69,17 @@ const [yearFilter, setYearFilter] = useState("All");
       date_awarded,
       academic_year,
       semester,
+      verification_result,
+      verification_remarks,
+      termination_reason,
+      last_verified_at,
+      source,
 
       students (
         school_id,
+        course,
+        year_level,
+        status,
         users (
           first_name,
           last_name
@@ -78,11 +117,19 @@ const [yearFilter, setYearFilter] = useState("All");
       grantee_id: g.grantee_id,
       school_id: g.students?.school_id ?? "N/A",
       student_name: `${first} ${last}`.trim() || "Unknown",
+      course: g.students?.course ?? "N/A",
+      year_level: g.students?.year_level ?? "N/A",
+      student_status: g.students?.status ?? "N/A",
       scholarship_name: g.scholarships?.scholarship_name ?? "N/A",
       status: g.status,
       academic_year: g.academic_year ?? "N/A",
       semester: g.semester ?? "N/A",
       date_awarded: g.date_awarded,
+      verification_result: g.verification_result ?? "Pending Review",
+      verification_remarks: g.verification_remarks,
+      termination_reason: g.termination_reason,
+      last_verified_at: g.last_verified_at,
+      source: g.source ?? "Application",
 
       documents: granteeDocs,
     };
@@ -91,6 +138,76 @@ const [yearFilter, setYearFilter] = useState("All");
   setRows(formatted);
   setLoading(false);
 };
+
+  const openVerify = (row) => {
+    setVerifyTarget(row);
+    setRegStatus("");
+    setRegYearLevel("");
+    setVerifyRemarks("");
+    setVerifyResult("");
+    setTerminationReason("");
+  };
+
+  const closeVerify = () => setVerifyTarget(null);
+
+  const submitVerification = async () => {
+    if (!verifyTarget || !verifyResult) return;
+    if (verifyResult === "Ineligible" && !terminationReason.trim()) {
+      alert("Enter a reason before marking this grantee ineligible.");
+      return;
+    }
+
+    setSavingVerification(true);
+
+    // grantees.verification_result only supports Verified / Pending Review /
+    // Ineligible today, so "Mismatch" is recorded as Pending Review at the
+    // grantee level and kept precise in the grantee_verifications history.
+    const granteeUpdate =
+      verifyResult === "Eligible"
+        ? { verification_result: "Verified", status: "Active" }
+        : verifyResult === "Mismatch"
+        ? { verification_result: "Pending Review" }
+        : { verification_result: "Ineligible", status: "Inactive", termination_reason: terminationReason };
+
+    const remarks = regStatus || regYearLevel
+      ? `Registrar: ${regStatus || "—"}${regYearLevel ? `, Year ${regYearLevel}` : ""}. ${verifyRemarks}`.trim()
+      : verifyRemarks;
+
+    const { error: updateError } = await supabase
+      .from("grantees")
+      .update({
+        ...granteeUpdate,
+        verification_remarks: remarks || null,
+        last_verified_at: new Date().toISOString(),
+        verified_by: currentUserId,
+      })
+      .eq("grantee_id", verifyTarget.grantee_id);
+
+    if (updateError) {
+      alert(updateError.message);
+      setSavingVerification(false);
+      return;
+    }
+
+    const { error: historyError } = await supabase
+      .from("grantee_verifications")
+      .insert({
+        grantee_id: verifyTarget.grantee_id,
+        academic_year: verifyTarget.academic_year,
+        semester: verifyTarget.semester,
+        verification_status: verifyResult,
+        remarks: remarks || null,
+        verified_by: currentUserId,
+      });
+
+    if (historyError) {
+      alert(historyError.message);
+    }
+
+    setSavingVerification(false);
+    closeVerify();
+    load();
+  };
 
   if (loading) return <p style={{ padding: 20 }}>Loading...</p>;
  const grouped = rows.reduce((acc, r) => {
@@ -314,6 +431,7 @@ const endRow =
               <th className={styles.th}>Semester Approved</th>
               <th className={styles.th}>Date Approved</th>
               <th className={styles.th}>Status</th>
+              <th className={styles.th}>Verification</th>
               <th className={styles.th}>Documents</th>
             </tr>
           </thead>
@@ -361,6 +479,26 @@ const endRow =
           >
             {s.status}
           </span>
+        </td>
+
+        <td className={styles.td}>
+          <div>
+            <span
+              className={`${styles.badge} ${
+                s.verification_result === "Verified"
+                  ? styles.active
+                  : styles.inactive
+              }`}
+            >
+              {VERIFICATION_LABELS[s.verification_result] || s.verification_result}
+            </span>
+          </div>
+          <button
+            className={styles.documentButton}
+            onClick={() => openVerify(s)}
+          >
+            {s.verification_result === "Verified" ? "Re-verify" : "Verify"}
+          </button>
         </td>
 
         <td className={styles.td}>
@@ -424,6 +562,114 @@ const endRow =
     </button>
   </div>
 </div>
+
+      <Modal
+        open={!!verifyTarget}
+        onClose={closeVerify}
+        title="Verify Grantee"
+        footer={
+          <>
+            <button className={styles.pageBtn} onClick={closeVerify}>Cancel</button>
+            <button
+              className={styles.documentButton}
+              disabled={!verifyResult || savingVerification}
+              onClick={submitVerification}
+            >
+              {savingVerification ? "Saving…" : "Save"}
+            </button>
+          </>
+        }
+      >
+        {verifyTarget && (
+          <div className={styles.verifyForm}>
+            <div className={styles.verifySection}>
+              <h4 className={styles.verifySectionTitle}>Student Information</h4>
+              <div className={styles.verifyGrid}>
+                <div><span className={styles.verifyLabel}>Name</span><br />{verifyTarget.student_name}</div>
+                <div><span className={styles.verifyLabel}>School ID</span><br />{verifyTarget.school_id}</div>
+                <div><span className={styles.verifyLabel}>Course</span><br />{verifyTarget.course}</div>
+                <div><span className={styles.verifyLabel}>Year Level (on file)</span><br />{verifyTarget.year_level}</div>
+              </div>
+            </div>
+
+            <div className={styles.verifySection}>
+              <h4 className={styles.verifySectionTitle}>Scholarship</h4>
+              <div className={styles.verifyGrid}>
+                <div><span className={styles.verifyLabel}>Name</span><br />{verifyTarget.scholarship_name}</div>
+                <div><span className={styles.verifyLabel}>Academic Year</span><br />{verifyTarget.academic_year}</div>
+                <div><span className={styles.verifyLabel}>Semester</span><br />{verifyTarget.semester}</div>
+              </div>
+            </div>
+
+            <div className={styles.verifySection}>
+              <h4 className={styles.verifySectionTitle}>Registrar Verification</h4>
+              <p className={styles.description}>
+                Compare the student's profile above against what the registrar shows right now.
+              </p>
+              <div className={styles.verifyGrid}>
+                <input
+                  className={styles.search}
+                  placeholder="Registrar enrollment status"
+                  value={regStatus}
+                  onChange={(e) => setRegStatus(e.target.value)}
+                />
+                <input
+                  className={styles.search}
+                  type="number"
+                  placeholder="Registrar year level"
+                  value={regYearLevel}
+                  onChange={(e) => setRegYearLevel(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <textarea
+              className={styles.search}
+              placeholder="Remarks"
+              rows={2}
+              value={verifyRemarks}
+              onChange={(e) => setVerifyRemarks(e.target.value)}
+            />
+
+            <div className={styles.verifySection}>
+              <h4 className={styles.verifySectionTitle}>Verification Result</h4>
+              <div className={styles.verifyResultRow}>
+                {["Eligible", "Mismatch", "Ineligible"].map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    className={`${styles.select} ${verifyResult === opt ? styles.badge : ""}`}
+                    onClick={() => setVerifyResult(opt)}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+
+              {verifyResult === "Ineligible" && (
+                <select
+                  className={styles.select}
+                  value={terminationReason}
+                  onChange={(e) => setTerminationReason(e.target.value)}
+                >
+                  <option value="">Select a reason…</option>
+                  <option value="Graduated">Graduated</option>
+                  <option value="Dropped">Dropped</option>
+                  <option value="Transferred">Transferred</option>
+                  <option value="Scholarship revoked">Scholarship revoked</option>
+                  <option value="Other">Other</option>
+                </select>
+              )}
+
+              {verifyResult === "Mismatch" && (
+                <p className={styles.description}>
+                  This keeps the grantee at Pending Review until they are checked again next verification cycle.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

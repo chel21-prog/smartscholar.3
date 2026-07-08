@@ -284,3 +284,107 @@
 .listItem { padding: var(--space-2) var(--space-3); font-size: var(--text-sm); color: var(--text-primary); }
 .termsText { font-size: var(--text-sm); color: var(--text-secondary); line-height: var(--leading-relaxed); }
 .empty { color: var(--text-secondary); font-size: var(--text-sm); }
+
+/* ── Form template controls ── */
+.formSectionHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.tplActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.tplBtn {
+  padding: 7px 12px;
+  background: var(--navy-50);
+  color: var(--navy-700);
+  border: 1px solid var(--navy-100);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--duration-fast);
+}
+.tplBtn:hover { background: var(--navy-100); }
+
+.tplBtnSecondary {
+  padding: 7px 12px;
+  background: var(--gold-50);
+  color: var(--gold-700);
+  border: 1px solid var(--gold-100);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--duration-fast);
+}
+.tplBtnSecondary:hover { background: var(--gold-100); }
+
+/* Template picker dropdown */
+.tplPicker {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.tplPicker::-webkit-scrollbar { display: none; }
+
+.tplEmpty {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-align: center;
+  padding: var(--space-4) 0;
+  margin: 0;
+}
+
+.tplCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.tplCardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tplCardName {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tplCardMeta {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.tplCardActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}

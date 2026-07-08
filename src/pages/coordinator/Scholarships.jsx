@@ -17,7 +17,7 @@ export default function Scholarships() {
   const [search,        setSearch]        = useState("");
   const [statusFilter,  setStatusFilter]  = useState("All");
   const [sponsorFilter, setSponsorFilter] = useState("All");
-  const [currentPage,   setCurrentPage]  = useState(1);
+  const [currentPage,   setCurrentPage]   = useState(1);
   const ITEMS_PER_PAGE = 10;
 
   // ── modal open state ────────────────────────────────────
@@ -28,24 +28,26 @@ export default function Scholarships() {
   const [editingId,    setEditingId]   = useState(null);
 
   // ── scholarship fields ──────────────────────────────────
-  const [name,        setName]        = useState("");
-  const [sponsor,     setSponsor]     = useState("");
-  const [description, setDescription] = useState("");
-  const [amount,      setAmount]      = useState("");
-  const [budget, setBudget] = useState("");
-  const [slots,       setSlots]       = useState("");
-  const [deadline,    setDeadline]    = useState("");
+  const [name,           setName]           = useState("");
+  const [sponsor,        setSponsor]        = useState("");
+  const [description,    setDescription]    = useState("");
+  const [amount,         setAmount]         = useState("");
+  const [budget,         setBudget]         = useState("");
+  const [slots,          setSlots]          = useState("");
+  const [deadline,       setDeadline]       = useState("");
+  const [payoutFreq,     setPayoutFreq]     = useState("Semester");
+  const [duration,       setDuration]       = useState("Until Graduation");
 
   // ── requirements ────────────────────────────────────────
-  const [appReq,      setAppReq]      = useState([]);
-  const [eligReq,     setEligReq]     = useState([]);
-  const [selectedReq, setSelectedReq] = useState([]);
-  const [newAppName,  setNewAppName]  = useState("");
-  const [newAppType,  setNewAppType]  = useState("Document");
-  const [newEligName, setNewEligName] = useState("");
-  const [newEligType, setNewEligType] = useState("Other");
-  const [showAppForm, setShowAppForm] = useState(false);
-  const [showEligForm,setShowEligForm]= useState(false);
+  const [appReq,       setAppReq]      = useState([]);
+  const [eligReq,      setEligReq]     = useState([]);
+  const [selectedReq,  setSelectedReq] = useState([]);
+  const [newAppName,   setNewAppName]  = useState("");
+  const [newAppType,   setNewAppType]  = useState("Document");
+  const [newEligName,  setNewEligName] = useState("");
+  const [newEligType,  setNewEligType] = useState("Other");
+  const [showAppForm,  setShowAppForm] = useState(false);
+  const [showEligForm, setShowEligForm]= useState(false);
 
   // ── form builder ────────────────────────────────────────
   const [formTitle,  setFormTitle]  = useState("");
@@ -55,29 +57,39 @@ export default function Scholarships() {
   const [fieldType,  setFieldType]  = useState("text");
   const [isRequired, setIsRequired] = useState(false);
 
+  // ── form templates ───────────────────────────────────────
+  const [formTemplates,    setFormTemplates]    = useState([]);
+  const [showTplPicker,    setShowTplPicker]    = useState(false);
+  const [savingTpl,        setSavingTpl]        = useState(false);
+  const [showSaveTpl,      setShowSaveTpl]      = useState(false);
+  const [tplName,          setTplName]          = useState("");
+
   // ── view modals data ────────────────────────────────────
   const [viewRequirements, setViewRequirements] = useState({ application: [], eligibility: [] });
   const [formData,         setFormData]         = useState({ title: "", terms: "", fields: [] });
 
   // ────────────────────────────────────────────────────────
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadFormTemplates(); }, []);
 
   const load = async () => {
-    const { data } = await supabase
-.from("scholarships")
-.select(`
-    *,
-    grantees(
-        fund_releases(
-            amount_released
-        )
-    )
-`);
+    const { data } = await supabase.from("scholarships").select(`
+      *,
+      grantees(fund_releases(amount_released))
+    `);
     const { data: app }  = await supabase.from("application_requirements").select("*");
     const { data: elig } = await supabase.from("eligibility_requirements").select("*");
     setList(data || []);
-    setAppReq(app   || []);
+    setAppReq(app  || []);
     setEligReq(elig || []);
+  };
+
+  const loadFormTemplates = async () => {
+    const { data } = await supabase
+      .from("report_templates")
+      .select("*")
+      .order("created_at", { ascending: true });
+    // Only show templates tagged as form_template
+    setFormTemplates((data || []).filter(t => t.layout?.type === "form_template"));
   };
 
   // ── filters ─────────────────────────────────────────────
@@ -99,6 +111,44 @@ export default function Scholarships() {
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginated  = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  // ── form template actions ────────────────────────────────
+  const applyFormTemplate = (tpl) => {
+    setFormTitle(tpl.layout?.formTitle || "");
+    setTerms(tpl.layout?.terms || "");
+    setFields(tpl.layout?.fields || []);
+    setShowTplPicker(false);
+  };
+
+  const saveFormTemplate = async () => {
+    if (!tplName.trim()) return;
+    if (!formTitle.trim() && !terms.trim() && fields.length === 0) {
+      alert("Fill in at least the form title before saving a template.");
+      return;
+    }
+    setSavingTpl(true);
+    const { data } = await supabase.from("report_templates")
+      .insert({
+        name: tplName,
+        layout: {
+          type:      "form_template",
+          formTitle,
+          terms,
+          fields,
+        },
+      })
+      .select().single();
+    if (data) setFormTemplates(prev => [...prev, data]);
+    setSavingTpl(false);
+    setTplName("");
+    setShowSaveTpl(false);
+  };
+
+  const deleteFormTemplate = async (id) => {
+    if (!confirm("Delete this template?")) return;
+    await supabase.from("report_templates").delete().eq("template_id", id);
+    setFormTemplates(prev => prev.filter(t => t.template_id !== id));
+  };
 
   // ── actions ─────────────────────────────────────────────
   const toggleStatus = async (sch) => {
@@ -146,18 +196,13 @@ export default function Scholarships() {
   const removeField = (i) => setFields(fields.filter((_, idx) => idx !== i));
 
   const reset = () => {
-    setName("");
-    setSponsor("");
-    setDescription("");
-    setAmount("");
-    setBudget("");
-    setSlots("");
-    setDeadline("");
+    setName(""); setSponsor(""); setDescription(""); setAmount("");
+    setBudget(""); setSlots(""); setDeadline("");
+    setPayoutFreq("Semester"); setDuration("Until Graduation");
     setSelectedReq([]);
-    setFormTitle("");
-    setTerms("");
-    setFields([]);
-};
+    setFormTitle(""); setTerms(""); setFields([]);
+    setShowTplPicker(false); setShowSaveTpl(false); setTplName("");
+  };
 
   const closeModal = () => {
     setOpen(false); setViewOpen(false); setViewFormOpen(false);
@@ -171,6 +216,8 @@ export default function Scholarships() {
     setDescription(sch.description || ""); setAmount(sch.amount || "");
     setBudget(sch.total_budget || "");
     setSlots(sch.slots || ""); setDeadline(sch.submission_deadline || "");
+    setPayoutFreq(sch.payout_frequency || "Semester");
+    setDuration(sch.duration_type || "Until Graduation");
 
     const { data: form } = await supabase.from("scholarship_application_forms")
       .select("*").eq("scholarship_id", sch.scholarship_id).single();
@@ -187,17 +234,8 @@ export default function Scholarships() {
   const createScholarship = async () => {
     if (!name || !formTitle || !terms) return alert("Name, form title, and terms are required");
     const { data: sch, error } = await supabase.from("scholarships")
-      .insert({
-    scholarship_name:name,
-    sponsor,
-    description,
-    amount:parseFloat(amount || 0),
-    total_budget:parseFloat(budget || 0),
-    slots:parseInt(slots || 0),
-    submission_deadline:deadline,
-    status:"Active"
-})
-.select().single();
+      .insert({ scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: deadline, payout_frequency: payoutFreq, duration_type: duration, status: "Active" })
+      .select().single();
     if (error) return alert(error.message);
 
     if (selectedReq.length) await supabase.from("scholarship_requirements").insert(
@@ -218,16 +256,8 @@ export default function Scholarships() {
   const updateScholarship = async () => {
     if (!editingId) return alert("No scholarship selected");
     const { error } = await supabase.from("scholarships")
-      .update({
-    scholarship_name:name,
-    sponsor,
-    description,
-    amount:parseFloat(amount || 0),
-    total_budget:parseFloat(budget || 0),
-    slots:parseInt(slots || 0),
-    submission_deadline:deadline
-})
-.eq("scholarship_id", editingId);
+      .update({ scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: deadline, payout_frequency: payoutFreq, duration_type: duration })
+      .eq("scholarship_id", editingId);
     if (error) return alert(error.message);
 
     await supabase.from("scholarship_requirements").delete().eq("scholarship_id", editingId);
@@ -266,20 +296,12 @@ export default function Scholarships() {
   };
 
   const releasedAmount = (sch) => {
-
     if (!sch.grantees) return 0;
-
     return sch.grantees.reduce((total, grantee) => {
-
-        const released = grantee.fund_releases || [];
-
-        return total + released.reduce(
-            (sum, fund) => sum + Number(fund.amount_released || 0),
-            0
-        );
-
+      const released = grantee.fund_releases || [];
+      return total + released.reduce((sum, fund) => sum + Number(fund.amount_released || 0), 0);
     }, 0);
-};
+  };
 
   // ── render ───────────────────────────────────────────────
   return (
@@ -313,23 +335,9 @@ export default function Scholarships() {
       {/* table */}
       <div className={s.tableWrap}>
         <table className={s.table}>
-          <thead className={s.thead}>
+          <thead>
             <tr>
-              {[
-"Name",
-"Sponsor",
-"Description",
-"Amount",
-"Budget",
-"Released",
-"Remaining",
-"Slots",
-"Deadline",
-"Status",
-"Reqs",
-"Form",
-"Action"
-]
+              {["Name","Sponsor","Description","Amount","Budget","Released","Remaining","Slots","Deadline","Payout","Duration","Status","Reqs","Form","Action"]
                 .map(h => <th key={h} className={s.th}>{h}</th>)}
             </tr>
           </thead>
@@ -338,25 +346,15 @@ export default function Scholarships() {
               <tr key={sch.scholarship_id} className={s.tr}>
                 <td className={s.td}>{sch.scholarship_name}</td>
                 <td className={s.td}>{sch.sponsor}</td>
-                <td className={s.td}>
-    <div className={s.descriptionBox}>
-        {sch.description}
-    </div>
-</td>
+                <td className={s.td}><div className={s.descriptionBox}>{sch.description}</div></td>
                 <td className={s.td}>₱{Number(sch.amount || 0).toLocaleString()}</td>
-                <td className={s.td}>
-₱{Number(sch.total_budget || 0).toLocaleString()}
-</td>
-
-<td className={s.td}>
-₱{releasedAmount(sch).toLocaleString()}
-</td>
-
-<td className={s.td}>
-₱{(Number(sch.total_budget||0)-releasedAmount(sch)).toLocaleString()}
-</td>
+                <td className={s.td}>₱{Number(sch.total_budget || 0).toLocaleString()}</td>
+                <td className={s.td}>₱{releasedAmount(sch).toLocaleString()}</td>
+                <td className={s.td}>₱{(Number(sch.total_budget || 0) - releasedAmount(sch)).toLocaleString()}</td>
                 <td className={s.td}>{sch.slots}</td>
                 <td className={s.td}>{sch.submission_deadline || "—"}</td>
+                <td className={s.td}>{sch.payout_frequency || "—"}</td>
+                <td className={s.td}>{sch.duration_type || "—"}</td>
                 <td className={s.td}>
                   <button className={`${s.badge} ${STATUS_TONE[sch.status] || s.badgeNeutral}`}
                     onClick={() => toggleStatus(sch)}>
@@ -457,11 +455,6 @@ export default function Scholarships() {
               <section className={s.section}>
                 <h3 className={s.sectionTitle}>Scholarship Information</h3>
                 <div className={s.formGrid}>
-                  {/* Each input is a plain <input> bound to its own state atom —
-                      NO inline style objects, NO spread into style={{}} in JSX.
-                      This is the fix for the cursor-jump bug: style objects
-                      defined outside the component (in the CSS module) have
-                      stable references and never cause React to remount inputs. */}
                   <div className={s.fieldWrap}>
                     <label className={s.label}>Scholarship Name</label>
                     <input className={s.input} placeholder="e.g. Academic Excellence Award"
@@ -480,18 +473,9 @@ export default function Scholarships() {
                     <input className={s.input} placeholder="e.g. 5000" value={amount} onChange={e => setAmount(e.target.value)} />
                   </div>
                   <div className={s.fieldWrap}>
-    <label className={s.label}>
-        Total Budget (₱)
-    </label>
-
-    <input
-        className={s.input}
-        type="number"
-        placeholder="e.g. 500000"
-        value={budget}
-        onChange={(e)=>setBudget(e.target.value)}
-    />
-</div>
+                    <label className={s.label}>Total Budget (₱)</label>
+                    <input className={s.input} type="number" placeholder="e.g. 500000" value={budget} onChange={e => setBudget(e.target.value)} />
+                  </div>
                   <div className={s.fieldWrap}>
                     <label className={s.label}>Slots available</label>
                     <input className={s.input} type="number" placeholder="e.g. 20" value={slots} onChange={e => setSlots(e.target.value)} />
@@ -500,13 +484,32 @@ export default function Scholarships() {
                     <label className={s.label}>Submission deadline</label>
                     <input className={s.input} type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
                   </div>
+                  <div className={s.fieldWrap}>
+                    <label className={s.label}>Payout Frequency</label>
+                    <select className={s.input} value={payoutFreq} onChange={e => setPayoutFreq(e.target.value)}>
+                      <option value="Semester">Semester</option>
+                      <option value="Annual">Annual</option>
+                      <option value="Monthly">Monthly</option>
+                      <option value="One-time">One-time</option>
+                    </select>
+                  </div>
+                  <div className={s.fieldWrap}>
+                    <label className={s.label}>Duration</label>
+                    <select className={s.input} value={duration} onChange={e => setDuration(e.target.value)}>
+                      <option value="1 Semester">1 Semester</option>
+                      <option value="1 Academic Year">1 Academic Year</option>
+                      <option value="2 Academic Years">2 Academic Years</option>
+                      <option value="3 Academic Years">3 Academic Years</option>
+                      <option value="4 Academic Years">4 Academic Years</option>
+                      <option value="Until Graduation">Until Graduation</option>
+                    </select>
+                  </div>
                 </div>
               </section>
 
               {/* Requirements */}
               <section className={s.section}>
                 <h3 className={s.sectionTitle}>Requirements</h3>
-
                 <div className={s.reqGroup}>
                   <h4 className={s.reqGroupTitle}>Application Requirements</h4>
                   {appReq.map(r => (
@@ -528,7 +531,6 @@ export default function Scholarships() {
                     </div>
                   )}
                 </div>
-
                 <div className={s.reqGroup}>
                   <h4 className={s.reqGroupTitle}>Eligibility Requirements</h4>
                   {eligReq.map(r => (
@@ -554,7 +556,58 @@ export default function Scholarships() {
 
               {/* Form Builder */}
               <section className={s.section}>
-                <h3 className={s.sectionTitle}>Application Form</h3>
+                {/* ── Form section header with template actions ── */}
+                <div className={s.formSectionHead}>
+                  <h3 className={s.sectionTitle}>Application Form</h3>
+                  <div className={s.tplActions}>
+                    <button className={s.tplBtn} onClick={() => { setShowTplPicker(v => !v); setShowSaveTpl(false); }}>
+                      Load template
+                    </button>
+                    <button className={s.tplBtnSecondary} onClick={() => { setShowSaveTpl(v => !v); setShowTplPicker(false); }}>
+                      Save as template
+                    </button>
+                  </div>
+                </div>
+
+                {/* ── Template picker ── */}
+                {showTplPicker && (
+                  <div className={s.tplPicker}>
+                    {formTemplates.length === 0 ? (
+                      <p className={s.tplEmpty}>No saved form templates yet. Build a form and save it to reuse it here.</p>
+                    ) : (
+                      formTemplates.map(t => (
+                        <div key={t.template_id} className={s.tplCard}>
+                          <div className={s.tplCardInfo}>
+                            <strong className={s.tplCardName}>{t.name}</strong>
+                            <span className={s.tplCardMeta}>
+                              {t.layout?.fields?.length || 0} field{t.layout?.fields?.length !== 1 ? "s" : ""}
+                              {t.layout?.formTitle ? ` · "${t.layout.formTitle}"` : ""}
+                            </span>
+                          </div>
+                          <div className={s.tplCardActions}>
+                            <button className={s.btnSm} onClick={() => applyFormTemplate(t)}>Use</button>
+                            <button className={s.removeBtn} onClick={() => deleteFormTemplate(t.template_id)}>Delete</button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {/* ── Save template row ── */}
+                {showSaveTpl && (
+                  <div className={s.inlineForm}>
+                    <input className={s.input} placeholder="Template name e.g. Standard Scholarship Form"
+                      value={tplName} onChange={e => setTplName(e.target.value)} />
+                    <button className={s.btnSm} disabled={savingTpl} onClick={saveFormTemplate}>
+                      {savingTpl ? "Saving…" : "Save"}
+                    </button>
+                    <button className={s.removeBtn} onClick={() => { setShowSaveTpl(false); setTplName(""); }}>
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
                 <div className={s.fieldWrapFull}>
                   <label className={s.label}>Form title</label>
                   <input className={s.input} placeholder="e.g. Academic Excellence Application" value={formTitle} onChange={e => setFormTitle(e.target.value)} />
