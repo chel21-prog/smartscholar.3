@@ -522,12 +522,22 @@ export default function CoordinatorDashboard() {
               </div>
               <h3 style={{margin:0,color:"var(--text-primary)"}}>Submitted Answers</h3>
               <div style={st.answersWrap}>
-                {answers.map((r,i)=>(
-                  <div key={i} style={st.answerCard}>
-                    <div style={st.question}>{r.scholarship_form_fields?.label}</div>
-                    <div style={st.answer}>{r.answer}</div>
-                  </div>
-                ))}
+                {answers.map((r,i)=>{
+                  const isUrl = typeof r.answer === "string" && r.answer.startsWith("http");
+                  return (
+                    <div key={i} style={st.answerCard}>
+                      <div style={st.question}>{r.scholarship_form_fields?.label}</div>
+                      {isUrl ? (
+                        <a href={r.answer} target="_blank" rel="noreferrer"
+                          style={{color:"var(--navy-600)",fontSize:14,fontWeight:600,wordBreak:"break-all"}}>
+                          View attached file
+                        </a>
+                      ) : (
+                        <div style={st.answer}>{r.answer}</div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <div style={st.modalFoot}>

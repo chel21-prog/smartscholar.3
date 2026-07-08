@@ -20,6 +20,9 @@ export default function Dashboard() {
   const [formMeta,            setFormMeta]           = useState(null);
   const [formFields,          setFormFields]         = useState([]);
   const [formAnswers,         setFormAnswers]        = useState({});
+  // file fields: store the File object here, upload on submit, then store the URL as the answer
+  const [fileAnswers,         setFileAnswers]        = useState({});
+  const [uploadingFields,     setUploadingFields]    = useState(new Set());
   const [submitting,          setSubmitting]         = useState(false);
   const [formError,           setFormError]          = useState("");
   const [formLoading,         setFormLoading]        = useState(false);
@@ -140,6 +143,8 @@ export default function Dashboard() {
     setFormMeta(null);
     setFormFields([]);
     setFormAnswers({});
+    setFileAnswers({});
+    setUploadingFields(new Set());
     answersRef.current = {};
     setFormError("");
   };
@@ -150,9 +155,21 @@ export default function Dashboard() {
     setFormAnswers((prev) => ({ ...prev, [fieldId]: value }));
   };
 
+  // For file fields — store the File object locally, upload on submit
+  const handleFileSelect = (fieldId, file) => {
+    if (!file) return;
+    setFileAnswers((prev) => ({ ...prev, [fieldId]: file }));
+    // Store the filename as a placeholder so validation sees the field is filled
+    setFormAnswers((prev) => ({ ...prev, [fieldId]: file.name }));
+    answersRef.current = { ...answersRef.current, [fieldId]: file.name };
+  };
+
   const submitApplication = async () => {
     const answers = answersRef.current;
-    const missing = formFields.filter((f) => !String(answers[f.field_id] || "").trim());
+    // Only check required fields
+    const missing = formFields.filter(
+      (f) => f.is_required && !String(answers[f.field_id] || "").trim()
+    );
     if (missing.length) {
       setFormError(`Please fill in: ${missing.map((f) => f.label).join(", ")}`);
       return;
@@ -160,10 +177,11 @@ export default function Dashboard() {
     setSubmitting(true);
     setFormError("");
 
+    // 1. Create the application row first to get an application_id
     const { data: app, error: appError } = await supabase
       .from("scholarship_applications")
       .insert({
-        student_id:    studentId,
+        student_id:     studentId,
         scholarship_id: selectedScholarship.scholarship_id,
         status:         "Pending",
         academic_year:  academic?.academic_year,
@@ -172,10 +190,50 @@ export default function Dashboard() {
 
     if (appError) { setFormError(appError.message); setSubmitting(false); return; }
 
-    const responses = Object.entries(answers).map(([fieldId, answer]) => ({
-      application_id: app.application_id, field_id: fieldId, answer,
+    // 2. Upload any file fields, swap filename placeholder → public URL
+    const resolvedAnswers = { ...answers };
+
+    for (const field of formFields) {
+      if (field.field_type !== "file") continue;
+      const file = fileAnswers[field.field_id];
+      if (!file) continue;
+
+      setUploadingFields((prev) => new Set([...prev, field.field_id]));
+
+      const ext      = file.name.split(".").pop();
+      const filePath = `${app.application_id}/${field.field_id}_${Date.now()}.${ext}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("application-documents")
+        .upload(filePath, file, { upsert: true });
+
+      setUploadingFields((prev) => {
+        const next = new Set(prev); next.delete(field.field_id); return next;
+      });
+
+      if (uploadErr) {
+        setFormError(`Upload failed for "${field.label}": ${uploadErr.message}`);
+        setSubmitting(false);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("application-documents")
+        .getPublicUrl(filePath);
+
+      resolvedAnswers[field.field_id] = urlData.publicUrl;
+    }
+
+    // 3. Insert all responses (text answers + resolved file URLs)
+    const responses = Object.entries(resolvedAnswers).map(([fieldId, answer]) => ({
+      application_id: app.application_id,
+      field_id:       fieldId,
+      answer:         String(answer),
     }));
-    const { error: resError } = await supabase.from("application_form_responses").insert(responses);
+
+    const { error: resError } = await supabase
+      .from("application_form_responses").insert(responses);
+
     if (resError) { setFormError(resError.message); setSubmitting(false); return; }
 
     setSubmitting(false);
@@ -322,18 +380,48 @@ export default function Dashboard() {
                       {formFields.map((field) => (
                         <div key={field.field_id} className={s.fieldItem}>
                           <label className={s.fieldLabel} htmlFor={`ff-${field.field_id}`}>
-                            {field.label} <span className={s.req}>*</span>
+                            {field.label}
+                            {field.is_required && <span className={s.req}> *</span>}
                           </label>
-                          {/* Plain <input> — no wrapper component, no prop drilling.
-                              handleAnswer uses a functional updater so the onChange
-                              reference is stable across re-renders. */}
-                          <input
-                            id={`ff-${field.field_id}`}
-                            className={s.fieldInput}
-                            type={field.field_type === "number" ? "number" : "text"}
-                            value={formAnswers[field.field_id] || ""}
-                            onChange={(e) => handleAnswer(field.field_id, e.target.value)}
-                          />
+
+                          {field.field_type === "file" ? (
+                            <div className={s.fileWrap}>
+                              <label
+                                className={`${s.fileBtn} ${uploadingFields.has(field.field_id) ? s.fileBtnBusy : ""}`}
+                                htmlFor={`ff-${field.field_id}`}
+                              >
+                                {uploadingFields.has(field.field_id)
+                                  ? "Uploading…"
+                                  : "Choose file"}
+                              </label>
+                              <input
+                                id={`ff-${field.field_id}`}
+                                type="file"
+                                className={s.hiddenInput}
+                                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                                disabled={uploadingFields.has(field.field_id) || submitting}
+                                onChange={(e) => handleFileSelect(field.field_id, e.target.files[0])}
+                              />
+                              {formAnswers[field.field_id] && (
+                                <span className={s.fileName}>
+                                  {formAnswers[field.field_id]}
+                                </span>
+                              )}
+                              <p className={s.fileHint}>PDF, Word, PNG, or JPG</p>
+                            </div>
+                          ) : (
+                            <input
+                              id={`ff-${field.field_id}`}
+                              className={s.fieldInput}
+                              type={
+                                field.field_type === "number" ? "number"
+                                : field.field_type === "date" ? "date"
+                                : "text"
+                              }
+                              value={formAnswers[field.field_id] || ""}
+                              onChange={(e) => handleAnswer(field.field_id, e.target.value)}
+                            />
+                          )}
                         </div>
                       ))}
                     </div>

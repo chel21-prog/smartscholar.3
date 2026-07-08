@@ -44,7 +44,7 @@
 /* ── apply modal ── */
 .overlay {
   position:fixed; inset:0; background:rgba(10,21,32,.55);
-  display:flex; align-items:center;
+  backdrop-filter:blur(2px); display:flex; align-items:center;
   justify-content:center; padding:var(--space-5); z-index:1000;
 }
 .modal {
@@ -125,4 +125,65 @@
   .statsRow { grid-template-columns:1fr 1fr; }
   .overlay { padding:0; align-items:flex-end; }
   .modal { max-width:100%; max-height:92vh; border-radius:var(--radius-xl) var(--radius-xl) 0 0; }
+}
+
+/* ── File upload field ── */
+.fileWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fileLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 var(--space-4);
+  background: var(--surface);
+  color: var(--navy-700);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-fast), border-color var(--duration-fast);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fileLabel:hover {
+  background: var(--navy-50);
+  border-color: var(--navy-300);
+}
+
+.fileLabelBusy {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.hiddenFileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.fileName {
+  font-size: var(--text-xs);
+  color: var(--success-700);
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.fileHint {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin: 0;
 }
