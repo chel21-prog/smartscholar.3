@@ -202,6 +202,7 @@ export default function Scholarships() {
     setSelectedReq([]);
     setFormTitle(""); setTerms(""); setFields([]);
     setShowTplPicker(false); setShowSaveTpl(false); setTplName("");
+    setSaving(false);
   };
 
   const closeModal = () => {
@@ -231,12 +232,16 @@ export default function Scholarships() {
     setOpen(true);
   };
 
+  const [saving, setSaving] = useState(false);
+
   const createScholarship = async () => {
+    if (saving) return;
     if (!name || !formTitle || !terms) return alert("Name, form title, and terms are required");
+    setSaving(true);
     const { data: sch, error } = await supabase.from("scholarships")
       .insert({ scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: deadline, payout_frequency: payoutFreq, duration_type: duration, status: "Active" })
       .select().single();
-    if (error) return alert(error.message);
+    if (error) { alert(error.message); setSaving(false); return; }
 
     if (selectedReq.length) await supabase.from("scholarship_requirements").insert(
       selectedReq.map(r => ({ scholarship_id: sch.scholarship_id, application_requirement_id: r.type === "app" ? r.id : null, eligibility_requirement_id: r.type === "elig" ? r.id : null }))
@@ -245,34 +250,51 @@ export default function Scholarships() {
     const { data: form, error: fe } = await supabase.from("scholarship_application_forms")
       .insert({ scholarship_id: sch.scholarship_id, form_title: formTitle, terms_and_conditions: terms })
       .select().single();
-    if (fe) return alert(fe.message);
+    if (fe) { alert(fe.message); setSaving(false); return; }
 
     if (fields.length) await supabase.from("scholarship_form_fields").insert(
       fields.map(f => ({ form_id: form.form_id, label: f.label, field_type: f.type, is_required: f.required }))
     );
+    setSaving(false);
     reset(); setOpen(false); load();
   };
 
   const updateScholarship = async () => {
+    if (saving) return;
     if (!editingId) return alert("No scholarship selected");
+    setSaving(true);
+
     const { error } = await supabase.from("scholarships")
       .update({ scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: deadline, payout_frequency: payoutFreq, duration_type: duration })
       .eq("scholarship_id", editingId);
-    if (error) return alert(error.message);
+    if (error) { alert(error.message); setSaving(false); return; }
 
     await supabase.from("scholarship_requirements").delete().eq("scholarship_id", editingId);
     if (selectedReq.length) await supabase.from("scholarship_requirements").insert(
       selectedReq.map(r => ({ scholarship_id: editingId, application_requirement_id: r.type === "app" ? r.id : null, eligibility_requirement_id: r.type === "elig" ? r.id : null }))
     );
 
-    const { data: form } = await supabase.from("scholarship_application_forms").select("form_id").eq("scholarship_id", editingId).single();
+    // Always get the form first
+    const { data: form } = await supabase.from("scholarship_application_forms")
+      .select("form_id").eq("scholarship_id", editingId).single();
+
     if (form) {
-      await supabase.from("scholarship_application_forms").update({ form_title: formTitle, terms_and_conditions: terms }).eq("form_id", form.form_id);
+      await supabase.from("scholarship_application_forms")
+        .update({ form_title: formTitle, terms_and_conditions: terms })
+        .eq("form_id", form.form_id);
+
+      // Delete ALL existing fields first, wait for it to complete,
+      // then insert the new set — prevents duplicate rows on repeated saves
       await supabase.from("scholarship_form_fields").delete().eq("form_id", form.form_id);
-      if (fields.length) await supabase.from("scholarship_form_fields").insert(
-        fields.map(f => ({ form_id: form.form_id, label: f.label, field_type: f.type, is_required: f.required }))
-      );
+
+      if (fields.length) {
+        await supabase.from("scholarship_form_fields").insert(
+          fields.map(f => ({ form_id: form.form_id, label: f.label, field_type: f.type, is_required: f.required }))
+        );
+      }
     }
+
+    setSaving(false);
     reset(); setOpen(false); setEditMode(false); setEditingId(null); load();
   };
 
@@ -651,9 +673,9 @@ export default function Scholarships() {
             </div>
 
             <div className={s.modalFooter}>
-              <button className={s.btnSecondary} onClick={closeModal}>Cancel</button>
-              <button className={s.btnPrimary} onClick={editMode ? updateScholarship : createScholarship}>
-                {editMode ? "Update" : "Save Scholarship"}
+              <button className={s.btnSecondary} onClick={closeModal} disabled={saving}>Cancel</button>
+              <button className={s.btnPrimary} onClick={editMode ? updateScholarship : createScholarship} disabled={saving}>
+                {saving ? "Saving…" : editMode ? "Update" : "Save Scholarship"}
               </button>
             </div>
           </div>
