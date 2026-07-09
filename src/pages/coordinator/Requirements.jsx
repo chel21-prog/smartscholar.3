@@ -1,663 +1,770 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import styles from "./Requirements.module.css";
+import Modal from "@/components/ui/Modal";
+import styles from "./Grantees.module.css";
 
-export default function Requirements() {
-  const [appReq,  setAppReq]  = useState([]);
-  const [eligReq, setEligReq] = useState([]);
+const VERIFICATION_LABELS = {
+  Verified: "Verified",
+  "Pending Review": "Pending Review",
+  Ineligible: "Ineligible",
+};
 
-  const [appName, setAppName] = useState("");
-  const [eligName,setEligName]= useState("");
+export default function Grantees() {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [search,setSearch]=useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+const [scholarshipFilter, setScholarshipFilter] = useState("All");
+const [semesterFilter, setSemesterFilter] = useState("All");
+const [yearFilter, setYearFilter] = useState("All");
+  const [currentUserId, setCurrentUserId] = useState(null);
 
-  const [appType, setAppType] = useState("Document");
-  const [eligType,setEligType]= useState("Other");
+  // ── verification modal ────────────────────────────────────
+  const [verifyTarget, setVerifyTarget] = useState(null); // the row being verified
+  const [regStatus, setRegStatus] = useState("");
+  const [regYearLevel, setRegYearLevel] = useState("");
+  const [verifyRemarks, setVerifyRemarks] = useState("");
+  const [verifyResult, setVerifyResult] = useState("");
+  const [terminationReason, setTerminationReason] = useState("");
+  const [savingVerification, setSavingVerification] = useState(false);
 
-  const [appDesc, setAppDesc] = useState("");
-  const [eligDesc,setEligDesc]= useState("");
+  // ── duration extension modal ──────────────────────────────
+  const [extendTarget, setExtendTarget] = useState(null);
+  const [extendSemesters, setExtendSemesters] = useState(0);
+  const [extendReason, setExtendReason] = useState("");
+  const [savingExtension, setSavingExtension] = useState(false);
 
-  // ── app requirement templates ─────────────────────────────
-  const [appTemplates,      setAppTemplates]      = useState([]);
-  const [showAppTplPicker,  setShowAppTplPicker]  = useState(false);
-  const [showAppSaveTpl,    setShowAppSaveTpl]    = useState(false);
-  const [appTplName,        setAppTplName]        = useState("");
-  const [savingAppTpl,      setSavingAppTpl]      = useState(false);
-  // which app reqs are currently checked (for template save/load)
-  const [checkedApp,        setCheckedApp]        = useState([]);
+  useEffect(() => {
+    load();
+    loadCurrentUser();
+  }, []);
 
-  // ── elig requirement templates ────────────────────────────
-  const [eligTemplates,     setEligTemplates]     = useState([]);
-  const [showEligTplPicker, setShowEligTplPicker] = useState(false);
-  const [showEligSaveTpl,   setShowEligSaveTpl]   = useState(false);
-  const [eligTplName,       setEligTplName]       = useState("");
-  const [savingEligTpl,     setSavingEligTpl]     = useState(false);
-  const [checkedElig,       setCheckedElig]       = useState([]);
-
-  // ── application form builder ──────────────────────────────
-  const [formTitle,   setFormTitle]   = useState("");
-  const [formTerms,   setFormTerms]   = useState("");
-  const [formFields,  setFormFields]  = useState([]);
-  const [fieldLabel,  setFieldLabel]  = useState("");
-  const [fieldType,   setFieldType]   = useState("text");
-  const [fieldRequired, setFieldRequired] = useState(false);
-
-  const [formTemplates,     setFormTemplates]     = useState([]);
-  const [formTplName,       setFormTplName]       = useState("");
-  const [savingFormTpl,     setSavingFormTpl]     = useState(false);
-  const [editingFormTplId,  setEditingFormTplId]  = useState(null);
-
-  useEffect(() => { load(); loadTemplates(); }, []);
-
+  const loadCurrentUser = async () => {
+    const { data } = await supabase.auth.getUser();
+    const authUser = data?.user;
+    if (!authUser) return;
+    const { data: userRow } = await supabase
+      .from("users")
+      .select("user_id")
+      .eq("auth_id", authUser.id)
+      .single();
+    setCurrentUserId(userRow?.user_id ?? null);
+  };
+  useEffect(() => {
+  setCurrentPage(1);
+}, [
+  search,
+  statusFilter,
+  scholarshipFilter,
+  semesterFilter,
+  yearFilter,
+]);
   const load = async () => {
-    const [{ data: app }, { data: elig }] = await Promise.all([
-      supabase.from("application_requirements").select("*"),
-      supabase.from("eligibility_requirements").select("*"),
-    ]);
-    setAppReq(app   || []);
-    setEligReq(elig || []);
+  setLoading(true);
+
+  const { data, error } = await supabase
+    .from("grantees")
+    .select(`
+      grantee_id,
+      student_id,
+      application_id,
+      scholarship_id,
+      status,
+      date_awarded,
+      academic_year,
+      semester,
+      verification_result,
+      verification_remarks,
+      termination_reason,
+      last_verified_at,
+      source,
+      duration_extension_semesters,
+      extension_reason,
+
+      students (
+        school_id,
+        course,
+        year_level,
+        status,
+        users (
+          first_name,
+          last_name
+        )
+      ),
+
+      scholarships (
+        scholarship_name
+      )
+    `)
+    .order("date_awarded", { ascending: false });
+
+  if (error) {
+    console.error(error.message);
+    setLoading(false);
+    return;
+  }
+
+  const { data: docs } = await supabase
+    .from("application_documents")
+    .select("*")
+    .in(
+      "application_id",
+      (data || []).map((g) => g.application_id)
+    );
+
+  const formatted = (data || []).map((g) => {
+    const granteeDocs =
+      docs?.filter((d) => d.application_id === g.application_id) || [];
+
+    const first = g.students?.users?.first_name ?? "";
+    const last = g.students?.users?.last_name ?? "";
+
+    return {
+      grantee_id: g.grantee_id,
+      school_id: g.students?.school_id ?? "N/A",
+      student_name: `${first} ${last}`.trim() || "Unknown",
+      course: g.students?.course ?? "N/A",
+      year_level: g.students?.year_level ?? "N/A",
+      student_status: g.students?.status ?? "N/A",
+      scholarship_name: g.scholarships?.scholarship_name ?? "N/A",
+      status: g.status,
+      academic_year: g.academic_year ?? "N/A",
+      semester: g.semester ?? "N/A",
+      date_awarded: g.date_awarded,
+      verification_result: g.verification_result ?? "Pending Review",
+      verification_remarks: g.verification_remarks,
+      termination_reason: g.termination_reason,
+      last_verified_at: g.last_verified_at,
+      source: g.source ?? "Application",
+      duration_extension_semesters: g.duration_extension_semesters ?? 0,
+      extension_reason: g.extension_reason,
+
+      documents: granteeDocs,
+    };
+  });
+
+  setRows(formatted);
+  setLoading(false);
+};
+
+  const openVerify = (row) => {
+    setVerifyTarget(row);
+    setRegStatus("");
+    setRegYearLevel("");
+    setVerifyRemarks("");
+    setVerifyResult("");
+    setTerminationReason("");
   };
 
-  const loadTemplates = async () => {
-    const { data } = await supabase
-      .from("report_templates")
-      .select("*")
-      .order("created_at", { ascending: true });
+  const closeVerify = () => setVerifyTarget(null);
 
-    const all = data || [];
-    setAppTemplates( all.filter(t => t.layout?.type === "app_req_template"));
-    setEligTemplates(all.filter(t => t.layout?.type === "elig_req_template"));
-    setFormTemplates(all.filter(t => t.layout?.type === "form_template"));
-  };
-
-  // ── Application form builder actions ──────────────────────
-  const addFormField = () => {
-    if (!fieldLabel.trim()) return;
-    setFormFields(prev => [...prev, { label: fieldLabel, type: fieldType, required: fieldRequired }]);
-    setFieldLabel(""); setFieldType("text"); setFieldRequired(false);
-  };
-
-  const removeFormField = (index) => {
-    setFormFields(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const resetFormBuilder = () => {
-    setFormTitle(""); setFormTerms(""); setFormFields([]);
-    setFormTplName(""); setEditingFormTplId(null);
-  };
-
-  const saveFormTemplate = async () => {
-    if (!formTplName.trim()) { alert("Enter a name for this form template."); return; }
-    if (!formTitle.trim()) { alert("Give the form a title."); return; }
-    if (formFields.length === 0) { alert("Add at least one field to the form."); return; }
-
-    setSavingFormTpl(true);
-    const layout = { type: "form_template", formTitle, terms: formTerms, fields: formFields };
-
-    if (editingFormTplId) {
-      const { error } = await supabase.from("report_templates")
-        .update({ name: formTplName, layout })
-        .eq("template_id", editingFormTplId);
-      if (error) { alert(error.message); setSavingFormTpl(false); return; }
-      setFormTemplates(prev => prev.map(t => t.template_id === editingFormTplId ? { ...t, name: formTplName, layout } : t));
-    } else {
-      const { data, error } = await supabase.from("report_templates")
-        .insert({ name: formTplName, layout }).select().single();
-      if (error) { alert(error.message); setSavingFormTpl(false); return; }
-      if (data) setFormTemplates(prev => [...prev, data]);
-    }
-    setSavingFormTpl(false);
-    resetFormBuilder();
-  };
-
-  const loadFormTemplateIntoBuilder = (tpl) => {
-    setFormTitle(tpl.layout?.formTitle || "");
-    setFormTerms(tpl.layout?.terms || "");
-    setFormFields(tpl.layout?.fields || []);
-    setFormTplName(tpl.name || "");
-    setEditingFormTplId(tpl.template_id);
-  };
-
-  const deleteFormTemplate = async (id) => {
-    if (!confirm("Delete this form template?")) return;
-    await supabase.from("report_templates").delete().eq("template_id", id);
-    setFormTemplates(prev => prev.filter(t => t.template_id !== id));
-    if (editingFormTplId === id) resetFormBuilder();
-  };
-
-  // ── Application requirement CRUD ─────────────────────────
-  const addApp = async () => {
-    if (!appName.trim()) return;
-    const { error } = await supabase.from("application_requirements").insert({
-      requirement_name: appName,
-      requirement_type: appType,
-      description:      appDesc || null,
-    });
-    if (error) { alert(error.message); return; }
-    setAppName(""); setAppDesc("");
-    load();
-  };
-
-  const deleteApp = async (id) => {
-    if (!confirm("Delete this requirement?")) return;
-    await supabase.from("application_requirements").delete()
-      .eq("application_requirement_id", id);
-    load();
-  };
-
-  // ── Eligibility requirement CRUD ──────────────────────────
-  const addElig = async () => {
-    if (!eligName.trim()) return;
-    const { error } = await supabase.from("eligibility_requirements").insert({
-      requirement_name: eligName,
-      requirement_type: eligType,
-      description:      eligDesc || null,
-    });
-    if (error) { alert(error.message); return; }
-    setEligName(""); setEligDesc("");
-    load();
-  };
-
-  const deleteElig = async (id) => {
-    if (!confirm("Delete this requirement?")) return;
-    await supabase.from("eligibility_requirements").delete()
-      .eq("eligibility_requirement_id", id);
-    load();
-  };
-
-  // ── App template actions ──────────────────────────────────
-  const saveAppTemplate = async () => {
-    if (!appTplName.trim()) return;
-    if (checkedApp.length === 0) {
-      alert("Check at least one requirement to include in the template.");
+  const submitVerification = async () => {
+    if (!verifyTarget || !verifyResult) return;
+    if (verifyResult === "Ineligible" && !terminationReason.trim()) {
+      alert("Enter a reason before marking this grantee ineligible.");
       return;
     }
-    setSavingAppTpl(true);
-    const selected = appReq.filter(r => checkedApp.includes(r.application_requirement_id));
-    const { data } = await supabase.from("report_templates").insert({
-      name:   appTplName,
-      layout: {
-        type:         "app_req_template",
-        requirements: selected.map(r => ({
-          name: r.requirement_name,
-          type: r.requirement_type,
-          desc: r.description,
-        })),
-      },
-    }).select().single();
-    if (data) setAppTemplates(prev => [...prev, data]);
-    setSavingAppTpl(false);
-    setAppTplName(""); setShowAppSaveTpl(false);
-  };
 
-  const applyAppTemplate = async (tpl) => {
-    // Insert any requirements from the template that don't already exist
-    const existing = new Set(appReq.map(r => r.requirement_name.toLowerCase()));
-    const toInsert = (tpl.layout?.requirements || []).filter(
-      r => !existing.has(r.name.toLowerCase())
-    );
-    if (toInsert.length > 0) {
-      const { error } = await supabase.from("application_requirements").insert(
-        toInsert.map(r => ({ requirement_name: r.name, requirement_type: r.type, description: r.desc || null }))
-      );
-      if (error) { alert(error.message); return; }
-      await load();
-    }
-    setShowAppTplPicker(false);
-    const msg = toInsert.length > 0
-      ? `${toInsert.length} requirement${toInsert.length !== 1 ? "s" : ""} added from template.`
-      : "All requirements from this template already exist.";
-    alert(msg);
-  };
+    setSavingVerification(true);
 
-  const deleteAppTemplate = async (id) => {
-    if (!confirm("Delete this template?")) return;
-    await supabase.from("report_templates").delete().eq("template_id", id);
-    setAppTemplates(prev => prev.filter(t => t.template_id !== id));
-  };
+    // grantees.verification_result only supports Verified / Pending Review /
+    // Ineligible today, so "Mismatch" is recorded as Pending Review at the
+    // grantee level and kept precise in the grantee_verifications history.
+    const granteeUpdate =
+      verifyResult === "Eligible"
+        ? { verification_result: "Verified", status: "Active" }
+        : verifyResult === "Mismatch"
+        ? { verification_result: "Pending Review" }
+        : { verification_result: "Ineligible", status: "Inactive", termination_reason: terminationReason };
 
-  // ── Elig template actions ─────────────────────────────────
-  const saveEligTemplate = async () => {
-    if (!eligTplName.trim()) return;
-    if (checkedElig.length === 0) {
-      alert("Check at least one requirement to include in the template.");
+    const remarks = regStatus || regYearLevel
+      ? `Registrar: ${regStatus || "—"}${regYearLevel ? `, Year ${regYearLevel}` : ""}. ${verifyRemarks}`.trim()
+      : verifyRemarks;
+
+    const { error: updateError } = await supabase
+      .from("grantees")
+      .update({
+        ...granteeUpdate,
+        verification_remarks: remarks || null,
+        last_verified_at: new Date().toISOString(),
+        verified_by: currentUserId,
+      })
+      .eq("grantee_id", verifyTarget.grantee_id);
+
+    if (updateError) {
+      alert(updateError.message);
+      setSavingVerification(false);
       return;
     }
-    setSavingEligTpl(true);
-    const selected = eligReq.filter(r => checkedElig.includes(r.eligibility_requirement_id));
-    const { data } = await supabase.from("report_templates").insert({
-      name:   eligTplName,
-      layout: {
-        type:         "elig_req_template",
-        requirements: selected.map(r => ({
-          name: r.requirement_name,
-          type: r.requirement_type,
-          desc: r.description,
-        })),
-      },
-    }).select().single();
-    if (data) setEligTemplates(prev => [...prev, data]);
-    setSavingEligTpl(false);
-    setEligTplName(""); setShowEligSaveTpl(false);
-  };
 
-  const applyEligTemplate = async (tpl) => {
-    const existing = new Set(eligReq.map(r => r.requirement_name.toLowerCase()));
-    const toInsert = (tpl.layout?.requirements || []).filter(
-      r => !existing.has(r.name.toLowerCase())
-    );
-    if (toInsert.length > 0) {
-      const { error } = await supabase.from("eligibility_requirements").insert(
-        toInsert.map(r => ({ requirement_name: r.name, requirement_type: r.type, description: r.desc || null }))
-      );
-      if (error) { alert(error.message); return; }
-      await load();
+    const { error: historyError } = await supabase
+      .from("grantee_verifications")
+      .insert({
+        grantee_id: verifyTarget.grantee_id,
+        academic_year: verifyTarget.academic_year,
+        semester: verifyTarget.semester,
+        verification_status: verifyResult,
+        remarks: remarks || null,
+        verified_by: currentUserId,
+      });
+
+    if (historyError) {
+      alert(historyError.message);
     }
-    setShowEligTplPicker(false);
-    const msg = toInsert.length > 0
-      ? `${toInsert.length} requirement${toInsert.length !== 1 ? "s" : ""} added from template.`
-      : "All requirements from this template already exist.";
-    alert(msg);
+
+    setSavingVerification(false);
+    closeVerify();
+    load();
   };
 
-  const deleteEligTemplate = async (id) => {
-    if (!confirm("Delete this template?")) return;
-    await supabase.from("report_templates").delete().eq("template_id", id);
-    setEligTemplates(prev => prev.filter(t => t.template_id !== id));
+  const openExtend = (row) => {
+    setExtendTarget(row);
+    setExtendSemesters(row.duration_extension_semesters || 0);
+    setExtendReason(row.extension_reason || "");
   };
 
-  // ── toggle checked items ──────────────────────────────────
-  const toggleCheckedApp = (id) =>
-    setCheckedApp(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const closeExtend = () => setExtendTarget(null);
 
-  const toggleCheckedElig = (id) =>
-    setCheckedElig(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const submitExtension = async () => {
+    if (!extendTarget) return;
+    if (Number(extendSemesters) > 0 && !extendReason.trim()) {
+      alert("Enter a reason for the extension (e.g. took a 5th year to graduate).");
+      return;
+    }
+
+    setSavingExtension(true);
+    const { error } = await supabase
+      .from("grantees")
+      .update({
+        duration_extension_semesters: Number(extendSemesters) || 0,
+        extension_reason: extendReason || null,
+      })
+      .eq("grantee_id", extendTarget.grantee_id);
+
+    setSavingExtension(false);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    closeExtend();
+    load();
+  };
+
+  if (loading) return <p style={{ padding: 20 }}>Loading...</p>;
+ const grouped = rows.reduce((acc, r) => {
+  const key = r.school_id; // better if you use student_id
+
+  if (!acc[key]) {
+    acc[key] = {
+      school_id: r.school_id,
+      student_name: r.student_name,
+      scholarships: [],
+    };
+  }
+
+  acc[key].scholarships.push(r);
+
+  return acc;
+}, {});
+
+const scholarshipOptions = [
+  "All",
+  ...new Set(rows.map(r => r.scholarship_name))
+];
+
+const yearOptions = [
+  "All",
+  ...new Set(rows.map(r => r.academic_year))
+];
+
+const semesterOptions = [
+  "All",
+  ...new Set(rows.map(r => r.semester))
+];
+
+const statusOptions = [
+  "All",
+  ...new Set(rows.map(r => r.status))
+];
+
+const filtered = Object.values(grouped)
+  .map(student => ({
+    ...student,
+    scholarships: student.scholarships.filter(s => {
+
+      const keyword = search.toLowerCase();
+
+      const matchesSearch =
+        student.student_name.toLowerCase().includes(keyword) ||
+        student.school_id.toLowerCase().includes(keyword) ||
+        s.scholarship_name.toLowerCase().includes(keyword) ||
+        s.status.toLowerCase().includes(keyword) ||
+        s.academic_year.toLowerCase().includes(keyword) ||
+        s.semester.toLowerCase().includes(keyword) ||
+        (s.date_awarded &&
+          new Date(s.date_awarded)
+            .toLocaleDateString()
+            .toLowerCase()
+            .includes(keyword));
+
+      const matchesStatus =
+        statusFilter === "All" ||
+        s.status === statusFilter;
+
+      const matchesScholarship =
+        scholarshipFilter === "All" ||
+        s.scholarship_name === scholarshipFilter;
+
+      const matchesSemester =
+        semesterFilter === "All" ||
+        s.semester === semesterFilter;
+
+      const matchesYear =
+        yearFilter === "All" ||
+        s.academic_year === yearFilter;
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesScholarship &&
+        matchesSemester &&
+        matchesYear
+      );
+
+    })
+  }))
+  .filter(student => student.scholarships.length > 0);
+  
+  const tableRows = [];
+
+filtered.forEach((student) => {
+  student.scholarships.forEach((scholarship) => {
+    tableRows.push({
+      student,
+      scholarship,
+    });
+  });
+});
+  const totalPages = Math.ceil(
+    tableRows.length / rowsPerPage
+);
+
+const paginated = tableRows.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+);
+const startRow =
+  tableRows.length === 0
+    ? 0
+    : (currentPage - 1) * rowsPerPage + 1;
+
+const endRow =
+  tableRows.length === 0
+    ? 0
+    : Math.min(
+        currentPage * rowsPerPage,
+        tableRows.length
+      );
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Requirement Library</h1>
-          <p className={styles.subtitle}>
-            Manage application and eligibility requirements used across scholarships.
-          </p>
-        </div>
-      </div>
+    <div>
+        <h1 className={styles.title}>
+            Scholarship Grantees
+        </h1>
 
-      <div className={styles.grid}>
+        <p className={styles.subtitle}>
+            View all approved scholarship recipients and their submitted requirements.
+        </p>
+    </div>
+</div>
+    
+    <div className={styles.statsRow}>
+  <div className={styles.statCard}>
+    <div className={styles.statNumber}>{rows.length}</div>
+    <div className={styles.statLabel}>Scholarship Awards</div>
+  </div>
 
-        {/* ── APPLICATION REQUIREMENTS ── */}
-        <div className={styles.card}>
-          <h2 className={styles.heading}>Application Requirements</h2>
+  <div className={styles.statCard}>
+    <div className={styles.statNumber}>
+      {Object.keys(grouped).length}
+    </div>
+    <div className={styles.statLabel}>Total Grantees</div>
+  </div>
 
-          {/* add form */}
-          <input
-            className={styles.input}
-            value={appName}
-            placeholder="Requirement name *"
-            onChange={e => setAppName(e.target.value)}
-          />
+  <div className={styles.statCard}>
+    <div className={styles.statNumber}>
+      {rows.filter((r) => r.status === "Active").length}
+    </div>
+    <div className={styles.statLabel}>Active Grantees</div>
+  </div>
+</div>
 
-          <div className={styles.row}>
-            {["Grade", "Income", "Document", "Other"].map(t => (
-              <button key={t} type="button"
-                className={`${styles.typeBtn} ${appType === t ? styles.typeBtnActive : ""}`}
-                onClick={() => setAppType(t)}>{t}</button>
-            ))}
+<div className={styles.toolbar}>
+
+    <input
+        type="text"
+        placeholder="Search grantees..."
+        value={search}
+        onChange={(e)=>setSearch(e.target.value)}
+        className={styles.search}
+    />
+
+    <select
+        value={statusFilter}
+        onChange={(e)=>setStatusFilter(e.target.value)}
+        className={styles.select}
+    >
+        {statusOptions.map(option=>(
+            <option key={option}>
+                {option}
+            </option>
+        ))}
+    </select>
+
+    <select
+        value={scholarshipFilter}
+        onChange={(e)=>setScholarshipFilter(e.target.value)}
+        className={styles.select}
+    >
+        {scholarshipOptions.map(option=>(
+            <option key={option}>
+                {option}
+            </option>
+        ))}
+    </select>
+
+    <select
+        value={yearFilter}
+        onChange={(e)=>setYearFilter(e.target.value)}
+        className={styles.select}
+    >
+        {yearOptions.map(option=>(
+            <option key={option}>
+                {option}
+            </option>
+        ))}
+    </select>
+
+    <select
+        value={semesterFilter}
+        onChange={(e)=>setSemesterFilter(e.target.value)}
+        className={styles.select}
+    >
+        {semesterOptions.map(option=>(
+            <option key={option}>
+                {option}
+            </option>
+        ))}
+    </select>
+
+</div>
+
+      <div className={styles.tableContainer}>
+        <table className={styles.table}>
+          <thead className={styles.thead}>
+            <tr>
+              <th className={styles.th}>School ID</th>
+              <th className={styles.th}>Student Name</th>
+              <th className={styles.th}>Scholarship</th>
+              <th className={styles.th}>AY Approved</th>
+              <th className={styles.th}>Semester Approved</th>
+              <th className={styles.th}>Date Approved</th>
+              <th className={styles.th}>Status</th>
+              <th className={styles.th}>Verification</th>
+              <th className={styles.th}>Documents</th>
+            </tr>
+          </thead>
+
+          <tbody>
+  {paginated.map((row) => {
+    const student = row.student;
+    const s = row.scholarship;
+
+    return (
+      <tr key={s.grantee_id}>
+
+        <td className={styles.td}>
+    {student.school_id}
+</td>
+
+<td className={styles.td}>
+    {student.student_name}
+</td>
+        <td className={styles.td}>
+          {s.scholarship_name}
+        </td>
+
+        <td className={styles.td}>
+          {s.academic_year}
+        </td>
+
+        <td className={styles.td}>
+          {s.semester}
+        </td>
+
+        <td className={styles.td}>
+          {s.date_awarded
+            ? new Date(s.date_awarded).toLocaleDateString()
+            : "Not set"}
+        </td>
+
+        <td className={styles.td}>
+          <span
+            className={`${styles.badge} ${
+              s.status === "Active"
+                ? styles.active
+                : styles.inactive
+            }`}
+          >
+            {s.status}
+          </span>
+        </td>
+
+        <td className={styles.td}>
+          <div>
+            <span
+              className={`${styles.badge} ${
+                s.verification_result === "Verified"
+                  ? styles.active
+                  : styles.inactive
+              }`}
+            >
+              {VERIFICATION_LABELS[s.verification_result] || s.verification_result}
+            </span>
           </div>
-
-          <textarea
-            className={styles.textarea}
-            value={appDesc}
-            placeholder="Description (optional)"
-            onChange={e => setAppDesc(e.target.value)}
-          />
-
-          <button className={styles.primaryBtn} onClick={addApp}>
-            Add Requirement
+          <button
+            className={styles.documentButton}
+            onClick={() => openVerify(s)}
+          >
+            {s.verification_result === "Verified" ? "Re-verify" : "Verify"}
           </button>
-
-          <hr className={styles.divider} />
-
-          {/* ── template controls ── */}
-          <div className={styles.tplBar}>
-            <h3 className={styles.savedTitle}>Saved Requirements</h3>
-            <div className={styles.tplBtns}>
-              <button className={styles.tplBtn}
-                onClick={() => { setShowAppTplPicker(v => !v); setShowAppSaveTpl(false); }}>
-                Load template
-              </button>
-              <button className={styles.tplBtnSecondary}
-                onClick={() => { setShowAppSaveTpl(v => !v); setShowAppTplPicker(false); }}>
-                Save as template
-              </button>
-            </div>
-          </div>
-
-          {/* template picker */}
-          {showAppTplPicker && (
-            <div className={styles.tplPicker}>
-              {appTemplates.length === 0 ? (
-                <p className={styles.tplEmpty}>No saved templates yet. Check some requirements below and save them.</p>
-              ) : (
-                appTemplates.map(t => (
-                  <div key={t.template_id} className={styles.tplCard}>
-                    <div className={styles.tplCardInfo}>
-                      <strong className={styles.tplCardName}>{t.name}</strong>
-                      <span className={styles.tplCardMeta}>
-                        {t.layout?.requirements?.length || 0} requirement{t.layout?.requirements?.length !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    <div className={styles.tplCardActions}>
-                      <button className={styles.tplUseBtn} onClick={() => applyAppTemplate(t)}>Load</button>
-                      <button className={styles.tplDelBtn} onClick={() => deleteAppTemplate(t.template_id)}>Delete</button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {/* save template row */}
-          {showAppSaveTpl && (
-            <div className={styles.tplSaveRow}>
-              <input
-                className={styles.input}
-                placeholder="Template name e.g. Basic Document Set"
-                value={appTplName}
-                onChange={e => setAppTplName(e.target.value)}
-              />
-              <button className={styles.tplUseBtn} disabled={savingAppTpl} onClick={saveAppTemplate}>
-                {savingAppTpl ? "Saving…" : "Save"}
-              </button>
-              <button className={styles.tplDelBtn}
-                onClick={() => { setShowAppSaveTpl(false); setAppTplName(""); }}>
-                Cancel
-              </button>
-            </div>
-          )}
-
-          {/* hint when save panel is open */}
-          {showAppSaveTpl && (
-            <p className={styles.tplHint}>
-              Check the requirements below that you want to include in the template.
-            </p>
-          )}
-
-          {/* requirement list */}
-          <div className={styles.requirementList}>
-            {[...appReq]
-              .sort((a, b) => a.requirement_name.localeCompare(b.requirement_name))
-              .map(r => (
-                <div key={r.application_requirement_id} className={styles.requirementCard}>
-                  <div className={styles.requirementHeader}>
-                    <div className={styles.reqLeft}>
-                      {/* checkbox shown when save-template panel is open */}
-                      {showAppSaveTpl && (
-                        <input
-                          type="checkbox"
-                          checked={checkedApp.includes(r.application_requirement_id)}
-                          onChange={() => toggleCheckedApp(r.application_requirement_id)}
-                          className={styles.reqCheck}
-                        />
-                      )}
-                      <b>{r.requirement_name}</b>
-                    </div>
-                    <div className={styles.reqRight}>
-                      <span className={styles.badge}>{r.requirement_type}</span>
-                      <button className={styles.deleteBtn}
-                        onClick={() => deleteApp(r.application_requirement_id)}>
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                  {r.description && (
-                    <p className={styles.description}>{r.description}</p>
-                  )}
-                </div>
-              ))}
-          </div>
-        </div>
-
-        {/* ── ELIGIBILITY REQUIREMENTS ── */}
-        <div className={styles.card}>
-          <h2 className={styles.heading}>Eligibility Requirements</h2>
-
-          <input
-            className={styles.input}
-            value={eligName}
-            placeholder="Requirement name *"
-            onChange={e => setEligName(e.target.value)}
-          />
-
-          <div className={styles.row}>
-            {["Status", "Other"].map(t => (
-              <button key={t} type="button"
-                className={`${styles.typeBtn} ${eligType === t ? styles.typeBtnActive : ""}`}
-                onClick={() => setEligType(t)}>{t}</button>
-            ))}
-          </div>
-
-          <textarea
-            className={styles.textarea}
-            value={eligDesc}
-            placeholder="Description (optional)"
-            onChange={e => setEligDesc(e.target.value)}
-          />
-
-          <button className={styles.primaryBtn} onClick={addElig}>
-            Add Requirement
+          <button
+            className={styles.pageBtn}
+            onClick={() => openExtend(s)}
+          >
+            {Number(s.duration_extension_semesters) > 0 ? `+${s.duration_extension_semesters} sem` : "Extend"}
           </button>
+        </td>
 
-          <hr className={styles.divider} />
-
-          {/* ── template controls ── */}
-          <div className={styles.tplBar}>
-            <h3 className={styles.savedTitle}>Saved Requirements</h3>
-            <div className={styles.tplBtns}>
-              <button className={styles.tplBtn}
-                onClick={() => { setShowEligTplPicker(v => !v); setShowEligSaveTpl(false); }}>
-                Load template
-              </button>
-              <button className={styles.tplBtnSecondary}
-                onClick={() => { setShowEligSaveTpl(v => !v); setShowEligTplPicker(false); }}>
-                Save as template
-              </button>
-            </div>
-          </div>
-
-          {/* template picker */}
-          {showEligTplPicker && (
-            <div className={styles.tplPicker}>
-              {eligTemplates.length === 0 ? (
-                <p className={styles.tplEmpty}>No saved templates yet. Check some requirements below and save them.</p>
-              ) : (
-                eligTemplates.map(t => (
-                  <div key={t.template_id} className={styles.tplCard}>
-                    <div className={styles.tplCardInfo}>
-                      <strong className={styles.tplCardName}>{t.name}</strong>
-                      <span className={styles.tplCardMeta}>
-                        {t.layout?.requirements?.length || 0} requirement{t.layout?.requirements?.length !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    <div className={styles.tplCardActions}>
-                      <button className={styles.tplUseBtn} onClick={() => applyEligTemplate(t)}>Load</button>
-                      <button className={styles.tplDelBtn} onClick={() => deleteEligTemplate(t.template_id)}>Delete</button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {/* save template row */}
-          {showEligSaveTpl && (
-            <div className={styles.tplSaveRow}>
-              <input
-                className={styles.input}
-                placeholder="Template name e.g. IP Scholar Eligibility"
-                value={eligTplName}
-                onChange={e => setEligTplName(e.target.value)}
-              />
-              <button className={styles.tplUseBtn} disabled={savingEligTpl} onClick={saveEligTemplate}>
-                {savingEligTpl ? "Saving…" : "Save"}
-              </button>
-              <button className={styles.tplDelBtn}
-                onClick={() => { setShowEligSaveTpl(false); setEligTplName(""); }}>
-                Cancel
-              </button>
-            </div>
-          )}
-
-          {showEligSaveTpl && (
-            <p className={styles.tplHint}>
-              Check the requirements below that you want to include in the template.
-            </p>
-          )}
-
-          {/* requirement list */}
-          <div className={styles.requirementList}>
-            {[...eligReq]
-              .sort((a, b) => a.requirement_name.localeCompare(b.requirement_name))
-              .map(r => (
-                <div key={r.eligibility_requirement_id} className={styles.requirementCard}>
-                  <div className={styles.requirementHeader}>
-                    <div className={styles.reqLeft}>
-                      {showEligSaveTpl && (
-                        <input
-                          type="checkbox"
-                          checked={checkedElig.includes(r.eligibility_requirement_id)}
-                          onChange={() => toggleCheckedElig(r.eligibility_requirement_id)}
-                          className={styles.reqCheck}
-                        />
-                      )}
-                      <b>{r.requirement_name}</b>
-                    </div>
-                    <div className={styles.reqRight}>
-                      <span className={styles.badge}>{r.requirement_type}</span>
-                      <button className={styles.deleteBtn}
-                        onClick={() => deleteElig(r.eligibility_requirement_id)}>
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                  {r.description && (
-                    <p className={styles.description}>{r.description}</p>
-                  )}
-                </div>
-              ))}
-          </div>
-        </div>
-
-        {/* ── APPLICATION FORM TEMPLATES ── */}
-        <div className={styles.card}>
-          <h2 className={styles.heading}>
-            {editingFormTplId ? "Edit Form Template" : "Create Form"}
-          </h2>
-          <p className={styles.description}>
-            Build a reusable application form here, then load it from any scholarship's form builder.
-          </p>
-
-          <div className={styles.fieldWrapFull}>
-            <label className={styles.label}>Form title</label>
-            <input
-              className={styles.input}
-              placeholder="e.g. Academic Excellence Application"
-              value={formTitle}
-              onChange={e => setFormTitle(e.target.value)}
-            />
-          </div>
-
-          <div className={styles.fieldWrapFull}>
-            <label className={styles.label}>Terms &amp; Conditions</label>
-            <textarea
-              className={styles.textarea}
-              placeholder="Enter terms here…"
-              value={formTerms}
-              onChange={e => setFormTerms(e.target.value)}
-            />
-          </div>
-
-          <h3 className={styles.savedTitle}>Form Fields</h3>
-          {formFields.length === 0 ? (
-            <p className={styles.tplEmpty}>No fields yet. Add one below.</p>
+        <td className={styles.td}>
+          {!s.documents || s.documents.length === 0 ? (
+            <span className={styles.documentPlaceholder}>
+              No files uploaded
+            </span>
           ) : (
-            formFields.map((f, i) => (
-              <div key={i} className={styles.fieldPreview}>
-                <span><b>{f.label}</b> ({f.type}){f.required ? " *" : ""}</span>
-                <button className={styles.removeBtn} onClick={() => removeFormField(i)}>Remove</button>
+            s.documents.map((d, i) => (
+              <div key={i}>
+                <a
+                  href={d.file_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={styles.documentButton}
+                >
+                  {d.requirement_name || "View Document"}
+                </a>
               </div>
             ))
           )}
+        </td>
 
-          <div className={styles.fieldBuilder}>
-            <div className={styles.fieldWrap}>
-              <label className={styles.label}>Field label</label>
+      </tr>
+    );
+  })}
+</tbody>
+        </table>
+        
+      </div>
+      <div className={styles.pagination}>
+  <span className={styles.pageInfo}>
+    {tableRows.length === 0
+      ? "0"
+      : `${startRow}–${endRow}`}{" "}
+    of {tableRows.length}
+  </span>
+
+  <div className={styles.pageButtons}>
+    <button
+      className={styles.pageBtn}
+      disabled={currentPage === 1}
+      onClick={() => setCurrentPage((p) => p - 1)}
+    >
+      Previous
+    </button>
+
+    <span className={styles.pageInfo}>
+      Page {tableRows.length === 0 ? 0 : currentPage} of {totalPages || 1}
+    </span>
+
+    <button
+      className={styles.pageBtn}
+      disabled={
+        currentPage >= totalPages ||
+        totalPages === 0
+      }
+      onClick={() => setCurrentPage((p) => p + 1)}
+    >
+      Next
+    </button>
+  </div>
+</div>
+
+      <Modal
+        open={!!verifyTarget}
+        onClose={closeVerify}
+        title="Verify Grantee"
+        footer={
+          <>
+            <button className={styles.pageBtn} onClick={closeVerify}>Cancel</button>
+            <button
+              className={styles.documentButton}
+              disabled={!verifyResult || savingVerification}
+              onClick={submitVerification}
+            >
+              {savingVerification ? "Saving…" : "Save"}
+            </button>
+          </>
+        }
+      >
+        {verifyTarget && (
+          <div className={styles.verifyForm}>
+            <div className={styles.verifySection}>
+              <h4 className={styles.verifySectionTitle}>Student Information</h4>
+              <div className={styles.verifyGrid}>
+                <div><span className={styles.verifyLabel}>Name</span><br />{verifyTarget.student_name}</div>
+                <div><span className={styles.verifyLabel}>School ID</span><br />{verifyTarget.school_id}</div>
+                <div><span className={styles.verifyLabel}>Course</span><br />{verifyTarget.course}</div>
+                <div><span className={styles.verifyLabel}>Year Level (on file)</span><br />{verifyTarget.year_level}</div>
+              </div>
+            </div>
+
+            <div className={styles.verifySection}>
+              <h4 className={styles.verifySectionTitle}>Scholarship</h4>
+              <div className={styles.verifyGrid}>
+                <div><span className={styles.verifyLabel}>Name</span><br />{verifyTarget.scholarship_name}</div>
+                <div><span className={styles.verifyLabel}>Academic Year</span><br />{verifyTarget.academic_year}</div>
+                <div><span className={styles.verifyLabel}>Semester</span><br />{verifyTarget.semester}</div>
+              </div>
+            </div>
+
+            <div className={styles.verifySection}>
+              <h4 className={styles.verifySectionTitle}>Registrar Verification</h4>
+              <p className={styles.description}>
+                Compare the student's profile above against what the registrar shows right now.
+              </p>
+              <div className={styles.verifyGrid}>
+                <input
+                  className={styles.search}
+                  placeholder="Registrar enrollment status"
+                  value={regStatus}
+                  onChange={(e) => setRegStatus(e.target.value)}
+                />
+                <input
+                  className={styles.search}
+                  type="number"
+                  placeholder="Registrar year level"
+                  value={regYearLevel}
+                  onChange={(e) => setRegYearLevel(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <textarea
+              className={styles.search}
+              placeholder="Remarks"
+              rows={2}
+              value={verifyRemarks}
+              onChange={(e) => setVerifyRemarks(e.target.value)}
+            />
+
+            <div className={styles.verifySection}>
+              <h4 className={styles.verifySectionTitle}>Verification Result</h4>
+              <div className={styles.verifyResultRow}>
+                {["Eligible", "Mismatch", "Ineligible"].map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    className={`${styles.select} ${verifyResult === opt ? styles.badge : ""}`}
+                    onClick={() => setVerifyResult(opt)}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+
+              {verifyResult === "Ineligible" && (
+                <select
+                  className={styles.select}
+                  value={terminationReason}
+                  onChange={(e) => setTerminationReason(e.target.value)}
+                >
+                  <option value="">Select a reason…</option>
+                  <option value="Graduated">Graduated</option>
+                  <option value="Dropped">Dropped</option>
+                  <option value="Transferred">Transferred</option>
+                  <option value="Scholarship revoked">Scholarship revoked</option>
+                  <option value="Other">Other</option>
+                </select>
+              )}
+
+              {verifyResult === "Mismatch" && (
+                <p className={styles.description}>
+                  This keeps the grantee at Pending Review until they are checked again next verification cycle.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={!!extendTarget}
+        onClose={closeExtend}
+        title="Extend Duration"
+        footer={
+          <>
+            <button className={styles.pageBtn} onClick={closeExtend}>Cancel</button>
+            <button
+              className={styles.documentButton}
+              disabled={savingExtension}
+              onClick={submitExtension}
+            >
+              {savingExtension ? "Saving…" : "Save"}
+            </button>
+          </>
+        }
+      >
+        {extendTarget && (
+          <div className={styles.verifyForm}>
+            <p className={styles.description}>
+              Grants {extendTarget.student_name} extra periods beyond this scholarship's normal duration
+              (e.g. a 5th year to graduate). This only affects this grantee — not the whole scholarship.
+            </p>
+            <div className={styles.verifySection}>
+              <h4 className={styles.verifySectionTitle}>Additional semesters</h4>
               <input
-                className={styles.input}
-                placeholder="e.g. GPA"
-                value={fieldLabel}
-                onChange={e => setFieldLabel(e.target.value)}
+                className={styles.search}
+                type="number"
+                min="0"
+                value={extendSemesters}
+                onChange={(e) => setExtendSemesters(e.target.value)}
               />
             </div>
-            <div className={styles.fieldWrap}>
-              <label className={styles.label}>Type</label>
-              <select className={styles.input} value={fieldType} onChange={e => setFieldType(e.target.value)}>
-                <option value="text">Text</option>
-                <option value="number">Number</option>
-                <option value="date">Date</option>
-                <option value="file">File</option>
-              </select>
-            </div>
-            <div className={styles.checkRow}>
-              <label className={styles.reqLeft}>
-                <input type="checkbox" checked={fieldRequired} onChange={() => setFieldRequired(!fieldRequired)} />
-                Required
-              </label>
-              <button className={styles.addBtn} onClick={addFormField}>+ Add field</button>
-            </div>
-          </div>
-
-          <hr className={styles.divider} />
-
-          <div className={styles.tplSaveRow}>
-            <input
-              className={styles.input}
-              placeholder="Template name e.g. Standard Scholarship Form"
-              value={formTplName}
-              onChange={e => setFormTplName(e.target.value)}
+            <textarea
+              className={styles.search}
+              placeholder="Reason (e.g. approved 5th year, medical leave extension)"
+              rows={2}
+              value={extendReason}
+              onChange={(e) => setExtendReason(e.target.value)}
             />
-            <button className={styles.tplUseBtn} disabled={savingFormTpl} onClick={saveFormTemplate}>
-              {savingFormTpl ? "Saving…" : editingFormTplId ? "Update template" : "Save as template"}
-            </button>
-            {editingFormTplId && (
-              <button className={styles.tplDelBtn} onClick={resetFormBuilder}>Cancel edit</button>
-            )}
           </div>
-
-          <h3 className={styles.savedTitle}>Saved Form Templates</h3>
-          <div className={styles.requirementList}>
-            {formTemplates.length === 0 ? (
-              <p className={styles.tplEmpty}>No saved form templates yet. Build a form above and save it.</p>
-            ) : (
-              formTemplates.map(t => (
-                <div key={t.template_id} className={styles.tplCard}>
-                  <div className={styles.tplCardInfo}>
-                    <strong className={styles.tplCardName}>{t.name}</strong>
-                    <span className={styles.tplCardMeta}>
-                      {t.layout?.fields?.length || 0} field{t.layout?.fields?.length !== 1 ? "s" : ""}
-                      {t.layout?.formTitle ? ` · "${t.layout.formTitle}"` : ""}
-                    </span>
-                  </div>
-                  <div className={styles.tplCardActions}>
-                    <button className={styles.tplUseBtn} onClick={() => loadFormTemplateIntoBuilder(t)}>Edit</button>
-                    <button className={styles.tplDelBtn} onClick={() => deleteFormTemplate(t.template_id)}>Delete</button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-      </div>
+        )}
+      </Modal>
     </div>
   );
 }
