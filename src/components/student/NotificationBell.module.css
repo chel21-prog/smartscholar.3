@@ -41,16 +41,11 @@
 }
 
 .dropdown {
-  position: absolute;
-  right: 0;
-  top: calc(44px + 8px);
-
-  /* Responsive: cap at 360px but never overflow the viewport.
-     calc(100vw - 32px) ensures 16px margin on each side on any phone.
-     Previously this was a hard-coded 360px that would clip off-screen
-     on devices narrower than ~390px. */
-  width: 360px;
-  max-width: calc(100vw - 32px);
+  position: fixed;
+  /* top / left / width are set inline from JS (NotificationBell.jsx),
+     computed from the bell's real screen position and clamped to the
+     viewport — this is what keeps it from ever running off-screen or
+     getting clipped by a parent's overflow: hidden. */
 
   max-height: 420px;
   overflow-y: auto;
@@ -58,7 +53,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  z-index: 200;
+  z-index: 500;
 }
 
 .dropdownTitle {

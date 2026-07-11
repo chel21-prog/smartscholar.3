@@ -1,11 +1,57 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import styles from "./NotificationBell.module.css";
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null); // { top, left, width }
   const boxRef = useRef();
+  const bellRef = useRef();
+
+  // Recompute where the dropdown should render, clamped to the viewport,
+  // every time it opens and on resize/scroll while it's open. This is what
+  // makes it immune to being clipped by an ancestor's overflow:hidden or
+  // running off the edge of the screen — position:fixed + real coordinates
+  // beats position:absolute here.
+  const updatePosition = () => {
+    const bell = bellRef.current;
+    if (!bell) return;
+
+    const rect = bell.getBoundingClientRect();
+    const margin = 16;
+    const width = Math.min(360, window.innerWidth - margin * 2);
+
+    // Anchor to the bell's right edge, but never let the box's left edge
+    // go past the screen edge.
+    let left = rect.right - width;
+    left = Math.max(margin, Math.min(left, window.innerWidth - width - margin));
+
+    let top = rect.bottom + 8;
+    const maxHeight = 420;
+    // If there isn't room below, flip the dropdown above the bell instead.
+    if (top + maxHeight > window.innerHeight - margin) {
+      const spaceAbove = rect.top - margin;
+      if (spaceAbove > window.innerHeight - top) {
+        top = Math.max(margin, rect.top - 8 - Math.min(maxHeight, spaceAbove));
+      }
+    }
+
+    setPos({ top, left, width });
+  };
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updatePosition();
+
+    const onViewportChange = () => updatePosition();
+    window.addEventListener("resize", onViewportChange);
+    window.addEventListener("scroll", onViewportChange, true);
+    return () => {
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("scroll", onViewportChange, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     let channel;
@@ -102,6 +148,7 @@ export default function NotificationBell() {
   return (
     <div ref={boxRef} className={styles.wrapper}>
       <button
+        ref={bellRef}
         className={styles.bell}
         onClick={() => setOpen((v) => !v)}
         aria-label={`Notifications${unread > 0 ? ` (${unread} unread)` : ""}`}
@@ -115,8 +162,13 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {open && (
-        <div className={styles.dropdown} role="region" aria-label="Notifications">
+      {open && pos && (
+        <div
+          className={styles.dropdown}
+          role="region"
+          aria-label="Notifications"
+          style={{ top: pos.top, left: pos.left, width: pos.width }}
+        >
           <h4 className={styles.dropdownTitle}>Notifications</h4>
 
           {notifications.length === 0 ? (
