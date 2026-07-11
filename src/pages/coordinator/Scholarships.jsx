@@ -359,8 +359,15 @@ export default function Scholarships() {
         <table className={s.table}>
           <thead>
             <tr>
-              {["Name","Sponsor","Description","Amount","Budget","Released","Remaining","Slots","Deadline","Payout","Duration","Status","Reqs","Form","Action"]
-                .map(h => <th key={h} className={s.th}>{h}</th>)}
+              {[
+                { h: "Name" }, { h: "Sponsor" }, { h: "Description", optional: true },
+                { h: "Amount" }, { h: "Budget", optional: true }, { h: "Released", optional: true },
+                { h: "Remaining", optional: true }, { h: "Slots", optional: true },
+                { h: "Deadline", optional: true }, { h: "Payout" }, { h: "Duration", optional: true },
+                { h: "Status" }, { h: "Reqs", optional: true }, { h: "Form", optional: true }, { h: "Action" },
+              ].map(({ h, optional }) => (
+                <th key={h} className={`${s.th} ${optional ? s.colOptional : ""}`}>{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -368,25 +375,25 @@ export default function Scholarships() {
               <tr key={sch.scholarship_id} className={s.tr}>
                 <td className={s.td}>{sch.scholarship_name}</td>
                 <td className={s.td}>{sch.sponsor}</td>
-                <td className={s.td}><div className={s.descriptionBox}>{sch.description}</div></td>
+                <td className={`${s.td} ${s.colOptional}`}><div className={s.descriptionBox}>{sch.description}</div></td>
                 <td className={s.td}>₱{Number(sch.amount || 0).toLocaleString()}</td>
-                <td className={s.td}>₱{Number(sch.total_budget || 0).toLocaleString()}</td>
-                <td className={s.td}>₱{releasedAmount(sch).toLocaleString()}</td>
-                <td className={s.td}>₱{(Number(sch.total_budget || 0) - releasedAmount(sch)).toLocaleString()}</td>
-                <td className={s.td}>{sch.slots}</td>
-                <td className={s.td}>{sch.submission_deadline || "—"}</td>
+                <td className={`${s.td} ${s.colOptional}`}>₱{Number(sch.total_budget || 0).toLocaleString()}</td>
+                <td className={`${s.td} ${s.colOptional}`}>₱{releasedAmount(sch).toLocaleString()}</td>
+                <td className={`${s.td} ${s.colOptional}`}>₱{(Number(sch.total_budget || 0) - releasedAmount(sch)).toLocaleString()}</td>
+                <td className={`${s.td} ${s.colOptional}`}>{sch.slots}</td>
+                <td className={`${s.td} ${s.colOptional}`}>{sch.submission_deadline || "—"}</td>
                 <td className={s.td}>{sch.payout_frequency || "—"}</td>
-                <td className={s.td}>{sch.duration_type || "—"}</td>
+                <td className={`${s.td} ${s.colOptional}`}>{sch.duration_type || "—"}</td>
                 <td className={s.td}>
                   <button className={`${s.badge} ${STATUS_TONE[sch.status] || s.badgeNeutral}`}
                     onClick={() => toggleStatus(sch)}>
                     {sch.status}
                   </button>
                 </td>
-                <td className={s.td}>
+                <td className={`${s.td} ${s.colOptional}`}>
                   <button className={s.btnSm} onClick={() => viewRequirementsModal(sch.scholarship_id)}>View</button>
                 </td>
-                <td className={s.td}>
+                <td className={`${s.td} ${s.colOptional}`}>
                   <button className={s.btnSm} onClick={() => viewForm(sch.scholarship_id)}>View</button>
                 </td>
                 <td className={s.td}>

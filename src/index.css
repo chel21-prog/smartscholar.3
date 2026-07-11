@@ -13,6 +13,10 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+html {
+  height: 100%;
+}
+
 body {
   margin: 0;
   background: var(--page-bg);
@@ -23,7 +27,7 @@ body {
 
 #root {
   width: 100%;
-  min-height: 100vh;
+  min-height: 100%;
   margin: 0;
   padding: 0;
   text-align: left;
@@ -44,7 +48,8 @@ h3 { font-size: var(--text-md);  }
 p  { margin: 0; }
 a  { color: var(--navy-600); }
 
-/* Mobile sidebar offset — was incorrectly nested inside :root before */
+/* Mobile sidebar offset — the sticky topbar already reserves its own
+   space in the flex column, so only margin-left needs resetting here. */
 @media (max-width: 768px) {
-  .app-main { margin-left: 0 !important; padding-top: 76px !important; }
+  .app-main { margin-left: 0 !important; }
 }

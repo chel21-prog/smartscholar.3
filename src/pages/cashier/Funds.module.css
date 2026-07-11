@@ -200,7 +200,7 @@
 
     border-radius:16px;
 
-    overflow:auto;
+    overflow-x:auto;
 
     box-shadow:var(--shadow-sm);
 
@@ -406,7 +406,7 @@
    PAGE LAYOUT
 =========================================== */
 .page {
-    padding: 28px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
     gap: 22px;
@@ -425,7 +425,7 @@
 
 .pageTitle {
     margin: 0;
-    font-size: 26px;
+    font-size: 20px;
     font-weight: 700;
     color: var(--text-primary);
 }
@@ -448,7 +448,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 14px;
-    padding: 18px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -460,7 +460,7 @@
 }
 
 .statCard strong {
-    font-size: 22px;
+    font-size: 18px;
     color: var(--text-primary);
 }
 
@@ -668,3 +668,24 @@
 }
 
 .btnSecondary:hover { background: var(--navy-50); }
+
+/* ===========================================
+   RESPONSIVE
+=========================================== */
+@media (max-width: 900px) {
+  .statsGrid { grid-template-columns: repeat(2, 1fr); }
+  .modalStats { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .page { padding: 14px; }
+  .statsGrid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modalStats { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .infoGrid { grid-template-columns: 1fr; }
+  .filterBar { flex-direction: column; align-items: stretch; }
+  .pageHeader { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .modalLarge, .modal { width: 100%; max-width: 100%; }
+  .colOptional { display: none; }
+  .table { min-width: 460px; font-size: 12px; }
+  .th, .td { padding: 8px 10px; }
+}

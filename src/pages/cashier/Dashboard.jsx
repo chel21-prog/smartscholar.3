@@ -55,8 +55,8 @@ export default function CashierDashboard() {
       <div style={s.grid}>
         {stats.map(([label, value, color]) => (
           <div key={label} style={s.card}>
-            <div style={{fontSize:28,fontWeight:800,color:color||"var(--text-primary)",lineHeight:1}}>{value}</div>
-            <div style={{marginTop:6,fontSize:12,fontWeight:600,color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:".3px"}}>{label}</div>
+            <div style={{fontSize:22,fontWeight:800,color:color||"var(--text-primary)",lineHeight:1}}>{value}</div>
+            <div style={{marginTop:6,fontSize:11,fontWeight:600,color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:".3px"}}>{label}</div>
           </div>
         ))}
       </div>

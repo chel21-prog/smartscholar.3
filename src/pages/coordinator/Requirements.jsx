@@ -469,12 +469,12 @@ const endRow =
         <table className={styles.table}>
           <thead className={styles.thead}>
             <tr>
-              <th className={styles.th}>School ID</th>
+              <th className={`${styles.th} ${styles.colOptional}`}>School ID</th>
               <th className={styles.th}>Student Name</th>
               <th className={styles.th}>Scholarship</th>
-              <th className={styles.th}>AY Approved</th>
-              <th className={styles.th}>Semester Approved</th>
-              <th className={styles.th}>Date Approved</th>
+              <th className={`${styles.th} ${styles.colOptional}`}>AY Approved</th>
+              <th className={`${styles.th} ${styles.colOptional}`}>Semester Approved</th>
+              <th className={`${styles.th} ${styles.colOptional}`}>Date Approved</th>
               <th className={styles.th}>Status</th>
               <th className={styles.th}>Verification</th>
               <th className={styles.th}>Documents</th>
@@ -489,7 +489,7 @@ const endRow =
     return (
       <tr key={s.grantee_id}>
 
-        <td className={styles.td}>
+        <td className={`${styles.td} ${styles.colOptional}`}>
     {student.school_id}
 </td>
 
@@ -500,15 +500,15 @@ const endRow =
           {s.scholarship_name}
         </td>
 
-        <td className={styles.td}>
+        <td className={`${styles.td} ${styles.colOptional}`}>
           {s.academic_year}
         </td>
 
-        <td className={styles.td}>
+        <td className={`${styles.td} ${styles.colOptional}`}>
           {s.semester}
         </td>
 
-        <td className={styles.td}>
+        <td className={`${styles.td} ${styles.colOptional}`}>
           {s.date_awarded
             ? new Date(s.date_awarded).toLocaleDateString()
             : "Not set"}

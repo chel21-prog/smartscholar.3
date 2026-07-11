@@ -150,6 +150,7 @@ const sendReset = async (e) => {
 
   return (
     <div className={styles.page}>
+      <ThemeToggle className={styles.fixedThemeToggle} />
       <div className={styles.container}>
       {/* LEFT INTRO PANEL */}
       <div className={styles.leftPanel}>
@@ -180,11 +181,6 @@ const sendReset = async (e) => {
       {/* RIGHT LOGIN PANEL */}
       <div className={styles.rightPanel}>
         <div className={styles.card}>
-          <div className={styles.cardTop}>
-
-    <ThemeToggle />
-
-</div>
           <div className={styles.header}>
             
             <h2 className={styles.title}>Welcome</h2>

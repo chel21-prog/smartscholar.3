@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Badge, EmptyState } from "@/components/ui/Card";
 import { TableWrap, Table } from "@/components/ui/Table";
+import uiStyles from "@/components/ui/ui.module.css";
 import PageLoader from "@/components/ui/PageLoader";
 import s from "./Dashboard.module.css";
 
@@ -280,14 +281,14 @@ export default function Dashboard() {
         ) : (
           <TableWrap>
             <Table>
-              <thead><tr><th>Name</th><th>Description</th><th>Amount</th><th>Deadline</th><th>Action</th></tr></thead>
+              <thead><tr><th>Name</th><th className={uiStyles.colOptional}>Description</th><th>Amount</th><th>Deadline</th><th>Action</th></tr></thead>
               <tbody>
                 {eligible.map((sc) => {
                   const app = getApplication(sc.scholarship_id);
                   return (
                     <tr key={sc.scholarship_id}>
                       <td className={s.nameCell}>{sc.scholarship_name}</td>
-                      <td className={s.descCell}>{sc.description}</td>
+                      <td className={`${s.descCell} ${uiStyles.colOptional}`}>{sc.description}</td>
                       <td>₱{Number(sc.amount || 0).toLocaleString()}</td>
                       <td>{sc.submission_deadline || "—"}</td>
                       <td>
@@ -316,14 +317,14 @@ export default function Dashboard() {
         ) : (
           <TableWrap>
             <Table>
-              <thead><tr><th>Name</th><th>Description</th><th>Amount</th><th>Deadline</th><th>Why not eligible</th></tr></thead>
+              <thead><tr><th>Name</th><th className={uiStyles.colOptional}>Description</th><th>Amount</th><th>Deadline</th><th>Why not eligible</th></tr></thead>
               <tbody>
                 {notEligible.map((sc) => {
                   const reasons = getReasons(sc);
                   return (
                     <tr key={sc.scholarship_id}>
                       <td className={s.nameCell}>{sc.scholarship_name}</td>
-                      <td className={s.descCell}>{sc.description}</td>
+                      <td className={`${s.descCell} ${uiStyles.colOptional}`}>{sc.description}</td>
                       <td>₱{Number(sc.amount || 0).toLocaleString()}</td>
                       <td>{sc.submission_deadline || "—"}</td>
                       <td>

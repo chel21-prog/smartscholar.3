@@ -117,7 +117,7 @@
     display:flex;
     justify-content:space-between;
     align-items:center;
-    padding:20px 24px;
+    padding:14px 18px;
    
     flex-wrap:wrap;
     gap:12px;
@@ -442,14 +442,14 @@
     justify-content: space-between;
     align-items: flex-start;
 
-    padding: 24px 28px;
+    padding: 18px 22px;
 
     border-bottom: 1px solid var(--border);
 }
 
 .modalTitle {
     margin: 0;
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--text-primary);
 }
@@ -483,7 +483,7 @@
 }
 
 .modalBody {
-    padding: 24px 28px;
+    padding: 18px 22px;
 
     display: flex;
     flex-direction: column;
@@ -540,7 +540,7 @@
     justify-content: flex-end;
     gap: 12px;
 
-    padding: 20px 28px;
+    padding: 16px 22px;
 
     border-top: 1px solid var(--border);
 
@@ -612,10 +612,18 @@
     }
 
     .pageTitle{
-        font-size:24px;
+        font-size:19px;
     }
 
     .pageSubtitle{
         font-size:13px;
     }
+}
+/* ===========================
+   TABLE — RESPONSIVE
+=========================== */
+@media (max-width: 900px) {
+  .colOptional { display: none; }
+  .table { font-size: 12px; }
+  .th, .td { padding: 8px 10px; }
 }

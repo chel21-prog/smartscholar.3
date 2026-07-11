@@ -322,12 +322,12 @@ style={{ maxWidth:220 }}
               <tr>
                 <th className={s.th}>School ID</th>
                 <th className={s.th}>Name</th>
-                <th className={s.th}>Email</th>
+                <th className={`${s.th} ${s.colOptional}`}>Email</th>
                 <th className={s.th}>Course</th>
                 <th className={s.th}>Year</th>
-                <th className={s.th}>Gender</th>
-                <th className={s.th}>Ethnicity</th>
-                <th className={s.th}>Contact</th>
+                <th className={`${s.th} ${s.colOptional}`}>Gender</th>
+                <th className={`${s.th} ${s.colOptional}`}>Ethnicity</th>
+                <th className={`${s.th} ${s.colOptional}`}>Contact</th>
                 <th className={s.th}>Enrollement Status</th>
                 <th className={s.th}>Remarks</th>
                 <th className={s.th}>Action</th>
@@ -342,12 +342,12 @@ style={{ maxWidth:220 }}
 >
                   <td className={s.td}>{student.school_id}</td>
                   <td className={s.td}>{student.users?.first_name} {student.users?.last_name}</td>
-                  <td className={s.td}>{student.users?.email}</td>
+                  <td className={`${s.td} ${s.colOptional}`}>{student.users?.email}</td>
                   <td className={s.td}>{student.course}</td>
                   <td className={s.td}>{student.year_level}</td>
-                  <td className={s.td}>{student.gender}</td>
-                  <td className={s.td}>{student.ethnicity}</td>
-                  <td className={s.td}>{student.contact_number}</td>
+                  <td className={`${s.td} ${s.colOptional}`}>{student.gender}</td>
+                  <td className={`${s.td} ${s.colOptional}`}>{student.ethnicity}</td>
+                  <td className={`${s.td} ${s.colOptional}`}>{student.contact_number}</td>
 
                   {/* CLICKABLE STATUS */}
                   <td className={s.td}>

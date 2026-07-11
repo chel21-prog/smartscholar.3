@@ -491,10 +491,10 @@ const paginated = filtered.slice(
           <tr>
             <th className={styles.th}>Student</th>
             <th className={styles.th}>Scholarship</th>
-            <th className={styles.th}>AY Approved</th>
-            <th className={styles.th}>Semester Approved</th>
+            <th className={`${styles.th} ${styles.colOptional}`}>AY Approved</th>
+            <th className={`${styles.th} ${styles.colOptional}`}>Semester Approved</th>
             <th className={styles.th}>Status</th>
-            <th className={styles.th}>Application Date</th>
+            <th className={`${styles.th} ${styles.colOptional}`}>Application Date</th>
             <th className={styles.th}>Actions</th>
           </tr>
         </thead>
@@ -504,10 +504,10 @@ const paginated = filtered.slice(
             <tr key={a.application_id}>
               <td className={styles.td}>{getStudentName(a)}</td>
               <td className={styles.td}>{a.scholarships?.scholarship_name}</td>
-              <td className={styles.td}>{a.academic_year}</td>
-              <td className={styles.td}>{a.semester}</td>
+              <td className={`${styles.td} ${styles.colOptional}`}>{a.academic_year}</td>
+              <td className={`${styles.td} ${styles.colOptional}`}>{a.semester}</td>
               <td className={styles.td}>{a.status}</td>
-              <td className={styles.td}>
+              <td className={`${styles.td} ${styles.colOptional}`}>
                 {new Date(a.application_date).toLocaleDateString()}
               </td>
 

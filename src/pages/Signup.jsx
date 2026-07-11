@@ -117,6 +117,7 @@ navigate("/Login");
 
   return (
     <div className={styles.page}>
+  <ThemeToggle className={styles.fixedThemeToggle} />
   <div className={styles.container}>
 
       {/* LEFT INTRO PANEL */}
@@ -148,10 +149,6 @@ navigate("/Login");
       {/* RIGHT PANEL */}
       <div className={styles.rightPanel}>
         <div className={styles.card}>
-          <div className={styles.cardTop}>
-    <ThemeToggle />
-</div>
-
           <div className={styles.header}>
             <h2 className={styles.title}>Create Account</h2>
             <p className={styles.subtitle}>Join our community of scholars</p>

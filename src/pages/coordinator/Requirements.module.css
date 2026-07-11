@@ -26,7 +26,7 @@
 
 .grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(430px,1fr));
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
     gap:var(--space-5);
 }
 
@@ -39,7 +39,6 @@
     display:flex;
     flex-direction:column;
     gap:var(--space-4);
-    min-height:720px;
 }
 
 .heading{
@@ -51,7 +50,7 @@
 
 .input{
     width:100%;
-    height:42px;
+    height:36px;
     padding:0 var(--space-3);
     border:1px solid var(--border-strong);
     border-radius:var(--radius-md);
@@ -458,3 +457,13 @@
   cursor: pointer;
 }
 .deleteBtn:hover { background: var(--danger-100); }
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+@media (max-width: 768px) {
+  .page { gap: var(--space-4); }
+  .grid { grid-template-columns: 1fr; gap: var(--space-4); }
+  .card { padding: var(--space-4); }
+  .header { flex-wrap: wrap; gap: var(--space-2); }
+}

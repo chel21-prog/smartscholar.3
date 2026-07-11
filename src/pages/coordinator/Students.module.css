@@ -4,14 +4,16 @@
 
 .page{
     min-height:100vh;
-    padding:24px;
-    background:var(--background);
+    padding:18px;
+    background:var(--page-bg);
     color:var(--text-primary);
     font-family:var(--font-sans);
 }
 .pagination {
   display: flex; justify-content: space-between; align-items: center;
   flex-wrap: wrap; gap: var(--space-3);
+  flex-shrink: 0;
+  padding-top: var(--space-3);
 }
 .pageInfo { font-size: var(--text-sm); color: var(--text-secondary); }
 .pageButtons { display: flex; align-items: center; gap: var(--space-2); }
@@ -27,20 +29,23 @@
     display:flex;
     justify-content:space-between;
     align-items:center;
-    margin-bottom:24px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+    gap:var(--space-3);
+    flex-shrink:0;
 }
 
 .title{
     margin:0;
-    font-size:28px;
+    font-size:21px;
     font-weight:700;
     color:var(--text-primary);
 }
 
 .subtitle{
-    margin-top:6px;
+    margin-top:4px;
     color:var(--text-secondary);
-    font-size:14px;
+    font-size:13px;
 }
 
 /* ===========================
@@ -253,6 +258,7 @@
     margin-bottom:20px;
     flex-wrap:wrap;
     align-items:center;
+    flex-shrink:0;
 }
 .modal{
     width:100%;
@@ -261,6 +267,22 @@
     color:var(--text-primary);
     border-radius:16px;
     border:1px solid var(--border);
-    padding:28px;
+    padding:22px;
     box-shadow:var(--shadow-xl);
+}
+/* ===========================
+   RESPONSIVE
+=========================== */
+@media (max-width: 768px) {
+  .page { padding: 12px; }
+  .card { padding: 8px; }
+  .remarkInput { width: 140px; min-width: 120px; max-width: 140px; }
+  .colOptional { display: none; }
+  .table { min-width: 620px; font-size: 12px; }
+  .th, .td { padding: 8px 10px; }
+}
+
+@media (max-width: 640px) {
+  .overlay { padding: 0; align-items: flex-end; }
+  .modal { max-width: 100%; border-radius: 16px 16px 0 0; max-height: 90vh; overflow-y: auto; }
 }

@@ -693,8 +693,15 @@ box-shadow:var(--shadow-xl);
 
     .table{
 
-        min-width:900px;
+        min-width:620px;
 
+    }
+
+    .table th:nth-child(2),
+    .table td:nth-child(2),
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+        display: none;
     }
 
     .modal{

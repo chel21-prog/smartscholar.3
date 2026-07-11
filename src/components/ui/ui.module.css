@@ -22,7 +22,7 @@
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn:disabled { cursor: not-allowed; opacity: .55; }
 
-.btn-md { font-size: var(--text-base); padding: 11px 18px; }
+.btn-md { font-size: var(--text-base); padding: 9px 16px; }
 .btn-sm { font-size: var(--text-sm);  padding: 7px 12px; border-radius: var(--radius-sm); }
 
 .btn-primary   { background: var(--navy-600); color: #fff; box-shadow: var(--shadow-sm); }
@@ -56,7 +56,7 @@
 .fieldError { font-size: var(--text-xs); color: var(--danger-600); font-weight: 600; }
 
 .input {
-  width: 100%; height: 44px; padding: 0 var(--space-3);
+  width: 100%; height: 38px; padding: 0 var(--space-3);
   font-family: var(--font-sans); font-size: var(--text-base);
   color: var(--text-primary); background: var(--surface);
   border: 1px solid var(--border-strong); border-radius: var(--radius-md);
@@ -171,10 +171,11 @@
 .tableWrap {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-lg); overflow-x: auto; box-shadow: var(--shadow-sm);
+  -webkit-overflow-scrolling: touch;
 }
 .table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: var(--text-sm); }
 .table thead th {
-  position: sticky; top: 0; background: var(--navy-900); color: #fff;
+  background: var(--navy-900); color: #fff;
   text-align: left; font-weight: 600; font-size: var(--text-xs);
   letter-spacing: .3px; text-transform: uppercase;
   padding: var(--space-3) var(--space-4); white-space: nowrap;
@@ -186,6 +187,16 @@
 .table tbody tr:last-child td { border-bottom: none; }
 .table tbody tr:nth-child(even) { background: var(--surface-muted); }
 .table tbody tr:hover { background: var(--navy-50); }
+
+/* Columns marked optional/low-priority hide on small screens instead of
+   forcing the whole table to scroll further than necessary — a real
+   narrowing of the table, not just smaller scroll-to-see text. */
+@media (max-width: 640px) {
+  .table { min-width: 420px; font-size: 12px; }
+  .table thead th { padding: 8px 10px; font-size: 10px; }
+  .table tbody td { padding: 8px 10px; }
+  .colOptional { display: none; }
+}
 
 /* ---- Page loader ---- */
 .pageLoader {

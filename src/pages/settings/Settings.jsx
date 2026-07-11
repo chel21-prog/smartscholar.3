@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, Badge } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { EyeIcon, EyeOffIcon } from "@/components/ui/EyeIcons";
 import styles from "./Settings.module.css";
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
@@ -161,12 +162,13 @@ const [showCurrent, setShowCurrent] = useState(false);
 
         <div className={styles.passwordSection}>
           <Field label="Current password">
-  <div className={styles.passwordRow}>
+  <div className={styles.passwordField}>
     <Input
       type={showCurrent ? "text" : "password"}
       placeholder="Enter your current password"
       value={currentPassword}
       disabled={saving}
+      className={styles.passwordInput}
       onChange={(e) => {
         setCurrentPassword(e.target.value);
         setPwError("");
@@ -180,17 +182,18 @@ const [showCurrent, setShowCurrent] = useState(false);
       onClick={() => setShowCurrent((v) => !v)}
       aria-label={showCurrent ? "Hide password" : "Show password"}
     >
-      {showCurrent ? "Hide" : "Show"}
+      {showCurrent ? <EyeOffIcon /> : <EyeIcon />}
     </button>
   </div>
 </Field>
           <Field label="New password">
-            <div className={styles.passwordRow}>
+            <div className={styles.passwordField}>
               <Input
                 type={showNew ? "text" : "password"}
                 placeholder="Enter a new password"
                 value={newPassword}
                 disabled={saving}
+                className={styles.passwordInput}
                 onChange={(e) => {
                   setNewPassword(e.target.value);
                   setPwError("");
@@ -204,18 +207,19 @@ const [showCurrent, setShowCurrent] = useState(false);
                 onClick={() => setShowNew((v) => !v)}
                 aria-label={showNew ? "Hide password" : "Show password"}
               >
-                {showNew ? "Hide" : "Show"}
+                {showNew ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
           </Field>
 
           <Field label="Confirm password">
-            <div className={styles.passwordRow}>
+            <div className={styles.passwordField}>
               <Input
                 type={showConfirm ? "text" : "password"}
                 placeholder="Re-enter your new password"
                 value={confirmPassword}
                 disabled={saving}
+                className={styles.passwordInput}
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
                   setPwError("");
@@ -229,7 +233,7 @@ const [showCurrent, setShowCurrent] = useState(false);
                 onClick={() => setShowConfirm((v) => !v)}
                 aria-label={showConfirm ? "Hide password" : "Show password"}
               >
-                {showConfirm ? "Hide" : "Show"}
+                {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
           </Field>

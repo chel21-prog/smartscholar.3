@@ -502,13 +502,13 @@ export default function Funds() {
           <thead className={s.thead}>
             <tr>
               <th className={s.th}>Scholarship</th>
-              <th className={s.th}>Sponsor</th>
-              <th className={s.th}>Frequency</th>
-              <th className={s.th}>Duration</th>
-              <th className={s.th}>Budget</th>
-              <th className={s.th}>Released</th>
+              <th className={`${s.th} ${s.colOptional}`}>Sponsor</th>
+              <th className={`${s.th} ${s.colOptional}`}>Frequency</th>
+              <th className={`${s.th} ${s.colOptional}`}>Duration</th>
+              <th className={`${s.th} ${s.colOptional}`}>Budget</th>
+              <th className={`${s.th} ${s.colOptional}`}>Released</th>
               <th className={s.th}>Remaining</th>
-              <th className={s.th}>Grantees</th>
+              <th className={`${s.th} ${s.colOptional}`}>Grantees</th>
               <th className={s.th}>Progress</th>
               <th className={s.th}>Action</th>
             </tr>
@@ -522,15 +522,15 @@ export default function Funds() {
                 return (
                   <tr key={scholarship.scholarship_id}>
                     <td className={s.nameCell}><strong>{scholarship.scholarship_name}</strong></td>
-                    <td className={s.td}>{scholarship.sponsor}</td>
-                    <td className={s.td}>{scholarship.payout_frequency || "—"}</td>
-                    <td className={s.td}>{scholarship.duration_type || "—"}</td>
-                    <td className={s.money}>₱{Number(scholarship.total_budget || 0).toLocaleString()}</td>
-                    <td className={s.moneyReleased}>₱{releasedAmount(scholarship).toLocaleString()}</td>
+                    <td className={`${s.td} ${s.colOptional}`}>{scholarship.sponsor}</td>
+                    <td className={`${s.td} ${s.colOptional}`}>{scholarship.payout_frequency || "—"}</td>
+                    <td className={`${s.td} ${s.colOptional}`}>{scholarship.duration_type || "—"}</td>
+                    <td className={`${s.money} ${s.colOptional}`}>₱{Number(scholarship.total_budget || 0).toLocaleString()}</td>
+                    <td className={`${s.moneyReleased} ${s.colOptional}`}>₱{releasedAmount(scholarship).toLocaleString()}</td>
                     <td className={remaining <= 0 ? s.moneyDanger : s.moneyRemaining}>
                       ₱{remaining.toLocaleString()}
                     </td>
-                    <td className={s.td}>{scholarship.grantees?.length || 0}</td>
+                    <td className={`${s.td} ${s.colOptional}`}>{scholarship.grantees?.length || 0}</td>
                     <td className={s.td}>
                       <div className={s.progressMini}>
                         <div className={s.progressMiniFill} style={{ width: `${progress(scholarship)}%` }} />
@@ -608,11 +608,11 @@ export default function Funds() {
                   <thead className={s.thead}>
                     <tr>
                       <th className={s.th}>Student</th>
-                      <th className={s.th}>School ID</th>
+                      <th className={`${s.th} ${s.colOptional}`}>School ID</th>
                       <th className={s.th}>Verification</th>
                       <th className={s.th}>Payouts</th>
-                      <th className={s.th}>Last Release</th>
-                      <th className={s.th}>Amount</th>
+                      <th className={`${s.th} ${s.colOptional}`}>Last Release</th>
+                      <th className={`${s.th} ${s.colOptional}`}>Amount</th>
                       <th className={s.th}>Action</th>
                     </tr>
                   </thead>
@@ -633,17 +633,17 @@ export default function Funds() {
                                 {grantee.students?.users?.first_name} {grantee.students?.users?.last_name}
                               </div>
                             </td>
-                            <td className={s.td}>{grantee.students?.school_id}</td>
+                            <td className={`${s.td} ${s.colOptional}`}>{grantee.students?.school_id}</td>
                             <td className={s.td}>
                               <span className={grantee.verification_result === "Verified" ? s.badgeSuccess : s.badgeWarning}>
                                 {grantee.verification_result || "Pending Review"}
                               </span>
                             </td>
                             <td className={s.td}>{payoutProgressLabel(grantee, selectedScholarship)}</td>
-                            <td className={s.td}>
+                            <td className={`${s.td} ${s.colOptional}`}>
                               {latest ? `${latest.release_date} (${latest.academic_year || "—"}${latest.semester ? ` · ${latest.semester}` : ""}${latest.payout_period && latest.payout_period !== "One-time" ? ` · ${latest.payout_period}` : ""})` : "—"}
                             </td>
-                            <td className={s.money}>₱{amount.toLocaleString()}</td>
+                            <td className={`${s.money} ${s.colOptional}`}>₱{amount.toLocaleString()}</td>
                             <td className={s.actionCell}>
                               <div className={s.actionRow}>
                                 {!eligible ? (
@@ -771,9 +771,9 @@ export default function Funds() {
                     <tr>
                       <th className={s.th}>Period</th>
                       <th className={s.th}>Status</th>
-                      <th className={s.th}>Release Date</th>
+                      <th className={`${s.th} ${s.colOptional}`}>Release Date</th>
                       <th className={s.th}>Amount</th>
-                      <th className={s.th}>Remarks</th>
+                      <th className={`${s.th} ${s.colOptional}`}>Remarks</th>
                       <th className={s.th}>Action</th>
                     </tr>
                   </thead>
@@ -797,11 +797,11 @@ export default function Funds() {
                               {period.status}
                             </span>
                           </td>
-                          <td className={s.td}>{period.release?.release_date || "—"}</td>
+                          <td className={`${s.td} ${s.colOptional}`}>{period.release?.release_date || "—"}</td>
                           <td className={s.money}>
                             {period.status === "Paid" ? `₱${Number(period.release.amount_released).toLocaleString()}` : "—"}
                           </td>
-                          <td className={s.td}>{period.release?.remarks || "—"}</td>
+                          <td className={`${s.td} ${s.colOptional}`}>{period.release?.remarks || "—"}</td>
                           <td className={s.actionCell}>
                             {actionable && (
                               <div className={s.actionRow}>
