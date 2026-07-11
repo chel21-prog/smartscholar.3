@@ -485,7 +485,7 @@ const paginated = filtered.slice(
 
       {/* TABLE */}
 
-<div className={styles.card}>
+<div className={styles.tableContainer}>
 <table className={styles.table}>
         <thead className={styles.thead}>
           <tr>

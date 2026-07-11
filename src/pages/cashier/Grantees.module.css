@@ -7,8 +7,6 @@
     flex-direction:column;
     gap:24px;
     padding:24px;
-    height:100%;
-    min-height:0;
     color:var(--text-primary);
 }
 
@@ -182,6 +180,17 @@
 
     min-height:0;
 
+/* Firefox */
+    scrollbar-width: none;
+
+    /* IE & Edge (legacy) */
+    -ms-overflow-style: none;
+}
+
+.tableContainer::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
 }
 
 .table{

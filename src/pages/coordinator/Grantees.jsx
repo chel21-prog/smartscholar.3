@@ -482,7 +482,7 @@ const endRow =
         </td>
 
         <td className={styles.td}>
-          <div>
+          <div className={styles.verifyActions}>
             <span
               className={`${styles.badge} ${
                 s.verification_result === "Verified"
@@ -492,35 +492,36 @@ const endRow =
             >
               {VERIFICATION_LABELS[s.verification_result] || s.verification_result}
             </span>
-          </div>
-          <button
+            <button
             className={styles.documentButton}
             onClick={() => openVerify(s)}
           >
             {s.verification_result === "Verified" ? "Re-verify" : "Verify"}
           </button>
+          </div>
+          
         </td>
-
-        <td className={styles.td}>
-          {!s.documents || s.documents.length === 0 ? (
-            <span className={styles.documentPlaceholder}>
-              No files uploaded
-            </span>
-          ) : (
-            s.documents.map((d, i) => (
-              <div key={i}>
-                <a
-                  href={d.file_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={styles.documentButton}
-                >
-                  {d.requirement_name || "View Document"}
-                </a>
-              </div>
-            ))
-          )}
-        </td>
+<td className={styles.td}>
+  {!s.documents || s.documents.length === 0 ? (
+    <span className={styles.documentPlaceholder}>
+      No files uploaded
+    </span>
+  ) : (
+    <div className={styles.documents}>
+      {s.documents.map((d, i) => (
+        <a
+          key={i}
+          href={d.file_url}
+          target="_blank"
+          rel="noreferrer"
+          className={styles.documentButton}
+        >
+          {d.requirement_name || "View"}
+        </a>
+      ))}
+    </div>
+  )}
+</td>
 
       </tr>
     );

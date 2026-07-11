@@ -3,8 +3,6 @@
 =========================== */
 
 .page{
-    height:100%;
-    min-height:0;
     padding:18px;
     background:var(--page-bg);
     color:var(--text-primary);
@@ -73,6 +71,16 @@
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-lg); overflow: auto; box-shadow: var(--shadow-sm);
   flex: 1; min-height: 0;
+ scrollbar-width: none;
+
+    /* IE & Edge (legacy) */
+    -ms-overflow-style: none;
+}
+
+.tableContainer::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
 }
 .table{
     width:100%;

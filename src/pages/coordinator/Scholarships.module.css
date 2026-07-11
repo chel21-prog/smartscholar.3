@@ -2,7 +2,7 @@
    This is the root fix for the cursor-jump bug — stable class
    references mean React never unmounts/remounts inputs. */
 
-.page { display: flex; flex-direction: column; gap: var(--space-5); height: 100%; min-height: 0; }
+.page { display: flex; flex-direction: column; gap: var(--space-5); }
 .pageHeader, .filterRow, .pagination { flex-shrink: 0; }
 
 .pageHeader {
@@ -81,7 +81,16 @@
 .tableWrap {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-lg); overflow: auto; box-shadow: var(--shadow-sm);
-  flex: 1; min-height: 0;
+  flex: 1; min-height: 0; scrollbar-width: none;
+
+    /* IE & Edge (legacy) */
+    -ms-overflow-style: none;
+}
+
+.tableContainer::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
 }
 .table { width: 100%; min-width: 900px; border-collapse: collapse; font-size: var(--text-sm); }
 .th {
