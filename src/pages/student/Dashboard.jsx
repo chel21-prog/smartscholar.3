@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [loading,        setLoading]        = useState(true);
   const [applications,   setApplications]   = useState([]);
   const [academic,       setAcademic]       = useState(null);
+  const [sortMode,       setSortMode]       = useState("best"); // best | amount | convenience
 
   // apply modal
   const [showForm,            setShowForm]           = useState(false);
@@ -245,6 +246,46 @@ export default function Dashboard() {
   const eligible    = scholarships.filter(isEligible);
   const notEligible = scholarships.filter((sc) => !isEligible(sc));
 
+  // ── recommendations ──────────────────────────────────────
+  // Two things make a scholarship worth suggesting: how much money it's
+  // actually worth, and how convenient it is to get — measured here as
+  // how few outstanding requirements stand between the student and being
+  // eligible (0 missing = as convenient as it gets). Already-applied
+  // scholarships are excluded since there's nothing left to recommend.
+  const getMissingCount = (sc) => getReasons(sc).length;
+
+  const daysUntilDeadline = (deadline) => {
+    if (!deadline) return null;
+    const diff = Math.ceil((new Date(deadline) - new Date()) / (1000 * 60 * 60 * 24));
+    return Number.isNaN(diff) ? null : diff;
+  };
+
+  const candidates = scholarships.filter((sc) => !getApplication(sc.scholarship_id));
+  const maxAmount = Math.max(1, ...candidates.map((sc) => Number(sc.amount || 0)));
+
+  const scored = candidates.map((sc) => {
+    const missing = getMissingCount(sc);
+    const amount = Number(sc.amount || 0);
+    const amountScore = amount / maxAmount;           // 0–1, higher = more money
+    const convenienceScore = 1 / (1 + missing);        // 0–1, 1 = already eligible
+    return {
+      ...sc,
+      _missing: missing,
+      _amount: amount,
+      _amountScore: amountScore,
+      _convenienceScore: convenienceScore,
+      _bestScore: amountScore * 0.5 + convenienceScore * 0.5,
+    };
+  });
+
+  const SORTERS = {
+    best:        (a, b) => b._bestScore - a._bestScore,
+    amount:      (a, b) => b._amount - a._amount,
+    convenience: (a, b) => a._missing - b._missing || b._amount - a._amount,
+  };
+
+  const recommended = [...scored].sort(SORTERS[sortMode]).slice(0, 3);
+
   if (loading) return <PageLoader label="Loading your scholarships…" />;
 
   return (
@@ -269,6 +310,74 @@ export default function Dashboard() {
           <div className={s.statLbl}>Not eligible yet</div>
         </div>
       </div>
+
+      {/* recommendations */}
+      {recommended.length > 0 && (
+        <section className={s.section}>
+          <div className={s.recHeader}>
+            <h2 className={s.sectionTitle}><span className={s.dotGold} /> Recommended for you</h2>
+            <div className={s.sortToggle} role="group" aria-label="Sort recommendations">
+              <button
+                className={sortMode === "best" ? s.sortBtnActive : s.sortBtn}
+                onClick={() => setSortMode("best")}
+              >
+                Best match
+              </button>
+              <button
+                className={sortMode === "amount" ? s.sortBtnActive : s.sortBtn}
+                onClick={() => setSortMode("amount")}
+              >
+                Highest amount
+              </button>
+              <button
+                className={sortMode === "convenience" ? s.sortBtnActive : s.sortBtn}
+                onClick={() => setSortMode("convenience")}
+              >
+                Easiest to qualify
+              </button>
+            </div>
+          </div>
+
+          <div className={s.recGrid}>
+            {recommended.map((sc) => {
+              const days = daysUntilDeadline(sc.submission_deadline);
+              const urgent = days !== null && days >= 0 && days <= 14;
+              return (
+                <div key={sc.scholarship_id} className={s.recCard}>
+                  <div className={s.recCardTop}>
+                    <span className={s.recAmount}>₱{sc._amount.toLocaleString()}</span>
+                    {sc._missing === 0 ? (
+                      <span className={s.recBadgeGood}>Eligible now</span>
+                    ) : (
+                      <span className={s.recBadgeWarn}>
+                        {sc._missing} requirement{sc._missing === 1 ? "" : "s"} needed
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 className={s.recName}>{sc.scholarship_name}</h3>
+                  {sc.description && <p className={s.recDesc}>{sc.description}</p>}
+
+                  <div className={s.recFooter}>
+                    <span className={urgent ? s.recDeadlineUrgent : s.recDeadline}>
+                      {sc.submission_deadline
+                        ? urgent
+                          ? `Apply soon — ${days} day${days === 1 ? "" : "s"} left`
+                          : `Due ${sc.submission_deadline}`
+                        : "No deadline set"}
+                    </span>
+
+                    {sc._missing === 0
+                      ? <button className={s.applyBtn} onClick={() => openApply(sc)}>Apply</button>
+                      : <span className={s.recNotYet}>Not yet eligible</span>
+                    }
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* eligible */}
       <section className={s.section}>
