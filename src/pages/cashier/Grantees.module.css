@@ -287,9 +287,9 @@
 
     border-radius:999px;
 
-    background:#d1fae5;
+    background:var(--success-100);
 
-    color:#047857;
+    color:var(--success-700);
 
     font-size:13px;
 
@@ -311,9 +311,9 @@
 
     border-radius:999px;
 
-    background:#fef3c7;
+    background:var(--warning-100);
 
-    color:#b45309;
+    color:var(--warning-700);
 
     font-size:13px;
 
@@ -361,7 +361,7 @@
 
     border:none;
 
-    background:#ef4444;
+    background:var(--danger-600);
 
     color:white;
 
@@ -379,7 +379,7 @@
 
 .undoBtn:hover{
 
-    background:#dc2626;
+    background:var(--danger-700);
 
 }
 

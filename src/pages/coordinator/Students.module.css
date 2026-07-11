@@ -215,23 +215,23 @@
 }
 
 .statusEnrolled {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-100);
+  color: var(--success-700);
 }
 
 .statusGraduated {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--navy-100);
+  color: var(--navy-700);
 }
 
 .statusDropped {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--danger-100);
+  color: var(--danger-700);
 }
 
 .statusInactive {
-  background: #f3f4f6;
-  color: #475c6c;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
 }
 
 /* ===========================
