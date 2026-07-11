@@ -65,7 +65,7 @@
 .title {
 
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
   letter-spacing: 0.3px;
 }
 
@@ -93,7 +93,7 @@
 /* hover effect */
 .nav a:hover {
   background: rgba(59, 130, 246, 0.15);
-  color: #ffffff;
+  color: var(--text-primary);
   transform: translateX(3px);
 }
 
