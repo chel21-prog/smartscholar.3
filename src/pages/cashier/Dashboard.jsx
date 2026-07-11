@@ -47,7 +47,7 @@ export default function CashierDashboard() {
           </p>
         </div>
         <button style={s.announceBtn} onClick={() => setShowAnnouncement(true)}>
-          📢 Announcements
+          Announcements
         </button>
       </div>
 

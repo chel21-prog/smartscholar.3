@@ -203,11 +203,7 @@
 
 }
 
-.table thead{
-
-    background:var(--surface-muted);
-
-}
+.thead { background: var(--navy-900); }
 
 .table th{
 
@@ -219,11 +215,11 @@
 
     font-weight:700;
 
-    color:var(--text-secondary);
+    color: white;
 
     border-bottom:1px solid var(--border);
 
-    background:var(--surface-muted);
+    background: var(--navy-900);
 
     position:sticky;
 

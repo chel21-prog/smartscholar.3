@@ -419,7 +419,7 @@ return (
 
         <table className={s.table}>
 
-            <thead>
+            <thead className={s.thead}>
 
                 <tr>
 
