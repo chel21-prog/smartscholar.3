@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useSession } from "@/context/SessionContext";
 import styles from "./NotificationBell.module.css";
 
 export default function NotificationBell() {
+  const { profile } = useSession();
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null); // { top, left, width }
@@ -54,32 +56,20 @@ export default function NotificationBell() {
   }, [open]);
 
   useEffect(() => {
+    if (!profile) return;
+
     let channel;
 
     const initialize = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return;
-
-      const { data: dbUser } = await supabase
-        .from("users")
-        .select("user_id")
-        .eq("auth_id", user.id)
-        .single();
-
-      if (!dbUser) return;
-
       await loadNotifications();
 
       channel = supabase
-        .channel(`notifications-${dbUser.user_id}`)
+        .channel(`notifications-${profile.user_id}`)
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "notifications" },
           (payload) => {
-            if (payload.new.user_id === dbUser.user_id) {
+            if (payload.new.user_id === profile.user_id) {
               loadNotifications();
             }
           }
@@ -101,28 +91,15 @@ export default function NotificationBell() {
       window.removeEventListener("click", handleClick);
       if (channel) supabase.removeChannel(channel);
     };
-  }, []);
+  }, [profile]);
 
   const loadNotifications = async () => {
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) return;
-
-    const { data: dbUser, error: userError } = await supabase
-      .from("users")
-      .select("user_id")
-      .eq("auth_id", user.id)
-      .single();
-
-    if (userError || !dbUser) return;
+    if (!profile) return;
 
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
-      .eq("user_id", dbUser.user_id)
+      .eq("user_id", profile.user_id)
       .order("created_at", { ascending: false });
 
     if (error) return;

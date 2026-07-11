@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import PortalLayout from "@/layouts/PortalLayout";
+import RoleGuard from "@/components/RoleGuard";
 import Dashboard from "@/pages/coordinator/Dashboard";
 import Scholarships from "@/pages/coordinator/Scholarships";
 import Students from "@/pages/coordinator/Students";
@@ -21,7 +22,11 @@ const LINKS = [
 export default function CoordinatorRoutes() {
   return (
     <Routes>
-      <Route element={<PortalLayout roleLabel="Coordinator Portal" links={LINKS} />}>
+      <Route element={
+        <RoleGuard role="Coordinator">
+          <PortalLayout roleLabel="Coordinator Portal" links={LINKS} />
+        </RoleGuard>
+      }>
         <Route path="dashboard"    element={<Dashboard />} />
         <Route path="scholarships" element={<Scholarships />} />
         <Route path="students"     element={<Students />} />

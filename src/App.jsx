@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { supabase } from "./lib/supabase";
+import { useSession } from "@/context/SessionContext";
+import PageLoader from "@/components/ui/PageLoader";
 
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
@@ -10,37 +10,20 @@ import StudentRoutes from "./routes/StudentRoutes";
 import CoordinatorRoutes from "./routes/CoordinatorRoutes";
 import CashierRoutes from "./routes/CashierRoutes";
 
+const ROLE_HOME = {
+  Student: "/student/dashboard",
+  Coordinator: "/coordinator/dashboard",
+  Cashier: "/cashier/dashboard",
+};
+
 function SmartRedirect() {
-  const [destination, setDestination] = useState(null);
+  const { loading, authUser, profile } = useSession();
 
-  useEffect(() => {
-    const resolve = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+  if (loading) return <PageLoader label="Signing you in…" />;
 
-      if (!session) {
-        setDestination("/Login");
-        return;
-      }
+  if (!authUser || !profile) return <Navigate to="/Login" replace />;
 
-      const { data: profile } = await supabase
-        .from("users")
-        .select("role")
-        .eq("auth_id", session.user.id)
-        .single();
-
-      if (!profile) { setDestination("/Login"); return; }
-
-      if (profile.role === "Student")     setDestination("/student/dashboard");
-      else if (profile.role === "Coordinator") setDestination("/coordinator/dashboard");
-      else if (profile.role === "Cashier")     setDestination("/cashier/dashboard");
-      else setDestination("/Login");
-    };
-
-    resolve();
-  }, []);
-
-  if (!destination) return null; // briefly blank while checking session
-  return <Navigate to={destination} replace />;
+  return <Navigate to={ROLE_HOME[profile.role] || "/Login"} replace />;
 }
 
 function App() {

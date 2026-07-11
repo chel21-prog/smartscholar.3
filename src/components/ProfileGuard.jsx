@@ -1,57 +1,37 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { useSession } from "@/context/SessionContext";
 import PageLoader from "@/components/ui/PageLoader";
 
 export default function ProfileGuard({ children }) {
-  const [loading, setLoading] = useState(true);
+  const { loading: sessionLoading, profile } = useSession();
+  const [checking, setChecking] = useState(true);
   const [complete, setComplete] = useState(false);
 
   useEffect(() => {
-    checkProfile();
-  }, []);
+    if (sessionLoading) return;
 
-  const checkProfile = async () => {
-    try {
-      const { data } = await supabase.auth.getUser();
+    if (!profile) {
+      setChecking(false);
+      return;
+    }
 
-      const user = data?.user;
+    let active = true;
 
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      // USERS TABLE
-      const { data: userRow } = await supabase
-        .from("users")
-        .select(`
-          user_id,
-          first_name,
-          middle_name,
-          last_name
-        `)
-        .eq("auth_id", user.id)
-        .single();
-
-      // STUDENTS TABLE
+    const checkStudentRecord = async () => {
       const { data: student } = await supabase
         .from("students")
-        .select(`
-          school_id,
-          course,
-          year_level,
-          ethnicity,
-          gender,
-          contact_number
-        `)
-        .eq("user_id", userRow.user_id)
+        .select("school_id, course, year_level, ethnicity, gender, contact_number")
+        .eq("user_id", profile.user_id)
         .maybeSingle();
 
+      if (!active) return;
+
       const isComplete =
-        userRow?.first_name &&
-        userRow?.middle_name &&
-        userRow?.last_name &&
+        profile.first_name &&
+        profile.middle_name &&
+        profile.last_name &&
         student?.school_id &&
         student?.course &&
         student?.year_level &&
@@ -60,14 +40,14 @@ export default function ProfileGuard({ children }) {
         student?.contact_number;
 
       setComplete(!!isComplete);
-    } catch (err) {
-      console.error(err);
-    }
+      setChecking(false);
+    };
 
-    setLoading(false);
-  };
+    checkStudentRecord();
+    return () => { active = false; };
+  }, [sessionLoading, profile]);
 
-  if (loading) {
+  if (sessionLoading || checking) {
     return <PageLoader label="Checking your profile…" />;
   }
 

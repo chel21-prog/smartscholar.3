@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import PortalLayout from "@/layouts/PortalLayout";
+import RoleGuard from "@/components/RoleGuard";
 import Dashboard from "@/pages/cashier/Dashboard";
 import Grantees from "@/pages/cashier/Grantees";
 import Funds from "@/pages/cashier/Funds";
@@ -15,7 +16,11 @@ const LINKS = [
 export default function CashierRoutes() {
   return (
     <Routes>
-      <Route element={<PortalLayout roleLabel="Cashier Portal" links={LINKS} />}>
+      <Route element={
+        <RoleGuard role="Cashier">
+          <PortalLayout roleLabel="Cashier Portal" links={LINKS} />
+        </RoleGuard>
+      }>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="grantees"  element={<Grantees />} />
         <Route path="funds"     element={<Funds />} />

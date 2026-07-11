@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import PortalLayout from "@/layouts/PortalLayout";
+import RoleGuard from "@/components/RoleGuard";
 import ProfileGuard from "@/components/ProfileGuard";
 import Dashboard from "@/pages/student/Dashboard";
 import Profile from "@/pages/student/Profile";
@@ -18,7 +19,11 @@ const LINKS = [
 export default function StudentRoutes() {
   return (
     <Routes>
-      <Route element={<PortalLayout roleLabel="Student Portal" links={LINKS} showNotifications />}>
+      <Route element={
+        <RoleGuard role="Student">
+          <PortalLayout roleLabel="Student Portal" links={LINKS} showNotifications />
+        </RoleGuard>
+      }>
         <Route path="dashboard"    element={<ProfileGuard><Dashboard /></ProfileGuard>} />
         <Route path="profile"      element={<Profile />} />
         <Route path="applications" element={<ProfileGuard><Applications /></ProfileGuard>} />
