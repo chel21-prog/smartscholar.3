@@ -6,7 +6,13 @@
     padding:15px;
     max-width:1600px;
     margin:0 auto;
+    height:100%;
+    min-height:0;
+    width:100%;
+    box-sizing:border-box;
 }
+
+.pageHeader, .toolbar { flex-shrink: 0; }
 
 
 .pageHeader {
@@ -67,8 +73,10 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius:14px;
-    overflow-x:auto;
+    overflow:auto;
   box-shadow: var(--shadow-sm);
+  flex: 1;
+  min-height: 0;
   
 }
 
@@ -87,6 +95,10 @@
     font-size:12px;
   color: white;
   font-weight: 600;
+  background: var(--navy-900);
+  position: sticky;
+  top: 0;
+  z-index: 1;
   text-transform: uppercase;
   letter-spacing: .3px;
   white-space: nowrap;

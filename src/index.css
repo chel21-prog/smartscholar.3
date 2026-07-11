@@ -19,6 +19,9 @@ html {
 
 body {
   margin: 0;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden; /* the shell always fits the screen — see PortalLayout */
   background: var(--page-bg);
   color: var(--text-primary);
   transition: background-color var(--duration-base) var(--ease-out),
@@ -27,7 +30,7 @@ body {
 
 #root {
   width: 100%;
-  min-height: 100%;
+  height: 100%;
   margin: 0;
   padding: 0;
   text-align: left;

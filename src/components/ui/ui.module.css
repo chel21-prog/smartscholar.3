@@ -170,12 +170,13 @@
 /* ---- Table ---- */
 .tableWrap {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); overflow-x: auto; box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-lg); overflow: auto; box-shadow: var(--shadow-sm);
   -webkit-overflow-scrolling: touch;
+  flex: 1; min-height: 0;
 }
 .table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: var(--text-sm); }
 .table thead th {
-  background: var(--navy-900); color: #fff;
+  position: sticky; top: 0; background: var(--navy-900); color: #fff;
   text-align: left; font-weight: 600; font-size: var(--text-xs);
   letter-spacing: .3px; text-transform: uppercase;
   padding: var(--space-3) var(--space-4); white-space: nowrap;

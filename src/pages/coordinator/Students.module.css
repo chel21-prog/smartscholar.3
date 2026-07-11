@@ -3,12 +3,17 @@
 =========================== */
 
 .page{
-    min-height:100vh;
+    height:100%;
+    min-height:0;
     padding:18px;
     background:var(--page-bg);
     color:var(--text-primary);
     font-family:var(--font-sans);
+    display:flex;
+    flex-direction:column;
 }
+
+.header, .toolbar, .pagination { flex-shrink:0; }
 .pagination {
   display: flex; justify-content: space-between; align-items: center;
   flex-wrap: wrap; gap: var(--space-3);
@@ -66,7 +71,8 @@
 =========================== */
 .tableWrap {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); overflow-x: auto; box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-lg); overflow: auto; box-shadow: var(--shadow-sm);
+  flex: 1; min-height: 0;
 }
 .table{
     width:100%;
@@ -83,6 +89,7 @@
   font-size: var(--text-xs); font-weight: 600; letter-spacing: .3px;
   text-transform: uppercase; padding: var(--space-3) var(--space-4);
   white-space: nowrap;
+  position: sticky; top: 0; z-index: 1;
 }
 
 .td{
