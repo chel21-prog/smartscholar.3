@@ -70,10 +70,20 @@ export default function Applications() {
 
     const { data } = await supabase
       .from("application_form_responses")
-      .select(`answer, scholarship_form_fields ( label )`)
-      .eq("application_id", app.application_id);
+      .select(`response_id, field_id, answer, scholarship_form_fields ( label )`)
+      .eq("application_id", app.application_id)
+      .order("response_id", { ascending: true });
 
-    setAnswers(data || []);
+    // Defensive dedupe: if duplicate rows exist for the same field_id
+    // (e.g. from a double-submitted application), keep the latest one.
+    const deduped = Object.values(
+      (data || []).reduce((acc, r) => {
+        acc[r.field_id] = r;
+        return acc;
+      }, {})
+    );
+
+    setAnswers(deduped);
   };
 
   const cancelApplication = async (id) => {
@@ -119,7 +129,8 @@ export default function Applications() {
     const { data: responses } = await supabase
       .from("application_form_responses")
       .select("*")
-      .eq("application_id", app.application_id);
+      .eq("application_id", app.application_id)
+      .order("response_id", { ascending: true });
 
     const mapped = {};
     (responses || []).forEach((r) => {

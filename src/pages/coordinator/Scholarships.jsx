@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import s from "./Scholarships.module.css";
 
@@ -75,12 +75,26 @@ export default function Scholarships() {
 
   // ── confirm popup ────────────────────────────────────────
   const [confirmDialog, setConfirmDialog] = useState(null); // { message, onConfirm }
-  const askConfirm = (message, onConfirm) => setConfirmDialog({ message, onConfirm });
-  const closeConfirm = () => setConfirmDialog(null);
+  const confirmBusyRef = useRef(false); // ref, not state: must block re-entrant taps synchronously,
+                                         // before React has a chance to re-render and remove the button
+  const askConfirm = (message, onConfirm) => {
+    confirmBusyRef.current = false;
+    setConfirmDialog({ message, onConfirm });
+  };
+  const closeConfirm = () => {
+    if (confirmBusyRef.current) return;
+    setConfirmDialog(null);
+  };
   const handleConfirmYes = () => {
+    if (confirmBusyRef.current) return; // a prior tap already committed to running the action
+    confirmBusyRef.current = true;
     const action = confirmDialog?.onConfirm;
     setConfirmDialog(null);
-    if (action) action();
+    if (action) {
+      Promise.resolve(action()).finally(() => { confirmBusyRef.current = false; });
+    } else {
+      confirmBusyRef.current = false;
+    }
   };
 
   // ────────────────────────────────────────────────────────
