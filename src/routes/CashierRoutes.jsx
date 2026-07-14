@@ -18,7 +18,7 @@ export default function CashierRoutes() {
     <Routes>
       <Route element={
         <RoleGuard role="Cashier">
-          <PortalLayout roleLabel="Cashier Portal" links={LINKS} />
+          <PortalLayout role="Cashier" roleLabel="Cashier Portal" links={LINKS} />
         </RoleGuard>
       }>
         <Route path="dashboard" element={<Dashboard />} />

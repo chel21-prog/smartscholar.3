@@ -19,15 +19,52 @@
 
 /* ---- Logo ---- */
 .logoBox {
+  position: relative;
   display: flex; flex-direction: column; align-items: center;
   padding: var(--space-4) var(--space-2); margin-bottom: var(--space-5);
 }
+
 .logo {
-  width: 80px; height: 80px; object-fit: contain;
+  position: relative;
+  width: 76px; height: 76px; object-fit: contain;
   border-radius: var(--radius-lg); background: #fff; padding: 8px;
   transition: transform var(--duration-base) var(--ease-out);
+  z-index: 1;
 }
 .logo:hover { transform: scale(1.05); }
+
+/* Soft pulsing ring behind the logo — reads as "alive" without being
+   distracting. Two rings offset in time so it feels like a gentle
+   heartbeat rather than a single blunt pulse. */
+.logoRing {
+  position: absolute;
+  top: var(--space-4);
+  width: 76px; height: 76px;
+  border-radius: var(--radius-lg);
+  background: var(--gold-500);
+  opacity: 0;
+  animation: logoPulse 2.6s ease-out infinite;
+}
+.logoRing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  background: var(--gold-500);
+  opacity: 0;
+  animation: logoPulse 2.6s ease-out infinite;
+  animation-delay: 1.3s;
+}
+
+@keyframes logoPulse {
+  0%   { transform: scale(1);   opacity: .35; }
+  70%  { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logoRing, .logoRing::after { animation: none; opacity: 0; }
+}
 
 .roleLabel {
   margin-top: var(--space-2); font-weight: 700; font-size: var(--text-sm);
@@ -38,8 +75,8 @@
 .nav {
   display: flex; flex-direction: column; gap: 2px;
 }
-.nav a {
-  display: flex; align-items: center; text-decoration: none;
+.navLink {
+  display: flex; align-items: center; gap: 10px; text-decoration: none;
   color: #b8c8d8; padding: 10px var(--space-3);
   border-radius: var(--radius-md); border-left: 3px solid transparent;
   font-size: var(--text-sm); font-weight: 500;
@@ -47,31 +84,56 @@
     color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
 }
-.nav a:hover { background: rgba(255,255,255,.06); color: #fff; }
-.nav a.active {
+.navIcon { flex-shrink: 0; opacity: .75; transition: opacity var(--duration-fast) var(--ease-out); }
+.navLink:hover { background: rgba(255,255,255,.06); color: #fff; }
+.navLink:hover .navIcon { opacity: 1; }
+.active {
   background: rgba(195,158,88,.12); color: #fff;
   font-weight: 700; border-left-color: var(--gold-500);
 }
+.active .navIcon { opacity: 1; color: var(--gold-500); }
 
 /* ---- Mobile ---- */
-@media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.show { transform: translateX(0); }
-}
-
- .closeBtn { display: none; }
+.closeBtn { display: none; }
 
 @media (max-width: 768px) {
+  .sidebar {
+    width: min(280px, 82vw);
+    transform: translateX(-100%);
+    border-right: none;
+    border-radius: 0 20px 20px 0;
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+    transition: transform .32s cubic-bezier(.32,.72,0,1),
+      box-shadow .32s cubic-bezier(.32,.72,0,1);
+  }
+  .sidebar.show {
+    transform: translateX(0);
+    box-shadow: 12px 0 40px rgba(0,0,0,.35);
+  }
+
+  .navLink { padding: 12px var(--space-3); font-size: var(--text-md); }
+
   .closeBtn {
     display: flex; align-items: center; justify-content: center;
     position: absolute; top: var(--space-3); right: var(--space-3);
-    width: 32px; height: 32px; border-radius: var(--radius-md);
+    width: 34px; height: 34px; border-radius: 50%;
     background: rgba(255,255,255,.08); border: none;
-    color: #fff; font-size: 16px; cursor: pointer;
+    color: #fff; font-size: 15px; cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
   }
+  .closeBtn:hover { background: rgba(255,255,255,.16); transform: rotate(90deg); }
 }
 
 .backdrop {
   position: fixed; inset: 0;
-  background: rgba(10,21,32,.55); z-index: 90;
+  background: rgba(10,21,32,.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 90;
+  animation: backdropFadeIn .25s var(--ease-out);
+}
+
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }

@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "@/components/ui/Sidebar";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import HelpGuide from "@/components/ui/HelpGuide";
 import NotificationBell from "@/components/student/NotificationBell";
 import styles from "./PortalLayout.module.css";
 
-export default function PortalLayout({ roleLabel, links, showNotifications = false }) {
+export default function PortalLayout({ role, roleLabel, links, showNotifications = false }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -33,6 +34,7 @@ export default function PortalLayout({ roleLabel, links, showNotifications = fal
   </div>
           <div className={styles.topBarRight}>
             {showNotifications && <NotificationBell />}
+            <HelpGuide role={role} />
             <ThemeToggle />
           </div>
         </header>

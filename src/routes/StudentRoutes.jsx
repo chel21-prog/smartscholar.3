@@ -21,7 +21,7 @@ export default function StudentRoutes() {
     <Routes>
       <Route element={
         <RoleGuard role="Student">
-          <PortalLayout roleLabel="Student Portal" links={LINKS} showNotifications />
+          <PortalLayout role="Student" roleLabel="Student Portal" links={LINKS} showNotifications />
         </RoleGuard>
       }>
         <Route path="dashboard"    element={<ProfileGuard><Dashboard /></ProfileGuard>} />

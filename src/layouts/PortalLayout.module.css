@@ -23,8 +23,8 @@
   align-items: center;
   height: var(--topbar-height);
   padding: 0 var(--space-6);
-  background: var(--topbar-bg);
-  border-bottom: 1px solid var(--border);
+  background: transparent;
+  border-bottom: 1px solid transparent;
   flex-shrink: 0;
   z-index: 40;
   transition: background-color var(--duration-base) var(--ease-out),
