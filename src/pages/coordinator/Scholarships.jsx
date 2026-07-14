@@ -60,6 +60,7 @@ export default function Scholarships() {
   const [fieldLabel, setFieldLabel] = useState("");
   const [fieldType,  setFieldType]  = useState("text");
   const [isRequired, setIsRequired] = useState(false);
+  const [editingFieldIndex, setEditingFieldIndex] = useState(null);
 
   // ── form templates ───────────────────────────────────────
   const [formTemplates,    setFormTemplates]    = useState([]);
@@ -206,11 +207,38 @@ export default function Scholarships() {
 
   const addField = () => {
     if (!fieldLabel.trim()) return;
-    setFields([...fields, { label: fieldLabel.trim(), type: fieldType, required: isRequired }]);
-    setFieldLabel(""); setIsRequired(false);
+    if (editingFieldIndex !== null) {
+      if (!window.confirm("Save changes to this field?")) return;
+      setFields(fields.map((f, idx) =>
+        idx === editingFieldIndex
+          ? { label: fieldLabel.trim(), type: fieldType, required: isRequired }
+          : f
+      ));
+      setEditingFieldIndex(null);
+    } else {
+      setFields([...fields, { label: fieldLabel.trim(), type: fieldType, required: isRequired }]);
+    }
+    setFieldLabel(""); setFieldType("text"); setIsRequired(false);
   };
 
-  const removeField = (i) => setFields(fields.filter((_, idx) => idx !== i));
+  const startEditField = (i) => {
+    const f = fields[i];
+    setFieldLabel(f.label);
+    setFieldType(f.type);
+    setIsRequired(f.required);
+    setEditingFieldIndex(i);
+  };
+
+  const cancelFieldEdit = () => {
+    if (!window.confirm("Discard changes to this field?")) return;
+    setEditingFieldIndex(null);
+    setFieldLabel(""); setFieldType("text"); setIsRequired(false);
+  };
+
+  const removeField = (i) => {
+    setFields(fields.filter((_, idx) => idx !== i));
+    if (editingFieldIndex === i) cancelFieldEdit();
+  };
 
   const reset = () => {
     setName(""); setSponsor(""); setDescription(""); setAmount("");
@@ -218,6 +246,7 @@ export default function Scholarships() {
     setPayoutFreq("Semester"); setDuration("Until Graduation");
     setSelectedReq([]);
     setFormTitle(""); setTerms(""); setFields([]);
+    setFieldLabel(""); setFieldType("text"); setIsRequired(false); setEditingFieldIndex(null);
     setShowTplPicker(false); setShowSaveTpl(false); setTplName("");
     setSaving(false);
   };
@@ -687,9 +716,16 @@ export default function Scholarships() {
 
                 <h4 className={s.reqGroupTitle}>Form Fields</h4>
                 {fields.map((f, i) => (
-                  <div key={i} className={s.fieldPreview}>
+                  <div
+                    key={i}
+                    className={s.fieldPreview}
+                    style={editingFieldIndex === i ? { outline: "2px solid currentColor", outlineOffset: "2px" } : undefined}
+                  >
                     <span><strong>{f.label}</strong> ({f.type}){f.required ? " *" : ""}</span>
-                    <button className={s.removeBtn} onClick={() => removeField(i)}>Remove</button>
+                    <div className={s.checkRow}>
+                      <button className={s.btnSm} onClick={() => startEditField(i)}>Edit</button>
+                      <button className={s.removeBtn} onClick={() => removeField(i)}>Remove</button>
+                    </div>
                   </div>
                 ))}
 
@@ -712,7 +748,12 @@ export default function Scholarships() {
                       <input type="checkbox" checked={isRequired} onChange={() => setIsRequired(!isRequired)} />
                       Required
                     </label>
-                    <button className={s.addBtn} onClick={addField}>+ Add field</button>
+                    <button className={s.addBtn} onClick={addField}>
+                      {editingFieldIndex !== null ? "Save changes" : "+ Add field"}
+                    </button>
+                    {editingFieldIndex !== null && (
+                      <button className={s.removeBtn} onClick={cancelFieldEdit}>Cancel</button>
+                    )}
                   </div>
                 </div>
               </section>
