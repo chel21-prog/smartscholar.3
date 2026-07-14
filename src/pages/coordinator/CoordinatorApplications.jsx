@@ -8,6 +8,8 @@ export default function CoordinatorApplications() {
   const [applications, setApplications] = useState([]);
   const [selectedApp, setSelectedApp] = useState(null);
   const [answers, setAnswers] = useState([]);
+  const [appDocuments, setAppDocuments] = useState([]);
+  const [loadingAppDetail, setLoadingAppDetail] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
@@ -55,13 +57,21 @@ const [sendNotification, setSendNotification] = useState(true);
   students (
   student_id,
   user_id,
+  school_id,
+  course,
+  year_level,
   users (
     first_name,
     last_name
   )
 ),
   scholarships (
-    scholarship_name
+    scholarship_name,
+    sponsor,
+    amount,
+    payout_frequency,
+    duration_type,
+    submission_deadline
   )
 `)
   .order("application_date", { ascending: false });
@@ -75,6 +85,15 @@ const [sendNotification, setSendNotification] = useState(true);
   if (!u) return "Unknown Student";
   return `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim();
 };
+
+  const STATUS_TONE = {
+    Pending: styles.statusPending,
+    Approved: styles.statusApproved,
+    Rejected: styles.statusRejected,
+  };
+  const StatusBadge = ({ status }) => (
+    <span className={`${styles.statusBadge} ${STATUS_TONE[status] || ""}`}>{status}</span>
+  );
 
   const getBase64Image = async (url) => {
   try {
@@ -103,16 +122,31 @@ const [sendNotification, setSendNotification] = useState(true);
   // =========================
   const viewAnswers = async (app) => {
     setSelectedApp(app);
+    setLoadingAppDetail(true);
 
-    const { data } = await supabase
-      .from("application_form_responses")
-      .select(`
-        answer,
-        scholarship_form_fields ( label )
-      `)
-      .eq("application_id", app.application_id);
+    const [{ data: answerData }, { data: docData }] = await Promise.all([
+      supabase
+        .from("application_form_responses")
+        .select(`
+          answer,
+          scholarship_form_fields ( label )
+        `)
+        .eq("application_id", app.application_id),
+      supabase
+        .from("application_documents")
+        .select("document_id, requirement_name, file_url, uploaded_at")
+        .eq("application_id", app.application_id),
+    ]);
 
-    setAnswers(data || []);
+    setAnswers(answerData || []);
+    setAppDocuments(docData || []);
+    setLoadingAppDetail(false);
+  };
+
+  const closeViewModal = () => {
+    setSelectedApp(null);
+    setAnswers([]);
+    setAppDocuments([]);
   };
 
   // =========================
@@ -506,7 +540,7 @@ const paginated = filtered.slice(
               <td className={styles.td}>{a.scholarships?.scholarship_name}</td>
               <td className={`${styles.td} ${styles.colOptional}`}>{a.academic_year}</td>
               <td className={`${styles.td} ${styles.colOptional}`}>{a.semester}</td>
-              <td className={styles.td}>{a.status}</td>
+              <td className={styles.td}><StatusBadge status={a.status} /></td>
               <td className={`${styles.td} ${styles.colOptional}`}>
                 {new Date(a.application_date).toLocaleDateString()}
               </td>
@@ -590,24 +624,146 @@ const paginated = filtered.slice(
     </button>
   </div>
 </div>
-      {/* MODAL */}
+      {/* VIEW APPLICATION MODAL */}
       {selectedApp && (
-        <div className={styles.overlay}>
+        <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && closeViewModal()}>
           <div className={styles.modal}>
 
-            <h3>Answers</h3>
-
-            {answers.map((r, i) => (
-              <div key={i}>
-                <b>{r.scholarship_form_fields?.label}</b>
-                <p>{r.answer}</p>
+            <div className={styles.modalHeader}>
+              <div>
+                <h2 className={styles.modalTitle}>
+                  {getStudentName(selectedApp)} <StatusBadge status={selectedApp.status} />
+                </h2>
+                <p className={styles.modalSubtitle}>
+                  Applied for <strong>{selectedApp.scholarships?.scholarship_name || "—"}</strong>
+                </p>
               </div>
-            ))}
+              <button className={styles.closeBtn} onClick={closeViewModal} aria-label="Close">✕</button>
+            </div>
 
-            <button onClick={() => setSelectedApp(null)}>
-              Close
-            </button>
+            <div className={styles.modalBody}>
 
+              {loadingAppDetail ? (
+                <p className={styles.detailLoading}>Loading application details…</p>
+              ) : (
+                <>
+                  <section className={styles.detailSection}>
+                    <h3 className={styles.detailSectionTitle}>Applicant</h3>
+                    <div className={styles.infoGrid}>
+                      <div className={styles.infoItem}>
+                        <span className={styles.infoLabel}>School ID</span>
+                        <span className={styles.infoValue}>{selectedApp.students?.school_id || "—"}</span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <span className={styles.infoLabel}>Course</span>
+                        <span className={styles.infoValue}>{selectedApp.students?.course || "—"}</span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <span className={styles.infoLabel}>Year Level</span>
+                        <span className={styles.infoValue}>{selectedApp.students?.year_level || "—"}</span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <span className={styles.infoLabel}>Applied On</span>
+                        <span className={styles.infoValue}>
+                          {selectedApp.application_date ? new Date(selectedApp.application_date).toLocaleDateString() : "—"}
+                        </span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className={styles.detailSection}>
+                    <h3 className={styles.detailSectionTitle}>Scholarship</h3>
+                    <div className={styles.infoGrid}>
+                      <div className={styles.infoItem}>
+                        <span className={styles.infoLabel}>Sponsor</span>
+                        <span className={styles.infoValue}>{selectedApp.scholarships?.sponsor || "—"}</span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <span className={styles.infoLabel}>Amount</span>
+                        <span className={styles.infoValue}>
+                          {selectedApp.scholarships?.amount ? `₱${Number(selectedApp.scholarships.amount).toLocaleString()}` : "—"}
+                        </span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <span className={styles.infoLabel}>Payout</span>
+                        <span className={styles.infoValue}>{selectedApp.scholarships?.payout_frequency || "—"}</span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <span className={styles.infoLabel}>Duration</span>
+                        <span className={styles.infoValue}>{selectedApp.scholarships?.duration_type || "—"}</span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <span className={styles.infoLabel}>Academic Year</span>
+                        <span className={styles.infoValue}>{selectedApp.academic_year || "—"}</span>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <span className={styles.infoLabel}>Semester</span>
+                        <span className={styles.infoValue}>{selectedApp.semester || "—"}</span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className={styles.detailSection}>
+                    <h3 className={styles.detailSectionTitle}>Submitted Documents</h3>
+                    {appDocuments.length === 0 ? (
+                      <p className={styles.detailEmpty}>No documents were attached to this application.</p>
+                    ) : (
+                      <ul className={styles.docList}>
+                        {appDocuments.map((doc) => (
+                          <li key={doc.document_id} className={styles.docItem}>
+                            <span className={styles.docName}>{doc.requirement_name || "Document"}</span>
+                            <a
+                              className={styles.docLink}
+                              href={doc.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              View file
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+
+                  <section className={styles.detailSection}>
+                    <h3 className={styles.detailSectionTitle}>Application Form Answers</h3>
+                    {answers.length === 0 ? (
+                      <p className={styles.detailEmpty}>This scholarship's form has no answers on record.</p>
+                    ) : (
+                      <div className={styles.answerList}>
+                        {answers.map((r, i) => (
+                          <div key={i} className={styles.answerItem}>
+                            <span className={styles.answerQuestion}>{r.scholarship_form_fields?.label || "Question"}</span>
+                            <p className={styles.answerText}>{r.answer || "—"}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </>
+              )}
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button className={styles.secondaryBtn} onClick={closeViewModal}>Close</button>
+              {selectedApp.status === "Pending" && (
+                <>
+                  <button
+                    className={`${styles.actionBtn} ${styles.rejectBtn}`}
+                    onClick={() => { closeViewModal(); openRejectModal(selectedApp); }}
+                  >
+                    Reject
+                  </button>
+                  <button
+                    className={`${styles.actionBtn} ${styles.approveBtn}`}
+                    onClick={() => { closeViewModal(); openApproveModal(selectedApp); }}
+                  >
+                    Approve
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
