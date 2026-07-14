@@ -73,6 +73,16 @@ export default function Scholarships() {
   const [viewRequirements, setViewRequirements] = useState({ application: [], eligibility: [] });
   const [formData,         setFormData]         = useState({ title: "", terms: "", fields: [] });
 
+  // ── confirm popup ────────────────────────────────────────
+  const [confirmDialog, setConfirmDialog] = useState(null); // { message, onConfirm }
+  const askConfirm = (message, onConfirm) => setConfirmDialog({ message, onConfirm });
+  const closeConfirm = () => setConfirmDialog(null);
+  const handleConfirmYes = () => {
+    const action = confirmDialog?.onConfirm;
+    setConfirmDialog(null);
+    if (action) action();
+  };
+
   // ────────────────────────────────────────────────────────
   useEffect(() => { load(); loadFormTemplates(); }, []);
 
@@ -208,7 +218,6 @@ export default function Scholarships() {
   const addField = () => {
     if (!fieldLabel.trim()) return;
     if (editingFieldIndex !== null) {
-      if (!window.confirm("Save changes to this field?")) return;
       setFields(fields.map((f, idx) =>
         idx === editingFieldIndex
           ? { label: fieldLabel.trim(), type: fieldType, required: isRequired }
@@ -230,7 +239,6 @@ export default function Scholarships() {
   };
 
   const cancelFieldEdit = () => {
-    if (!window.confirm("Discard changes to this field?")) return;
     setEditingFieldIndex(null);
     setFieldLabel(""); setFieldType("text"); setIsRequired(false);
   };
@@ -251,10 +259,18 @@ export default function Scholarships() {
     setSaving(false);
   };
 
-  const closeModal = () => {
+  const performClose = () => {
     setOpen(false); setViewOpen(false); setViewFormOpen(false);
     reset(); setEditMode(false); setEditingId(null);
     setShowAppForm(false); setShowEligForm(false);
+  };
+
+  const closeModal = () => {
+    if (open) {
+      askConfirm("Discard this scholarship form? Unsaved changes will be lost.", performClose);
+      return;
+    }
+    performClose();
   };
 
   const editScholarship = async (sch) => {
@@ -287,9 +303,13 @@ export default function Scholarships() {
 
   const [saving, setSaving] = useState(false);
 
-  const createScholarship = async () => {
+  const createScholarship = () => {
     if (saving) return;
     if (!name || !formTitle || !terms) return alert("Name, form title, and terms are required");
+    askConfirm("Save this new scholarship?", doCreateScholarship);
+  };
+
+  const doCreateScholarship = async () => {
     setSaving(true);
     const { data: sch, error } = await supabase.from("scholarships")
       .insert({ scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: deadline, payout_frequency: payoutFreq, duration_type: duration, status: "Active" })
@@ -312,9 +332,13 @@ export default function Scholarships() {
     reset(); setOpen(false); load();
   };
 
-  const updateScholarship = async () => {
+  const updateScholarship = () => {
     if (saving) return;
     if (!editingId) return alert("No scholarship selected");
+    askConfirm("Save changes to this scholarship?", doUpdateScholarship);
+  };
+
+  const doUpdateScholarship = async () => {
     setSaving(true);
 
     const { error } = await supabase.from("scholarships")
@@ -715,47 +739,80 @@ export default function Scholarships() {
                 </div>
 
                 <h4 className={s.reqGroupTitle}>Form Fields</h4>
-                {fields.map((f, i) => (
-                  <div
-                    key={i}
-                    className={s.fieldPreview}
-                    style={editingFieldIndex === i ? { outline: "2px solid currentColor", outlineOffset: "2px" } : undefined}
-                  >
-                    <span><strong>{f.label}</strong> ({f.type}){f.required ? " *" : ""}</span>
+                {fields.map((f, i) =>
+                  editingFieldIndex === i ? (
+                    <div key={i} className={s.fieldBuilder} style={{ outline: "2px solid currentColor", outlineOffset: "2px" }}>
+                      <div className={s.fieldWrap}>
+                        <label className={s.label}>Field label</label>
+                        <input className={s.input} placeholder="e.g. GPA" value={fieldLabel} onChange={e => setFieldLabel(e.target.value)} />
+                      </div>
+                      <div className={s.fieldWrap} style={{ maxWidth: "140px", flex: "0 0 140px" }}>
+                        <label className={s.label}>Type</label>
+                        <select className={s.input} value={fieldType} onChange={e => setFieldType(e.target.value)}>
+                          <option value="text">Text</option>
+                          <option value="number">Number</option>
+                          <option value="date">Date</option>
+                          <option value="file">File</option>
+                        </select>
+                      </div>
+                      <div className={s.checkRow}>
+                        <label className={s.checkItem}>
+                          <input type="checkbox" checked={isRequired} onChange={() => setIsRequired(!isRequired)} />
+                          Required
+                        </label>
+                        <button className={s.addBtn} onClick={addField}>Save changes</button>
+                        <button className={s.removeBtn} onClick={cancelFieldEdit}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div key={i} className={s.fieldPreview} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+                      <span><strong>{f.label}</strong> ({f.type}){f.required ? " *" : ""}</span>
+                      <div style={{ display: "flex", flexDirection: "row", gap: "8px", flexWrap: "nowrap", alignItems: "center" }}>
+                        <button
+                          type="button"
+                          className={s.btnSm}
+                          disabled={editingFieldIndex !== null}
+                          onClick={() => startEditField(i)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className={s.removeBtn}
+                          disabled={editingFieldIndex !== null}
+                          onClick={() => removeField(i)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  )
+                )}
+
+                {editingFieldIndex === null && (
+                  <div className={s.fieldBuilder}>
+                    <div className={s.fieldWrap}>
+                      <label className={s.label}>Field label</label>
+                      <input className={s.input} placeholder="e.g. GPA" value={fieldLabel} onChange={e => setFieldLabel(e.target.value)} />
+                    </div>
+                    <div className={s.fieldWrap} style={{ maxWidth: "140px", flex: "0 0 140px" }}>
+                      <label className={s.label}>Type</label>
+                      <select className={s.input} value={fieldType} onChange={e => setFieldType(e.target.value)}>
+                        <option value="text">Text</option>
+                        <option value="number">Number</option>
+                        <option value="date">Date</option>
+                        <option value="file">File</option>
+                      </select>
+                    </div>
                     <div className={s.checkRow}>
-                      <button className={s.btnSm} onClick={() => startEditField(i)}>Edit</button>
-                      <button className={s.removeBtn} onClick={() => removeField(i)}>Remove</button>
+                      <label className={s.checkItem}>
+                        <input type="checkbox" checked={isRequired} onChange={() => setIsRequired(!isRequired)} />
+                        Required
+                      </label>
+                      <button type="button" className={s.addBtn} onClick={addField}>+ Add field</button>
                     </div>
                   </div>
-                ))}
-
-                <div className={s.fieldBuilder}>
-                  <div className={s.fieldWrap}>
-                    <label className={s.label}>Field label</label>
-                    <input className={s.input} placeholder="e.g. GPA" value={fieldLabel} onChange={e => setFieldLabel(e.target.value)} />
-                  </div>
-                  <div className={s.fieldWrap}>
-                    <label className={s.label}>Type</label>
-                    <select className={s.input} value={fieldType} onChange={e => setFieldType(e.target.value)}>
-                      <option value="text">Text</option>
-                      <option value="number">Number</option>
-                      <option value="date">Date</option>
-                      <option value="file">File</option>
-                    </select>
-                  </div>
-                  <div className={s.checkRow}>
-                    <label className={s.checkItem}>
-                      <input type="checkbox" checked={isRequired} onChange={() => setIsRequired(!isRequired)} />
-                      Required
-                    </label>
-                    <button className={s.addBtn} onClick={addField}>
-                      {editingFieldIndex !== null ? "Save changes" : "+ Add field"}
-                    </button>
-                    {editingFieldIndex !== null && (
-                      <button className={s.removeBtn} onClick={cancelFieldEdit}>Cancel</button>
-                    )}
-                  </div>
-                </div>
+                )}
               </section>
             </div>
 
@@ -764,6 +821,29 @@ export default function Scholarships() {
               <button className={s.btnPrimary} onClick={editMode ? updateScholarship : createScholarship} disabled={saving}>
                 {saving ? "Saving…" : editMode ? "Update" : "Save Scholarship"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM POPUP */}
+      {confirmDialog && (
+        <div
+          className={s.overlay}
+          style={{ zIndex: 1000 }}
+          onMouseDown={e => e.target === e.currentTarget && closeConfirm()}
+        >
+          <div className={s.modal} style={{ maxWidth: 380 }}>
+            <div className={s.modalHeader}>
+              <h2 className={s.modalTitle}>Please confirm</h2>
+              <button className={s.closeBtn} onClick={closeConfirm}>✕</button>
+            </div>
+            <div className={s.modalBody}>
+              <p>{confirmDialog.message}</p>
+            </div>
+            <div className={s.modalFooter}>
+              <button className={s.btnSecondary} onClick={closeConfirm}>No</button>
+              <button className={s.btnPrimary} onClick={handleConfirmYes}>Yes</button>
             </div>
           </div>
         </div>
