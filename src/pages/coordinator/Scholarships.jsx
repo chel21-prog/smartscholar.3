@@ -48,6 +48,10 @@ export default function Scholarships() {
   const [newEligType,  setNewEligType] = useState("Other");
   const [showAppForm,  setShowAppForm] = useState(false);
   const [showEligForm, setShowEligForm]= useState(false);
+  const [addingAppReq,  setAddingAppReq]  = useState(false);
+  const [addingEligReq, setAddingEligReq] = useState(false);
+  const [togglingId,    setTogglingId]    = useState(null);
+  const [deletingTplId, setDeletingTplId] = useState(null);
 
   // ── form builder ────────────────────────────────────────
   const [formTitle,  setFormTitle]  = useState("");
@@ -121,6 +125,7 @@ export default function Scholarships() {
   };
 
   const saveFormTemplate = async () => {
+    if (savingTpl) return;
     if (!tplName.trim()) return;
     if (!formTitle.trim() && !terms.trim() && fields.length === 0) {
       alert("Fill in at least the form title before saving a template.");
@@ -145,15 +150,21 @@ export default function Scholarships() {
   };
 
   const deleteFormTemplate = async (id) => {
+    if (deletingTplId) return;
     if (!confirm("Delete this template?")) return;
+    setDeletingTplId(id);
     await supabase.from("report_templates").delete().eq("template_id", id);
+    setDeletingTplId(null);
     setFormTemplates(prev => prev.filter(t => t.template_id !== id));
   };
 
   // ── actions ─────────────────────────────────────────────
   const toggleStatus = async (sch) => {
+    if (togglingId) return;
+    setTogglingId(sch.scholarship_id);
     const next = STATUS_OPTIONS[(STATUS_OPTIONS.indexOf(sch.status) + 1) % STATUS_OPTIONS.length];
     const { error } = await supabase.from("scholarships").update({ status: next }).eq("scholarship_id", sch.scholarship_id);
+    setTogglingId(null);
     if (error) return alert(error.message);
     load();
   };
@@ -166,10 +177,13 @@ export default function Scholarships() {
   };
 
   const addApplicationRequirement = async () => {
+    if (addingAppReq) return;
     if (!newAppName.trim()) return;
+    setAddingAppReq(true);
     const { data, error } = await supabase.from("application_requirements")
       .insert({ requirement_name: newAppName, requirement_type: newAppType })
       .select().single();
+    setAddingAppReq(false);
     if (error) return alert(error.message);
     setAppReq([...appReq, data]);
     setSelectedReq([...selectedReq, { id: data.application_requirement_id, type: "app" }]);
@@ -177,10 +191,13 @@ export default function Scholarships() {
   };
 
   const addEligibilityRequirement = async () => {
+    if (addingEligReq) return;
     if (!newEligName.trim()) return;
+    setAddingEligReq(true);
     const { data, error } = await supabase.from("eligibility_requirements")
       .insert({ requirement_name: newEligName, requirement_type: newEligType })
       .select().single();
+    setAddingEligReq(false);
     if (error) return alert(error.message);
     setEligReq([...eligReq, data]);
     setSelectedReq([...selectedReq, { id: data.eligibility_requirement_id, type: "elig" }]);
@@ -189,7 +206,7 @@ export default function Scholarships() {
 
   const addField = () => {
     if (!fieldLabel.trim()) return;
-    setFields([...fields, { label: fieldLabel, type: fieldType, required: isRequired }]);
+    setFields([...fields, { label: fieldLabel.trim(), type: fieldType, required: isRequired }]);
     setFieldLabel(""); setIsRequired(false);
   };
 
@@ -225,7 +242,14 @@ export default function Scholarships() {
     if (form) {
       setFormTitle(form.form_title || ""); setTerms(form.terms_and_conditions || "");
       const { data: ff } = await supabase.from("scholarship_form_fields").select("*").eq("form_id", form.form_id);
-      setFields((ff || []).map(f => ({ label: f.label, type: f.field_type, required: f.is_required })));
+      const deduped = Object.values(
+        (ff || []).reduce((acc, f) => {
+          const key = (f.label || "").trim();
+          acc[key] = acc[key] || f; // keep first occurrence per trimmed label
+          return acc;
+        }, {})
+      );
+      setFields(deduped.map(f => ({ label: (f.label || "").trim(), type: f.field_type, required: f.is_required })));
     }
     const { data: reqs } = await supabase.from("scholarship_requirements").select("*").eq("scholarship_id", sch.scholarship_id);
     if (reqs) setSelectedReq(reqs.map(r => ({ id: r.application_requirement_id || r.eligibility_requirement_id, type: r.application_requirement_id ? "app" : "elig" })));
@@ -313,7 +337,14 @@ export default function Scholarships() {
     const { data: form, error } = await supabase.from("scholarship_application_forms").select("*").eq("scholarship_id", id).single();
     if (error || !form) return alert("No form found.");
     const { data: ff } = await supabase.from("scholarship_form_fields").select("*").eq("form_id", form.form_id);
-    setFormData({ title: form.form_title, terms: form.terms_and_conditions, fields: ff || [] });
+    const deduped = Object.values(
+      (ff || []).reduce((acc, f) => {
+        const key = (f.label || "").trim();
+        acc[key] = acc[key] || f;
+        return acc;
+      }, {})
+    );
+    setFormData({ title: form.form_title, terms: form.terms_and_conditions, fields: deduped });
     setViewFormOpen(true);
   };
 
@@ -386,8 +417,9 @@ export default function Scholarships() {
                 <td className={`${s.td} ${s.colOptional}`}>{sch.duration_type || "—"}</td>
                 <td className={s.td}>
                   <button className={`${s.badge} ${STATUS_TONE[sch.status] || s.badgeNeutral}`}
+                    disabled={togglingId === sch.scholarship_id}
                     onClick={() => toggleStatus(sch)}>
-                    {sch.status}
+                    {togglingId === sch.scholarship_id ? "…" : sch.status}
                   </button>
                 </td>
                 <td className={`${s.td} ${s.colOptional}`}>
@@ -556,7 +588,9 @@ export default function Scholarships() {
                       <select className={s.input} value={newAppType} onChange={e => setNewAppType(e.target.value)}>
                         <option>Document</option><option>Grade</option><option>Income</option><option>Other</option>
                       </select>
-                      <button className={s.btnSm} onClick={addApplicationRequirement}>Save</button>
+                      <button className={s.btnSm} disabled={addingAppReq} onClick={addApplicationRequirement}>
+                        {addingAppReq ? "Saving…" : "Save"}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -577,7 +611,9 @@ export default function Scholarships() {
                       <select className={s.input} value={newEligType} onChange={e => setNewEligType(e.target.value)}>
                         <option>Status</option><option>Other</option>
                       </select>
-                      <button className={s.btnSm} onClick={addEligibilityRequirement}>Save</button>
+                      <button className={s.btnSm} disabled={addingEligReq} onClick={addEligibilityRequirement}>
+                        {addingEligReq ? "Saving…" : "Save"}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -615,7 +651,10 @@ export default function Scholarships() {
                           </div>
                           <div className={s.tplCardActions}>
                             <button className={s.btnSm} onClick={() => applyFormTemplate(t)}>Use</button>
-                            <button className={s.removeBtn} onClick={() => deleteFormTemplate(t.template_id)}>Delete</button>
+                            <button className={s.removeBtn} disabled={deletingTplId === t.template_id}
+                              onClick={() => deleteFormTemplate(t.template_id)}>
+                              {deletingTplId === t.template_id ? "Deleting…" : "Delete"}
+                            </button>
                           </div>
                         </div>
                       ))
