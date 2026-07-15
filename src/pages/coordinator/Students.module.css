@@ -71,16 +71,7 @@
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-lg); overflow: auto; box-shadow: var(--shadow-sm);
   flex: 1; min-height: 0;
- scrollbar-width: none;
-
-    /* IE & Edge (legacy) */
-    -ms-overflow-style: none;
-}
-
-.tableContainer::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: none;
+ scrollbar-width: thin;
 }
 .table{
     width:100%;
@@ -179,8 +170,8 @@
   overflow-y: auto;
   overflow-x: hidden;
 
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+
 
   transition:
     border-color var(--duration-fast),
@@ -188,7 +179,7 @@
 }
 
 .remarkInput::-webkit-scrollbar {
-  display: none;
+  display: thin;
 }
 
 .remarkInput:focus {

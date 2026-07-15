@@ -181,16 +181,16 @@
     min-height:0;
 
 /* Firefox */
-    scrollbar-width: none;
+    scrollbar-width: thin;
 
     /* IE & Edge (legacy) */
-    -ms-overflow-style: none;
+    -ms-overflow-style: thin;
 }
 
 .tableContainer::-webkit-scrollbar {
     width: 0;
     height: 0;
-    display: none;
+    display: thin;
 }
 
 .table{

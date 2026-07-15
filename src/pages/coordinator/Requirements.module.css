@@ -146,11 +146,7 @@
     gap:12px;
     max-height:420px;
     overflow-y:auto;
-    scrollbar-width:none;
-}
-
-.requirementList::-webkit-scrollbar{
-    display:none;
+    scrollbar-width:thin;
 }
 
 .requirementCard{
@@ -243,13 +239,10 @@
     margin-top:10px;
     max-height:420px;
     overflow-y:auto;
-    scrollbar-width:none;
-    -ms-overflow-style:none;
+    scrollbar-width:thin;
 }
 
-.requirementList::-webkit-scrollbar{
-    display:none;
-}
+
 
 .requirementCard{
     padding:16px;
@@ -334,10 +327,8 @@
   gap: var(--space-2);
   max-height: 200px;
   overflow-y: auto;
-  scrollbar-width: none;
+  scrollbar-width: thin;
 }
-.tplPicker::-webkit-scrollbar { display: none; }
-
 .tplEmpty {
   font-size: 13px;
   color: var(--text-secondary);

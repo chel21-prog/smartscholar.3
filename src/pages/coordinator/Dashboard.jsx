@@ -20,7 +20,7 @@ const st = {
   infoCard:    { background:"var(--surface)", borderRadius:10, padding:10, boxShadow:"var(--shadow-sm)", border:"1px solid var(--border)", minHeight:220, maxHeight:260, display:"flex", flexDirection:"column" },
   infoTitle:   { marginBottom:12, fontSize:15, fontWeight:600, color:"var(--text-primary)", padding:"0 6px" },
   infoRow:     { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 6px", borderBottom:"1px solid var(--border)" },
-  cardContent: { flex:1, overflow:"auto", paddingRight:6, scrollbarWidth:"none" },
+  cardContent: { flex:1, overflow:"auto", paddingRight:6, scrollbarWidth:"thin" },
   countBadge:  { borderRadius:20, padding:"2px 9px", fontSize:12, fontWeight:600, color:"#fff" },
   overlay:     { position:"fixed", inset:0, background:"rgba(10,21,32,.55)", backdropFilter:"blur(2px)", display:"flex", justifyContent:"center", alignItems:"center", zIndex:9999, padding:14 },
   modal:       { background:"var(--surface)", width:"100%", maxWidth:800, maxHeight:"90vh", overflowY:"auto", borderRadius:14, boxShadow:"var(--shadow-xl)", border:"1px solid var(--border)", display:"flex", flexDirection:"column" },

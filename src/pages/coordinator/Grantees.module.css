@@ -103,17 +103,10 @@
     box-shadow:var(--shadow-sm);
     flex:1;
     min-height:0;
- scrollbar-width: none;
+ scrollbar-width: thin;
 
-    /* IE & Edge (legacy) */
-    -ms-overflow-style: none;
 }
 
-.tableContainer::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: none;
-}
 .documents{
     display:flex;
     flex-wrap:wrap;
