@@ -147,7 +147,18 @@
     max-height:420px;
     overflow-y:auto;
     scrollbar-width:thin;
+    scrollbar-color: var(--ink-300) transparent;
 }
+
+.requirementList::-webkit-scrollbar{
+    width: 6px;
+}
+.requirementList::-webkit-scrollbar-track { background: transparent; }
+.requirementList::-webkit-scrollbar-thumb {
+    background-color: var(--ink-300);
+    border-radius: var(--radius-full);
+}
+.requirementList::-webkit-scrollbar-thumb:hover { background-color: var(--navy-500); }
 
 .requirementCard{
     background:var(--surface-muted);
@@ -240,9 +251,19 @@
     max-height:420px;
     overflow-y:auto;
     scrollbar-width:thin;
+    scrollbar-color: var(--ink-300) transparent;
+    -ms-overflow-style:auto;
 }
 
-
+.requirementList::-webkit-scrollbar{
+    width: 6px;
+}
+.requirementList::-webkit-scrollbar-track { background: transparent; }
+.requirementList::-webkit-scrollbar-thumb {
+    background-color: var(--ink-300);
+    border-radius: var(--radius-full);
+}
+.requirementList::-webkit-scrollbar-thumb:hover { background-color: var(--navy-500); }
 
 .requirementCard{
     padding:16px;
@@ -328,7 +349,16 @@
   max-height: 200px;
   overflow-y: auto;
   scrollbar-width: thin;
+  scrollbar-color: var(--ink-300) transparent;
 }
+.tplPicker::-webkit-scrollbar { width: 6px; }
+.tplPicker::-webkit-scrollbar-track { background: transparent; }
+.tplPicker::-webkit-scrollbar-thumb {
+  background-color: var(--ink-300);
+  border-radius: var(--radius-full);
+}
+.tplPicker::-webkit-scrollbar-thumb:hover { background-color: var(--navy-500); }
+
 .tplEmpty {
   font-size: 13px;
   color: var(--text-secondary);

@@ -72,7 +72,22 @@
   border-radius: var(--radius-lg); overflow: auto; box-shadow: var(--shadow-sm);
   flex: 1; min-height: 0;
  scrollbar-width: thin;
+ scrollbar-color: var(--ink-300) transparent;
+
+    /* IE & Edge (legacy) */
+    -ms-overflow-style: none;
 }
+
+.tableWrap::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+.tableWrap::-webkit-scrollbar-track { background: transparent; }
+.tableWrap::-webkit-scrollbar-thumb {
+    background-color: var(--ink-300);
+    border-radius: var(--radius-full);
+}
+.tableWrap::-webkit-scrollbar-thumb:hover { background-color: var(--navy-500); }
 .table{
     width:100%;
     border-collapse:collapse;
@@ -171,7 +186,8 @@
   overflow-x: hidden;
 
   scrollbar-width: thin;
-
+  scrollbar-color: var(--ink-300) transparent;
+  -ms-overflow-style: auto;
 
   transition:
     border-color var(--duration-fast),
@@ -179,8 +195,14 @@
 }
 
 .remarkInput::-webkit-scrollbar {
-  display: thin;
+  width: 6px;
 }
+.remarkInput::-webkit-scrollbar-track { background: transparent; }
+.remarkInput::-webkit-scrollbar-thumb {
+  background-color: var(--ink-300);
+  border-radius: var(--radius-full);
+}
+.remarkInput::-webkit-scrollbar-thumb:hover { background-color: var(--navy-500); }
 
 .remarkInput:focus {
   border-color: var(--navy-600);

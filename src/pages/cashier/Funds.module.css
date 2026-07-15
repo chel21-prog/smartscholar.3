@@ -210,16 +210,22 @@
 
 /* Firefox */
     scrollbar-width: thin;
+    scrollbar-color: var(--ink-300) transparent;
 
     /* IE & Edge (legacy) */
-    -ms-overflow-style: thin;
+    -ms-overflow-style: none;
 }
 
 .tableContainer::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: thin;
+    width: 8px;
+    height: 8px;
 }
+.tableContainer::-webkit-scrollbar-track { background: transparent; }
+.tableContainer::-webkit-scrollbar-thumb {
+    background-color: var(--ink-300);
+    border-radius: var(--radius-full);
+}
+.tableContainer::-webkit-scrollbar-thumb:hover { background-color: var(--navy-500); }
 
 .table{
 

@@ -17,14 +17,19 @@
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   overflow-y: auto;
 
-  scrollbar-width: none; /* Firefox */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(255,255,255,.25) transparent;
   -ms-overflow-style: none; /* IE/Edge Legacy */
   z-index: 100;
 }
 
-.sidebar::-webkit-scrollbar {
-  display: none; /* Chrome, Edge, Safari */
+.sidebar::-webkit-scrollbar { width: 6px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,.25);
+  border-radius: var(--radius-full);
 }
+.sidebar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,.4); }
 
 /* ================= LOGO ================= */
 .logoBox {

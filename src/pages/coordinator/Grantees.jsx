@@ -433,6 +433,7 @@ const endRow =
               <th className={styles.th}>Status</th>
               <th className={styles.th}>Verification</th>
               <th className={styles.th}>Documents</th>
+              <th className={styles.th}>Action</th>
             </tr>
           </thead>
 
@@ -482,25 +483,16 @@ const endRow =
         </td>
 
         <td className={styles.td}>
-          <div className={styles.verifyActions}>
-            <span
-              className={`${styles.badge} ${
-                s.verification_result === "Verified"
-                  ? styles.active
-                  : styles.inactive
-              }`}
-            >
-              {VERIFICATION_LABELS[s.verification_result] || s.verification_result}
-            </span>
-            <button
-            className={styles.documentButton}
-            onClick={() => openVerify(s)}
-          >
-            {s.verification_result === "Verified" ? "Re-verify" : "Verify"}
-          </button>
-          </div>
-          
-        </td>
+  <span
+    className={`${styles.badge} ${
+      s.verification_result === "Verified"
+        ? styles.active
+        : styles.inactive
+    }`}
+  >
+    {VERIFICATION_LABELS[s.verification_result] || s.verification_result}
+  </span>
+</td>
 <td className={styles.td}>
   {!s.documents || s.documents.length === 0 ? (
     <span className={styles.documentPlaceholder}>
@@ -521,6 +513,14 @@ const endRow =
       ))}
     </div>
   )}
+</td>
+<td className={`${styles.td} ${styles.actionCell}`}>
+  <button
+    className={styles.documentButton}
+    onClick={() => openVerify(s)}
+  >
+    {s.verification_result === "Verified" ? "Re-verify" : "Verify"}
+  </button>
 </td>
 
       </tr>

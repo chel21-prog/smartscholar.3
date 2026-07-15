@@ -182,16 +182,22 @@
 
 /* Firefox */
     scrollbar-width: thin;
+    scrollbar-color: var(--ink-300) transparent;
 
     /* IE & Edge (legacy) */
-    -ms-overflow-style: thin;
+    -ms-overflow-style: none;
 }
 
 .tableContainer::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: thin;
+    width: 8px;
+    height: 8px;
 }
+.tableContainer::-webkit-scrollbar-track { background: transparent; }
+.tableContainer::-webkit-scrollbar-thumb {
+    background-color: var(--ink-300);
+    border-radius: var(--radius-full);
+}
+.tableContainer::-webkit-scrollbar-thumb:hover { background-color: var(--navy-500); }
 
 .table{
 
@@ -620,43 +626,49 @@ box-shadow:var(--shadow-xl);
 =========================== */
 
 .tableContainer::-webkit-scrollbar{
-
-    height:8px;
-
+    width: 8px;
+    height: 8px;
 }
 
 .tableContainer::-webkit-scrollbar-thumb{
+    background: var(--ink-300);
+    border-radius: var(--radius-full);
+}
 
-    background:var(--border);
-
-    border-radius:20px;
-
+.tableContainer::-webkit-scrollbar-thumb:hover{
+    background: var(--navy-500);
 }
 
 .tableContainer::-webkit-scrollbar-track{
-
     background:transparent;
+}
 
+.tableContainer{
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink-300) transparent;
 }
 
 .modal textarea::-webkit-scrollbar{
-
-    width:8px;
-
+    width: 6px;
+    height: 6px;
 }
 
 .modal textarea::-webkit-scrollbar-thumb{
+    background: var(--ink-300);
+    border-radius: var(--radius-full);
+}
 
-    background:var(--border);
+.modal textarea::-webkit-scrollbar-thumb:hover{
+    background: var(--navy-500);
+}
 
-    border-radius:20px;
-
+.modal textarea::-webkit-scrollbar-track{
+    background: transparent;
 }
 
 .modal textarea{
-
     scrollbar-width:thin;
-
+    scrollbar-color: var(--ink-300) transparent;
 }
 
 /* ===========================
