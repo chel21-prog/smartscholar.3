@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, Badge, EmptyState } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -19,6 +19,7 @@ export default function Applications() {
   const [formMeta, setFormMeta] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
+  const requestToken = useRef(0);
 
   useEffect(() => {
     load();
@@ -65,6 +66,7 @@ export default function Applications() {
   };
 
   const viewAnswers = async (app) => {
+    const token = ++requestToken.current;
     setSelectedApp(app);
     setAnswers([]);
 
@@ -73,6 +75,8 @@ export default function Applications() {
       .select(`response_id, field_id, answer, scholarship_form_fields ( label )`)
       .eq("application_id", app.application_id)
       .order("response_id", { ascending: true });
+
+    if (token !== requestToken.current) return; // a newer click already superseded this one
 
     // Defensive dedupe: if duplicate rows exist for the same field_id
     // (e.g. from a double-submitted application), keep the latest one.
@@ -87,24 +91,28 @@ export default function Applications() {
   };
 
   const cancelApplication = async (id) => {
+    if (cancellingId) return; // one cancel in flight at a time
     const confirmed = window.confirm("Cancel this application? This can't be undone.");
     if (!confirmed) return;
 
     setCancellingId(id);
 
-    const { error } = await supabase
-      .from("scholarship_applications")
-      .delete()
-      .eq("application_id", id);
+    try {
+      const { error } = await supabase
+        .from("scholarship_applications")
+        .delete()
+        .eq("application_id", id);
 
-    setCancellingId(null);
+      if (error) { alert(error.message); return; }
 
-    if (error) return alert(error.message);
-
-    setApplications((prev) => prev.filter((a) => a.application_id !== id));
+      setApplications((prev) => prev.filter((a) => a.application_id !== id));
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   const editApplication = async (app) => {
+    const token = ++requestToken.current;
     setEditApp(app);
     setFormMeta(null);
     setFormFields([]);
@@ -116,15 +124,28 @@ export default function Applications() {
       .eq("scholarship_id", app.scholarship_id)
       .single();
 
+    if (token !== requestToken.current) return;
     setFormMeta(form);
     if (!form) return;
 
     const { data: fields } = await supabase
       .from("scholarship_form_fields")
       .select("*")
-      .eq("form_id", form.form_id);
+      .eq("form_id", form.form_id)
+      .order("field_id", { ascending: true });
 
-    setFormFields(fields || []);
+    // Defensive dedupe: guards against leftover duplicate rows in
+    // scholarship_form_fields (can happen if a scholarship's form was
+    // edited before duplicate-safe saving was in place on the
+    // coordinator side). Keeps the first (oldest) row per label so the
+    // form doesn't render the same question twice.
+    const seenLabels = new Set();
+    const dedupedFields = (fields || []).filter((f) => {
+      const key = (f.label || "").trim().toLowerCase();
+      if (!key || seenLabels.has(key)) return false;
+      seenLabels.add(key);
+      return true;
+    });
 
     const { data: responses } = await supabase
       .from("application_form_responses")
@@ -132,28 +153,34 @@ export default function Applications() {
       .eq("application_id", app.application_id)
       .order("response_id", { ascending: true });
 
+    if (token !== requestToken.current) return;
+
     const mapped = {};
     (responses || []).forEach((r) => {
       mapped[r.field_id] = r.answer;
     });
 
+    setFormFields(dedupedFields);
     setFormAnswers(mapped);
   };
 
   const saveEdit = async () => {
+    if (savingEdit) return; // guards against a second tap landing before the button disables
     setSavingEdit(true);
 
-    for (const [fieldId, answer] of Object.entries(formAnswers)) {
-      await supabase
-        .from("application_form_responses")
-        .update({ answer })
-        .eq("application_id", editApp.application_id)
-        .eq("field_id", fieldId);
+    try {
+      for (const [fieldId, answer] of Object.entries(formAnswers)) {
+        await supabase
+          .from("application_form_responses")
+          .update({ answer })
+          .eq("application_id", editApp.application_id)
+          .eq("field_id", fieldId);
+      }
+    } finally {
+      setSavingEdit(false);
+      setEditApp(null);
+      load();
     }
-
-    setSavingEdit(false);
-    setEditApp(null);
-    load();
   };
 
   if (loading) return <PageLoader label="Loading your applications…" />;

@@ -19,12 +19,14 @@ export default function Modal({
   footer,
 }) {
   const dialogRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose; // always current, without needing onClose in the effect's deps
 
   useEffect(() => {
     if (!open) return;
 
     const handleKey = (e) => {
-      if (e.key === "Escape" && onClose) onClose();
+      if (e.key === "Escape" && onCloseRef.current) onCloseRef.current();
     };
     window.addEventListener("keydown", handleKey);
 
@@ -41,7 +43,15 @@ export default function Modal({
       document.body.style.overflow = prevOverflow;
       if (prevActive instanceof HTMLElement) prevActive.focus();
     };
-  }, [open, onClose]);
+    // Deliberately only [open]: this effect steals focus to the dialog
+    // and should only do that once, when the modal actually opens — not
+    // on every re-render. onClose is a new function reference on every
+    // parent render (typing in a form inside the modal re-renders the
+    // parent), so including it here caused the focus-steal to refire on
+    // every keystroke, which looked like the input losing focus / the
+    // caret "popping out" of the field while typing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   if (!open) return null;
 
