@@ -39,13 +39,17 @@
 
 .content {
   flex: 1;
-  min-height: 0; /* lets this child actually shrink instead of pushing past the shell */
-  padding: var(--space-6);
+  min-height: 0;
+
   width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
+  max-width: none;
+
+  padding: var(--space-6);
+  margin: 0;
+
   box-sizing: border-box;
-  overflow-y: auto; /* safety net: only used by pages that don't fully fit on their own */
+  overflow-y: auto;
+
   display: flex;
   flex-direction: column;
 }

@@ -270,46 +270,105 @@ style={{ maxWidth:220 }}
   </select>
 </div>
       {openGrant && (
-  <div className={s.overlay}>
-    <div className={s.modal}>
-      <h2>Grant Scholarship</h2>
+  <div className={s.overlay} onClick={() => setOpenGrant(false)}>
+    <div
+      className={s.modal}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className={s.modalHeader}>
+        <div>
+          <h2 className={s.modalTitle}>Grant Scholarship</h2>
+          <p className={s.modalSubtitle}>
+            Assign a scholarship to this student
+          </p>
+        </div>
 
-      <p>
-        Student:{" "}
-        <b>
-          {selectedStudent?.users?.first_name}{" "}
-          {selectedStudent?.users?.last_name}
-        </b>
-      </p>
+        <button
+          className={s.modalClose}
+          onClick={() => setOpenGrant(false)}
+        >
+          ✕
+        </button>
+      </div>
 
-      <select
-        className={s.input}
-        value={selectedScholarship}
-        onChange={(e) => setSelectedScholarship(e.target.value)}
-      >
-        <option value="">Select Scholarship</option>
-        {scholarships.map((s) => (
-          <option key={s.scholarship_id} value={s.scholarship_id}>
-            {s.scholarship_name}
-          </option>
-        ))}
-      </select>
+      <div className={s.modalBody}>
 
-      <p>
-  <b>Academic Year:</b> {academicSettings?.academic_year}
-</p>
+        <div className={s.studentCard}>
+         
 
-<p>
-  <b>Semester:</b> {academicSettings?.semester}
-</p>
+          <div>
+            <span className={s.studentLabel}>Student</span>
+            <strong className={s.studentName}>
+              {selectedStudent?.users?.first_name}{" "}
+              {selectedStudent?.users?.last_name}
+            </strong>
+          </div>
+        </div>
 
-      <button className={s.statusBtn} onClick={grantScholarship}>
-        Grant
-      </button>
+        <div className={s.formGroup}>
+          <label className={s.formLabel}>
+            Scholarship Program
+          </label>
 
-      <button onClick={() => setOpenGrant(false)}>
-        Cancel
-      </button>
+          <select
+            className={s.input}
+            value={selectedScholarship}
+            onChange={(e) => setSelectedScholarship(e.target.value)}
+          >
+            <option value="">Select Scholarship</option>
+
+            {scholarships.map((scholarship) => (
+              <option
+                key={scholarship.scholarship_id}
+                value={scholarship.scholarship_id}
+              >
+                {scholarship.scholarship_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className={s.academicCard}>
+          <div>
+            <span>Academic Year</span>
+            <strong>
+              {academicSettings?.academic_year || "Not set"}
+            </strong>
+          </div>
+
+          <div>
+            <span>Semester</span>
+            <strong>
+              {academicSettings?.semester || "Not set"}
+            </strong>
+          </div>
+        </div>
+
+        <div className={s.warningBox}>
+          <span>ⓘ</span>
+          <p>
+            Granting this scholarship will create an approved application
+            and activate the student's scholarship grant.
+          </p>
+        </div>
+
+      </div>
+
+      <div className={s.modalFooter}>
+        <button
+          className={s.cancelModalBtn}
+          onClick={() => setOpenGrant(false)}
+        >
+          Cancel
+        </button>
+
+        <button
+          className={s.grantBtn}
+          onClick={grantScholarship}
+        >
+          Grant Scholarship
+        </button>
+      </div>
     </div>
   </div>
 )}
