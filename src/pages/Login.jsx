@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import styles from "@/styles/Auth.module.css";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { getMissingProfileFields } from "@/lib/profileCompleteness";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -94,21 +95,17 @@ const [resetError,   setResetError]   = useState("");
     .eq("user_id", userData.user_id)
     .single();
 
-  const profileComplete =
-    userData?.first_name &&
-    userData?.middle_name &&
-    userData?.last_name &&
-    studentData?.school_id &&
-    studentData?.course &&
-    studentData?.year_level &&
-    studentData?.gender &&
-    studentData?.ethnicity &&
-    studentData?.contact_number;
+  const profileComplete = getMissingProfileFields(userData, studentData).length === 0;
 
   if (profileComplete) {
     navigate("/student/dashboard");
   } else {
-    navigate("/student/profile");
+    navigate("/student/profile", {
+      state: {
+        profileIncomplete: true,
+        missingFields: getMissingProfileFields(userData, studentData).map(f => f.label),
+      },
+    });
   }
 }
     else if (role === "Coordinator") navigate("/coordinator/dashboard");

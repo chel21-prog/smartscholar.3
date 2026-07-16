@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useNavigate } from "react-router-dom";
 import PageLoader from "@/components/ui/PageLoader";
+import { getMissingProfileFields } from "@/lib/profileCompleteness";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -60,21 +61,14 @@ export default function AuthCallback() {
           .eq("user_id", userData.user_id)
           .single();
 
-        const profileComplete =
-          userData?.first_name &&
-          userData?.middle_name &&
-          userData?.last_name &&
-          studentData?.school_id &&
-          studentData?.course &&
-          studentData?.year_level &&
-          studentData?.gender &&
-          studentData?.ethnicity &&
-          studentData?.contact_number;
+        const missing = getMissingProfileFields(userData, studentData);
 
-        if (profileComplete) {
+        if (missing.length === 0) {
           navigate("/student/dashboard");
         } else {
-          navigate("/student/profile");
+          navigate("/student/profile", {
+            state: { profileIncomplete: true, missingFields: missing.map(f => f.label) },
+          });
         }
 
         return;

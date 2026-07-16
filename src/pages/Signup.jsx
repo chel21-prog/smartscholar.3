@@ -67,6 +67,16 @@ export default function Signup() {
     }
 
     // 3. Insert into students table
+    // school_id is intentionally left null here (not a generated
+    // placeholder) — the student fills in their real school ID on the
+    // Profile page. A generated "TEMP-..." value used to be inserted
+    // here, but since it's truthy, it silently satisfied the
+    // profile-completeness check everywhere (ProfileGuard, Login,
+    // AuthCallback) even though the student hadn't actually entered
+    // anything — locking in a fake ID and never prompting them to
+    // replace it. NOTE: this assumes the `school_id` column in
+    // `students` allows NULL; if it's NOT NULL in your schema, that
+    // constraint needs to be relaxed for this to work.
     const { error: studentError } = await supabase.from("students").insert([
       {
         user_id: userRow.user_id,
@@ -75,7 +85,7 @@ export default function Signup() {
         gender: null,
         ethnicity: null,
         contact_number: null,
-        school_id: `TEMP-${Date.now()}`,
+        school_id: null,
         status: "Enrolled",
       },
     ]);

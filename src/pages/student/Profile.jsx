@@ -1,15 +1,25 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Card, CardHeader, Badge } from "@/components/ui/Card";
 import { Field, Input, Select } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { TableWrap, Table } from "@/components/ui/Table";
 import PageLoader from "@/components/ui/PageLoader";
+import { getMissingProfileFields } from "@/lib/profileCompleteness";
 import styles from "./Profile.module.css";
 
 const STATUS_CYCLE = ["Compliant", "Non-Compliant"];
 
 export default function Profile() {
+  const location = useLocation();
+  // Reminder banner: only shown when the person landed here because
+  // ProfileGuard (or Login/AuthCallback) redirected them for having an
+  // incomplete profile — not shown when they navigate here normally via
+  // the sidebar link.
+  const [showReminder, setShowReminder] = useState(!!location.state?.profileIncomplete);
+  const [redirectMissingFields] = useState(location.state?.missingFields || []);
+
   const [student, setStudent] = useState(null);
   const [requirements, setRequirements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -210,6 +220,19 @@ export default function Profile() {
     autoSaveStudent(updated);
   };
 
+  // form already has the same field keys the completeness check needs
+  // (first_name, last_name, school_id, course, year_level, gender,
+  // ethnicity, contact_number), so it can serve as both the "user" and
+  // "student" source. Recomputed on every keystroke so the reminder
+  // banner disappears as soon as the person finishes filling things in,
+  // without needing a page reload.
+  const liveMissingFields = getMissingProfileFields(form, form);
+
+  useEffect(() => {
+    if (showReminder && liveMissingFields.length === 0) setShowReminder(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveMissingFields.length]);
+
   // Students can mark their own compliance items here. This mirrors a
   // self-attestation checklist (track your own progress gathering
   // documents) rather than official verification - flagging here since
@@ -253,6 +276,35 @@ export default function Profile() {
         </p>
       </div>
 
+      {showReminder && (
+        <div
+          role="alert"
+          style={{
+            display: "flex",
+            gap: "12px",
+            alignItems: "flex-start",
+            background: "var(--warning-50)",
+            border: "1px solid var(--warning-100)",
+            color: "var(--warning-700)",
+            borderRadius: "var(--radius-lg)",
+            padding: "14px 18px",
+            marginBottom: "var(--space-5)",
+          }}
+        >
+          <span aria-hidden="true" style={{ fontSize: "1.2em", lineHeight: 1 }}>⚠️</span>
+          <div>
+            <strong>Please complete your profile to continue.</strong>
+            <p style={{ margin: "4px 0 0" }}>
+              You need to fill in your details in the <strong>Student information</strong> section
+              below before you can access your Dashboard, Applications, or Compliance pages.
+              {redirectMissingFields.length > 0 && (
+                <> Still missing: {redirectMissingFields.join(", ")}.</>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
       <Card>
         <CardHeader
           title="Student information"
@@ -273,10 +325,11 @@ export default function Profile() {
             />
           </Field>
 
-          <Field label="Middle name" required>
+          <Field label="Middle name (optional)">
             <Input
               value={form.middle_name}
               onChange={(e) => updateField("middle_name", e.target.value)}
+              placeholder="Leave blank if you don't have one"
             />
           </Field>
 

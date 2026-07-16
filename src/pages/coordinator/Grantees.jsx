@@ -255,7 +255,7 @@ const filtered = Object.values(grouped)
 
       const matchesSearch =
         student.student_name.toLowerCase().includes(keyword) ||
-        student.school_id.toLowerCase().includes(keyword) ||
+        (student.school_id || "").toLowerCase().includes(keyword) ||
         s.scholarship_name.toLowerCase().includes(keyword) ||
         s.status.toLowerCase().includes(keyword) ||
         s.academic_year.toLowerCase().includes(keyword) ||

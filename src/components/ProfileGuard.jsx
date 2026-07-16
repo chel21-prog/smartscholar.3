@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/context/SessionContext";
+import { getMissingProfileFields } from "@/lib/profileCompleteness";
 import PageLoader from "@/components/ui/PageLoader";
 
 export default function ProfileGuard({ children }) {
   const { loading: sessionLoading, profile } = useSession();
   const [checking, setChecking] = useState(true);
-  const [complete, setComplete] = useState(false);
+  const [missingFields, setMissingFields] = useState(null); // null = still checking
 
   useEffect(() => {
     if (sessionLoading) return;
@@ -28,18 +29,7 @@ export default function ProfileGuard({ children }) {
 
       if (!active) return;
 
-      const isComplete =
-        profile.first_name &&
-        profile.middle_name &&
-        profile.last_name &&
-        student?.school_id &&
-        student?.course &&
-        student?.year_level &&
-        student?.ethnicity &&
-        student?.gender &&
-        student?.contact_number;
-
-      setComplete(!!isComplete);
+      setMissingFields(getMissingProfileFields(profile, student));
       setChecking(false);
     };
 
@@ -51,8 +41,14 @@ export default function ProfileGuard({ children }) {
     return <PageLoader label="Checking your profile…" />;
   }
 
-  if (!complete) {
-    return <Navigate to="/student/profile" replace />;
+  if (missingFields && missingFields.length > 0) {
+    return (
+      <Navigate
+        to="/student/profile"
+        replace
+        state={{ profileIncomplete: true, missingFields: missingFields.map(f => f.label) }}
+      />
+    );
   }
 
   return children;
