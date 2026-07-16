@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/context/ToastContext";
 import s from "./Students.module.css";
 const STATUS_OPTIONS = ["Enrolled", "Graduated", "Dropped", "Inactive"];
 
 export default function Students() {
+  const toast = useToast();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,6 +58,7 @@ const semester = academicSettings?.semester || "";
     .order("school_id", { ascending: true });
 
   if (!error) setStudents(data || []);
+  else toast.error("Failed to load students: " + error.message);
 
   // Load active scholarships
   const { data: schols, error: scholError } = await supabase
@@ -64,6 +67,7 @@ const semester = academicSettings?.semester || "";
     .eq("status", "Active");
 
   if (!scholError) setScholarships(schols || []);
+  else toast.error("Failed to load scholarships: " + scholError.message);
 
   setLoading(false);
 };
@@ -93,13 +97,30 @@ const loadAcademicSettings = async () => {
       )
     );
 
-    await supabase
+    const { error } = await supabase
       .from("students")
       .update({ status: nextStatus })
       .eq("student_id", studentId);
+
+    if (error) {
+      // Roll back the optimistic update — the DB write failed, so the UI
+      // shouldn't keep showing the new status as if it saved.
+      setStudents((prev) =>
+        prev.map((s) =>
+          s.student_id === studentId ? { ...s, status: currentStatus } : s
+        )
+      );
+      toast.error("Failed to update status: " + error.message);
+    }
   };
 
   // AUTO SAVE REMARKS
+  // Bug fix: previously used a single global `window.__remarkTimeout`,
+  // shared across every row. Editing student B before A's 600ms timer
+  // fired would clearTimeout A's pending save and silently drop it.
+  // Each student now gets its own timer, keyed by student_id.
+  const remarkTimeouts = useRef(new Map());
+
   const updateRemarks = (studentId, value) => {
     setStudents((prev) =>
       prev.map((s) =>
@@ -107,19 +128,25 @@ const loadAcademicSettings = async () => {
       )
     );
 
-    clearTimeout(window.__remarkTimeout);
+    const timeouts = remarkTimeouts.current;
+    clearTimeout(timeouts.get(studentId));
 
-    window.__remarkTimeout = setTimeout(async () => {
-      await supabase
+    const timeoutId = setTimeout(async () => {
+      const { error } = await supabase
         .from("students")
         .update({ remarks: value })
         .eq("student_id", studentId);
+
+      if (error) console.error("Failed to save remarks:", error.message);
+      timeouts.delete(studentId);
     }, 600);
+
+    timeouts.set(studentId, timeoutId);
   };
   
   const grantScholarship = async () => {
-  if (!selectedStudent) return alert("No student selected");
-  if (!selectedScholarship) return alert("Select scholarship");
+  if (!selectedStudent) return toast.error("No student selected");
+  if (!selectedScholarship) return toast.error("Select scholarship");
 
   // 1. CREATE APPLICATION FIRST (THIS IS THE FIX)
   const { data: application, error: appError } = await supabase
@@ -135,7 +162,7 @@ const loadAcademicSettings = async () => {
     .single();
 
   if (appError) {
-    alert(appError.message);
+    toast.error(appError.message);
     return;
   }
 
@@ -151,11 +178,11 @@ const loadAcademicSettings = async () => {
   });
 
   if (error) {
-    alert(error.message);
+    toast.error(error.message);
     return;
   }
 
-  alert("Scholarship granted successfully!");
+  toast.success("Scholarship granted successfully!");
 
   // RESET FORM
   setOpenGrant(false);

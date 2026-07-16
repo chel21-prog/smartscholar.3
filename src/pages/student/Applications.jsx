@@ -5,6 +5,8 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Input } from "@/components/ui/Input";
 import PageLoader from "@/components/ui/PageLoader";
+import { useConfirm } from "@/hooks/useConfirm";
+import { useToast } from "@/context/ToastContext";
 import styles from "./Applications.module.css";
 
 export default function Applications() {
@@ -20,6 +22,8 @@ export default function Applications() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
   const requestToken = useRef(0);
+  const { askConfirm, confirmDialog } = useConfirm();
+  const toast = useToast();
 
   useEffect(() => {
     load();
@@ -60,6 +64,7 @@ export default function Applications() {
       setApplications(data || []);
     } catch (err) {
       console.error(err);
+      toast.error("Couldn't load your applications. Please try refreshing the page.");
     } finally {
       setLoading(false);
     }
@@ -90,11 +95,16 @@ export default function Applications() {
     setAnswers(deduped);
   };
 
-  const cancelApplication = async (id) => {
+  const cancelApplication = (id) => {
     if (cancellingId) return; // one cancel in flight at a time
-    const confirmed = window.confirm("Cancel this application? This can't be undone.");
-    if (!confirmed) return;
+    askConfirm(
+      "Cancel this application? This can't be undone.",
+      () => doCancelApplication(id),
+      { variant: "danger", confirmLabel: "Cancel application", cancelLabel: "Keep application" }
+    );
+  };
 
+  const doCancelApplication = async (id) => {
     setCancellingId(id);
 
     try {
@@ -103,9 +113,10 @@ export default function Applications() {
         .delete()
         .eq("application_id", id);
 
-      if (error) { alert(error.message); return; }
+      if (error) { toast.error(error.message); return; }
 
       setApplications((prev) => prev.filter((a) => a.application_id !== id));
+      toast.success("Application cancelled.");
     } finally {
       setCancellingId(null);
     }
@@ -164,17 +175,29 @@ export default function Applications() {
     setFormAnswers(mapped);
   };
 
-  const saveEdit = async () => {
+  const saveEdit = () => {
     if (savingEdit) return; // guards against a second tap landing before the button disables
+    askConfirm("Save changes to this application?", doSaveEdit);
+  };
+
+  const doSaveEdit = async () => {
     setSavingEdit(true);
 
     try {
+      const failures = [];
       for (const [fieldId, answer] of Object.entries(formAnswers)) {
-        await supabase
+        const { error } = await supabase
           .from("application_form_responses")
           .update({ answer })
           .eq("application_id", editApp.application_id)
           .eq("field_id", fieldId);
+        if (error) failures.push(error.message);
+      }
+
+      if (failures.length) {
+        toast.error(`${failures.length} answer(s) failed to save: ${failures[0]}`);
+      } else {
+        toast.success("Application updated.");
       }
     } finally {
       setSavingEdit(false);
@@ -304,6 +327,8 @@ export default function Applications() {
           </>
         )}
       </Modal>
+
+      {confirmDialog}
     </div>
   );
 }

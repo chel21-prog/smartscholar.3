@@ -1,5 +1,7 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useConfirm } from "@/hooks/useConfirm";
+import { useToast } from "@/context/ToastContext";
 import s from "./Scholarships.module.css";
 
 // ─── helpers ────────────────────────────────────────────────
@@ -74,28 +76,8 @@ export default function Scholarships() {
   const [formData,         setFormData]         = useState({ title: "", terms: "", fields: [] });
 
   // ── confirm popup ────────────────────────────────────────
-  const [confirmDialog, setConfirmDialog] = useState(null); // { message, onConfirm }
-  const confirmBusyRef = useRef(false); // ref, not state: must block re-entrant taps synchronously,
-                                         // before React has a chance to re-render and remove the button
-  const askConfirm = (message, onConfirm) => {
-    confirmBusyRef.current = false;
-    setConfirmDialog({ message, onConfirm });
-  };
-  const closeConfirm = () => {
-    if (confirmBusyRef.current) return;
-    setConfirmDialog(null);
-  };
-  const handleConfirmYes = () => {
-    if (confirmBusyRef.current) return; // a prior tap already committed to running the action
-    confirmBusyRef.current = true;
-    const action = confirmDialog?.onConfirm;
-    setConfirmDialog(null);
-    if (action) {
-      Promise.resolve(action()).finally(() => { confirmBusyRef.current = false; });
-    } else {
-      confirmBusyRef.current = false;
-    }
-  };
+  const { askConfirm, confirmDialog } = useConfirm();
+  const toast = useToast();
 
   // ────────────────────────────────────────────────────────
   useEffect(() => { load(); loadFormTemplates(); }, []);
@@ -153,7 +135,7 @@ export default function Scholarships() {
     if (savingTpl) return;
     if (!tplName.trim()) return;
     if (!formTitle.trim() && !terms.trim() && fields.length === 0) {
-      alert("Fill in at least the form title before saving a template.");
+      toast.error("Fill in at least the form title before saving a template.");
       return;
     }
     setSavingTpl(true);
@@ -174,12 +156,16 @@ export default function Scholarships() {
     setShowSaveTpl(false);
   };
 
-  const deleteFormTemplate = async (id) => {
+  const deleteFormTemplate = (id) => {
     if (deletingTplId) return;
-    if (!confirm("Delete this template?")) return;
+    askConfirm("Delete this template?", () => doDeleteFormTemplate(id), { variant: "danger", confirmLabel: "Delete" });
+  };
+
+  const doDeleteFormTemplate = async (id) => {
     setDeletingTplId(id);
-    await supabase.from("report_templates").delete().eq("template_id", id);
+    const { error } = await supabase.from("report_templates").delete().eq("template_id", id);
     setDeletingTplId(null);
+    if (error) return toast.error(error.message);
     setFormTemplates(prev => prev.filter(t => t.template_id !== id));
   };
 
@@ -190,7 +176,7 @@ export default function Scholarships() {
     const next = STATUS_OPTIONS[(STATUS_OPTIONS.indexOf(sch.status) + 1) % STATUS_OPTIONS.length];
     const { error } = await supabase.from("scholarships").update({ status: next }).eq("scholarship_id", sch.scholarship_id);
     setTogglingId(null);
-    if (error) return alert(error.message);
+    if (error) return toast.error(error.message);
     load();
   };
 
@@ -209,7 +195,7 @@ export default function Scholarships() {
       .insert({ requirement_name: newAppName, requirement_type: newAppType })
       .select().single();
     setAddingAppReq(false);
-    if (error) return alert(error.message);
+    if (error) return toast.error(error.message);
     setAppReq([...appReq, data]);
     setSelectedReq([...selectedReq, { id: data.application_requirement_id, type: "app" }]);
     setNewAppName(""); setShowAppForm(false);
@@ -223,7 +209,7 @@ export default function Scholarships() {
       .insert({ requirement_name: newEligName, requirement_type: newEligType })
       .select().single();
     setAddingEligReq(false);
-    if (error) return alert(error.message);
+    if (error) return toast.error(error.message);
     setEligReq([...eligReq, data]);
     setSelectedReq([...selectedReq, { id: data.eligibility_requirement_id, type: "elig" }]);
     setNewEligName(""); setShowEligForm(false);
@@ -319,7 +305,7 @@ export default function Scholarships() {
 
   const createScholarship = () => {
     if (saving) return;
-    if (!name || !formTitle || !terms) return alert("Name, form title, and terms are required");
+    if (!name || !formTitle || !terms) return toast.error("Name, form title, and terms are required");
     askConfirm("Save this new scholarship?", doCreateScholarship);
   };
 
@@ -328,27 +314,34 @@ export default function Scholarships() {
     const { data: sch, error } = await supabase.from("scholarships")
       .insert({ scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: deadline, payout_frequency: payoutFreq, duration_type: duration, status: "Active" })
       .select().single();
-    if (error) { alert(error.message); setSaving(false); return; }
+    if (error) { toast.error(error.message); setSaving(false); return; }
 
-    if (selectedReq.length) await supabase.from("scholarship_requirements").insert(
-      selectedReq.map(r => ({ scholarship_id: sch.scholarship_id, application_requirement_id: r.type === "app" ? r.id : null, eligibility_requirement_id: r.type === "elig" ? r.id : null }))
-    );
+    if (selectedReq.length) {
+      const { error: reqErr } = await supabase.from("scholarship_requirements").insert(
+        selectedReq.map(r => ({ scholarship_id: sch.scholarship_id, application_requirement_id: r.type === "app" ? r.id : null, eligibility_requirement_id: r.type === "elig" ? r.id : null }))
+      );
+      if (reqErr) toast.error("Scholarship saved, but requirements failed to attach: " + reqErr.message);
+    }
 
     const { data: form, error: fe } = await supabase.from("scholarship_application_forms")
       .insert({ scholarship_id: sch.scholarship_id, form_title: formTitle, terms_and_conditions: terms })
       .select().single();
-    if (fe) { alert(fe.message); setSaving(false); return; }
+    if (fe) { toast.error(fe.message); setSaving(false); return; }
 
-    if (fields.length) await supabase.from("scholarship_form_fields").insert(
-      fields.map(f => ({ form_id: form.form_id, label: f.label, field_type: f.type, is_required: f.required }))
-    );
+    if (fields.length) {
+      const { error: fieldErr } = await supabase.from("scholarship_form_fields").insert(
+        fields.map(f => ({ form_id: form.form_id, label: f.label, field_type: f.type, is_required: f.required }))
+      );
+      if (fieldErr) toast.error("Scholarship saved, but form fields failed to save: " + fieldErr.message);
+    }
     setSaving(false);
+    toast.success("Scholarship created.");
     reset(); setOpen(false); load();
   };
 
   const updateScholarship = () => {
     if (saving) return;
-    if (!editingId) return alert("No scholarship selected");
+    if (!editingId) return toast.error("No scholarship selected");
     askConfirm("Save changes to this scholarship?", doUpdateScholarship);
   };
 
@@ -358,34 +351,42 @@ export default function Scholarships() {
     const { error } = await supabase.from("scholarships")
       .update({ scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: deadline, payout_frequency: payoutFreq, duration_type: duration })
       .eq("scholarship_id", editingId);
-    if (error) { alert(error.message); setSaving(false); return; }
+    if (error) { toast.error(error.message); setSaving(false); return; }
 
     await supabase.from("scholarship_requirements").delete().eq("scholarship_id", editingId);
-    if (selectedReq.length) await supabase.from("scholarship_requirements").insert(
-      selectedReq.map(r => ({ scholarship_id: editingId, application_requirement_id: r.type === "app" ? r.id : null, eligibility_requirement_id: r.type === "elig" ? r.id : null }))
-    );
+    if (selectedReq.length) {
+      const { error: reqErr } = await supabase.from("scholarship_requirements").insert(
+        selectedReq.map(r => ({ scholarship_id: editingId, application_requirement_id: r.type === "app" ? r.id : null, eligibility_requirement_id: r.type === "elig" ? r.id : null }))
+      );
+      if (reqErr) toast.error("Requirements failed to save: " + reqErr.message);
+    }
 
     // Always get the form first
-    const { data: form } = await supabase.from("scholarship_application_forms")
+    const { data: form, error: formErr } = await supabase.from("scholarship_application_forms")
       .select("form_id").eq("scholarship_id", editingId).single();
+    if (formErr) toast.error("Couldn't load this scholarship's form: " + formErr.message);
 
     if (form) {
-      await supabase.from("scholarship_application_forms")
+      const { error: titleErr } = await supabase.from("scholarship_application_forms")
         .update({ form_title: formTitle, terms_and_conditions: terms })
         .eq("form_id", form.form_id);
+      if (titleErr) toast.error("Form title/terms failed to save: " + titleErr.message);
 
       // Delete ALL existing fields first, wait for it to complete,
       // then insert the new set — prevents duplicate rows on repeated saves
-      await supabase.from("scholarship_form_fields").delete().eq("form_id", form.form_id);
+      const { error: delErr } = await supabase.from("scholarship_form_fields").delete().eq("form_id", form.form_id);
+      if (delErr) toast.error("Couldn't clear old form fields: " + delErr.message);
 
       if (fields.length) {
-        await supabase.from("scholarship_form_fields").insert(
+        const { error: insErr } = await supabase.from("scholarship_form_fields").insert(
           fields.map(f => ({ form_id: form.form_id, label: f.label, field_type: f.type, is_required: f.required }))
         );
+        if (insErr) toast.error("Form fields failed to save: " + insErr.message);
       }
     }
 
     setSaving(false);
+    toast.success("Scholarship updated.");
     reset(); setOpen(false); setEditMode(false); setEditingId(null); load();
   };
 
@@ -402,7 +403,7 @@ export default function Scholarships() {
 
   const viewForm = async (id) => {
     const { data: form, error } = await supabase.from("scholarship_application_forms").select("*").eq("scholarship_id", id).single();
-    if (error || !form) return alert("No form found.");
+    if (error || !form) return toast.error("No form found.");
     const { data: ff } = await supabase.from("scholarship_form_fields").select("*").eq("form_id", form.form_id);
     const deduped = Object.values(
       (ff || []).reduce((acc, f) => {
@@ -841,27 +842,7 @@ export default function Scholarships() {
       )}
 
       {/* CONFIRM POPUP */}
-      {confirmDialog && (
-        <div
-          className={s.overlay}
-          style={{ zIndex: 1000 }}
-          onMouseDown={e => e.target === e.currentTarget && closeConfirm()}
-        >
-          <div className={s.modal} style={{ maxWidth: 380 }}>
-            <div className={s.modalHeader}>
-              <h2 className={s.modalTitle}>Please confirm</h2>
-              <button className={s.closeBtn} onClick={closeConfirm}>✕</button>
-            </div>
-            <div className={s.modalBody}>
-              <p>{confirmDialog.message}</p>
-            </div>
-            <div className={s.modalFooter}>
-              <button className={s.btnSecondary} onClick={closeConfirm}>No</button>
-              <button className={s.btnPrimary} onClick={handleConfirmYes}>Yes</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {confirmDialog}
     </div>
   );
 }
