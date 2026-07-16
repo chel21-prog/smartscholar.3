@@ -85,6 +85,7 @@
 .fieldItem { display:flex; flex-direction:column; gap:var(--space-1); }
 .fieldLabel { font-size:var(--text-sm); font-weight:600; color:var(--text-primary); }
 .req { color:var(--danger-600); }
+.autofillHint { font-weight:400; font-size:var(--text-xs); color:var(--text-secondary); font-style:italic; }
 
 /* Plain <input> with a stable className — never inline style={{}} */
 .fieldInput {

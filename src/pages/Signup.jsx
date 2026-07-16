@@ -4,7 +4,9 @@ import { useNavigate, Link } from "react-router-dom";
 import styles from "@/styles/Auth.module.css";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { useToast } from "@/context/ToastContext";
 export default function Signup() {
+  const toast = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -98,11 +100,8 @@ export default function Signup() {
 
     setLoading(false);
 
-alert(
-  "Your account has been created.\n\nPlease check your email and verify your account before logging in."
-);
-
-navigate("/Login");
+    toast.success("Account created! You can now log in.");
+    navigate("/Login");
   };
 
   const handleGoogleSignup = async () => {

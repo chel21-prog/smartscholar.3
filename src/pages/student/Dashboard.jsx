@@ -27,6 +27,7 @@ export default function Dashboard() {
   // file fields: store the File object here, upload on submit, then store the URL as the answer
   const [fileAnswers,         setFileAnswers]        = useState({});
   const [uploadingFields,     setUploadingFields]    = useState(new Set());
+  const [autofilledFieldIds,  setAutofilledFieldIds] = useState(new Set());
   const [submitting,          setSubmitting]         = useState(false);
   const [formError,           setFormError]          = useState("");
   const [formLoading,         setFormLoading]        = useState(false);
@@ -55,14 +56,30 @@ export default function Dashboard() {
       if (!user) return;
 
       const { data: userRow } = await supabase
-        .from("users").select("user_id").eq("auth_id", user.id).single();
+        .from("users")
+        .select("user_id, first_name, middle_name, last_name, email")
+        .eq("auth_id", user.id).single();
 
       const { data: studentRow } = await supabase
-        .from("students").select("student_id, course, year_level").eq("user_id", userRow.user_id).single();
+        .from("students")
+        .select("student_id, course, year_level, gender, contact_number, school_id")
+        .eq("user_id", userRow.user_id).single();
 
       const sid = studentRow.student_id;
       setStudentId(sid);
-      setStudentProfile({ course: studentRow.course, year_level: studentRow.year_level });
+      setStudentProfile({
+        course: studentRow.course,
+        year_level: studentRow.year_level,
+        // Everything below is only used for auto-filling the application
+        // form (see autofillFromProfile) — not referenced elsewhere yet.
+        first_name: userRow.first_name,
+        middle_name: userRow.middle_name,
+        last_name: userRow.last_name,
+        email: userRow.email,
+        gender: studentRow.gender,
+        contact_number: studentRow.contact_number,
+        school_id: studentRow.school_id,
+      });
 
       const [{ data: appData }, { data: scholData }, { data: reqMap }, { data: studData }, { data: eligDefs }] =
         await Promise.all([
@@ -116,6 +133,46 @@ export default function Dashboard() {
     });
   };
 
+  // ── auto-fill application form from saved profile ──────────
+  // Matches a form field's label (set by whoever built the scholarship's
+  // form — free text, so wording varies) against the student's saved
+  // profile, and pre-fills any confident match. Deliberately conservative:
+  // only maps fields we're confident about, and explicitly excludes
+  // matches like "Father's Name" or "Mother's Contact Number" so a
+  // relative's field never gets silently filled with the student's own
+  // info just because it also contains the word "name" or "contact".
+  const PROFILE_FIELD_MATCHERS = [
+    { test: (l) => /first\s*name/i.test(l),                 get: (p) => p.first_name },
+    { test: (l) => /middle\s*name/i.test(l),                get: (p) => p.middle_name },
+    { test: (l) => /last\s*name|surname/i.test(l),          get: (p) => p.last_name },
+    { test: (l) => /e-?mail/i.test(l),                      get: (p) => p.email },
+    { test: (l) => /(mobile|contact|cell)\s*(number|no\.?)?|phone\s*(number|no\.?)?/i.test(l), get: (p) => p.contact_number },
+    { test: (l) => /school\s*id/i.test(l),                  get: (p) => p.school_id },
+    { test: (l) => /\bcourse\b|\bprogram\b/i.test(l),       get: (p) => p.course },
+    { test: (l) => /year\s*level/i.test(l),                 get: (p) => p.year_level },
+    { test: (l) => /\bsex\b|\bgender\b/i.test(l),           get: (p) => p.gender },
+  ];
+  const EXCLUDE_PATTERN = /father|mother|guardian|spouse|parent|sibling/i;
+
+  const autofillFromProfile = (fields, profile) => {
+    if (!profile) return {};
+    const filled = {};
+    for (const field of fields) {
+      if (field.field_type === "file") continue; // nothing to prefill for uploads
+      const label = field.label || "";
+      if (EXCLUDE_PATTERN.test(label)) continue;
+
+      const match = PROFILE_FIELD_MATCHERS.find((m) => m.test(label));
+      if (!match) continue;
+
+      const value = match.get(profile);
+      if (value === null || value === undefined || value === "") continue;
+
+      filled[field.field_id] = String(value);
+    }
+    return filled;
+  };
+
   // ── apply modal ─────────────────────────────────────────
   const openApply = async (scholarship) => {
     setSelectedScholarship(scholarship);
@@ -142,6 +199,16 @@ export default function Dashboard() {
       .from("scholarship_form_fields").select("*").eq("form_id", form.form_id);
 
     setFormFields(fields || []);
+
+    // Pre-fill whatever we can confidently match from the saved profile.
+    // The student can still edit or clear any of these before submitting —
+    // this just saves them from retyping their own name/contact info on
+    // every single application.
+    const prefilled = autofillFromProfile(fields || [], studentProfile);
+    setFormAnswers(prefilled);
+    answersRef.current = prefilled;
+    setAutofilledFieldIds(new Set(Object.keys(prefilled).map(String)));
+
     setFormLoading(false);
   };
 
@@ -153,6 +220,7 @@ export default function Dashboard() {
     setFormAnswers({});
     setFileAnswers({});
     setUploadingFields(new Set());
+    setAutofilledFieldIds(new Set());
     answersRef.current = {};
     setFormError("");
   };
@@ -585,6 +653,9 @@ export default function Dashboard() {
                           <label className={s.fieldLabel} htmlFor={`ff-${field.field_id}`}>
                             {field.label}
                             {field.is_required && <span className={s.req}> *</span>}
+                            {autofilledFieldIds.has(String(field.field_id)) && (
+                              <span className={s.autofillHint}> · from your profile</span>
+                            )}
                           </label>
 
                           {field.field_type === "file" ? (
