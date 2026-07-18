@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import AnnouncementModal from "@/components/ui/AnnouncementModal";
+import { useToast } from "@/context/ToastContext";
 
 // ─── stable style objects defined outside the component ──────────────────────
 const st = {
@@ -63,6 +64,7 @@ const COLUMN_LABELS = {
 };
 
 export default function CoordinatorDashboard() {
+  const toast = useToast();
   const [applications,   setApplications]   = useState([]);
   const [selectedApp,    setSelectedApp]    = useState(null);
   const [answers,        setAnswers]        = useState([]);
@@ -75,11 +77,148 @@ export default function CoordinatorDashboard() {
   const [generating,     setGenerating]    = useState(false);
   const [form,           setForm]          = useState({ academic_year:"", semester:"" });
   const [reportLayout,   setReportLayout]  = useState("portrait");
+  const [reportType,     setReportType]    = useState("applications"); // "applications" | "scholarshipUtilization"
   const [reportTitle,    setReportTitle]   = useState("SCHOLARSHIP REPORT");
   const [columns,        setColumns]       = useState({ schoolId:true, studentName:true, scholarship:true, course:true, yearLevel:true, academicYear:true, semester:true, status:true });
   const [signatories,    setSignatories]   = useState([{ label:"", name:"", position:"" }]);
   const [filterOptions,  setFilterOptions] = useState({ scholarships:[], courses:[], yearLevels:[], statuses:[], academicYears:[] });
   const [reportFilters,  setReportFilters] = useState({ academicYear:"All", semester:"All", scholarship:"All", course:"All", yearLevel:"All", status:"All" });
+
+  // ── extra report datasets — fetched lazily, only when that report
+  //    type is actually selected, so opening the report modal for the
+  //    (much more common) Applications report never pays this cost ──
+  const [granteesData,      setGranteesData]      = useState([]);
+  const [granteesLoading,   setGranteesLoading]   = useState(false);
+  const [granteesLoaded,    setGranteesLoaded]    = useState(false);
+  const [granteeFilters,    setGranteeFilters]    = useState({ status:"All", academicYear:"All", semester:"All", scholarship:"All" });
+
+  const [scholarshipsData,    setScholarshipsData]    = useState([]);
+  const [scholarshipsLoading, setScholarshipsLoading] = useState(false);
+  const [scholarshipsLoaded,  setScholarshipsLoaded]  = useState(false);
+  const [scholarshipStatusFilter, setScholarshipStatusFilter] = useState("All");
+
+  const [studentsData,     setStudentsData]     = useState([]);
+  const [studentsLoading,  setStudentsLoading]  = useState(false);
+  const [studentsLoaded,   setStudentsLoaded]   = useState(false);
+  const [studentReportFilters, setStudentReportFilters] = useState({ status:"All", course:"All", yearLevel:"All" });
+
+  // Compliance is derived, not its own table: for each grantee, how many
+  // of their scholarship's required application_requirements do they
+  // have a matching row for in application_documents.
+  const [complianceRaw,     setComplianceRaw]     = useState({ docsByApp: {}, reqsByScholarship: {} });
+  const [complianceLoading, setComplianceLoading] = useState(false);
+  const [complianceLoaded,  setComplianceLoaded]  = useState(false);
+  const [complianceScholarshipFilter, setComplianceScholarshipFilter] = useState("All");
+
+  const [requirementsData,    setRequirementsData]    = useState({ application: [], eligibility: [] });
+  const [requirementsLoading, setRequirementsLoading] = useState(false);
+  const [requirementsLoaded,  setRequirementsLoaded]  = useState(false);
+  const [requirementTypeFilter, setRequirementTypeFilter] = useState("All"); // All | Application | Eligibility
+
+  const loadGranteesReport = async () => {
+    if (granteesLoaded || granteesLoading) return;
+    setGranteesLoading(true);
+    const { data, error } = await supabase.from("grantees").select(`
+      grantee_id, application_id, scholarship_id, status, date_awarded, academic_year, semester,
+      students ( school_id, course, year_level, users ( first_name, last_name ) ),
+      scholarships ( scholarship_name )
+    `).order("date_awarded", { ascending: false });
+    if (error) { toast.error("Failed to load grantees: " + error.message); setGranteesLoading(false); return; }
+    setGranteesData(data || []);
+    setGranteesLoaded(true);
+    setGranteesLoading(false);
+  };
+
+  const loadScholarshipsReport = async () => {
+    if (scholarshipsLoaded || scholarshipsLoading) return;
+    setScholarshipsLoading(true);
+    const { data, error } = await supabase.from("scholarships")
+      .select("scholarship_id, scholarship_name, sponsor, amount, total_budget, slots, status, submission_deadline")
+      .order("scholarship_name", { ascending: true });
+    if (error) { toast.error("Failed to load scholarships: " + error.message); setScholarshipsLoading(false); return; }
+    setScholarshipsData(data || []);
+    setScholarshipsLoaded(true);
+    setScholarshipsLoading(false);
+  };
+
+  const loadStudentsReport = async () => {
+    if (studentsLoaded || studentsLoading) return;
+    setStudentsLoading(true);
+    const { data, error } = await supabase.from("students")
+      .select("student_id, school_id, course, year_level, gender, contact_number, status, users(first_name,last_name)")
+      .order("school_id", { ascending: true });
+    if (error) { toast.error("Failed to load students: " + error.message); setStudentsLoading(false); return; }
+    setStudentsData(data || []);
+    setStudentsLoaded(true);
+    setStudentsLoading(false);
+  };
+
+  const loadComplianceReport = async () => {
+    if (complianceLoaded || complianceLoading) return;
+    setComplianceLoading(true);
+
+    // Compliance is meaningless without the grantees list — make sure
+    // it's there too, even if the person jumps straight to this report
+    // without visiting Grantees first.
+    if (!granteesLoaded) await loadGranteesReport();
+
+    const [{ data: docs, error: docErr }, { data: reqLinks, error: reqErr }] = await Promise.all([
+      supabase.from("application_documents").select("application_id, requirement_name"),
+      supabase.from("scholarship_requirements")
+        .select("scholarship_id, application_requirements(requirement_name)")
+        .not("application_requirement_id", "is", null),
+    ]);
+
+    if (docErr || reqErr) {
+      toast.error("Failed to load compliance data: " + (docErr || reqErr).message);
+      setComplianceLoading(false);
+      return;
+    }
+
+    const docsByApp = {};
+    (docs || []).forEach((d) => {
+      if (!docsByApp[d.application_id]) docsByApp[d.application_id] = new Set();
+      docsByApp[d.application_id].add(d.requirement_name);
+    });
+
+    const reqsByScholarship = {};
+    (reqLinks || []).forEach((r) => {
+      const name = r.application_requirements?.requirement_name;
+      if (!name) return;
+      if (!reqsByScholarship[r.scholarship_id]) reqsByScholarship[r.scholarship_id] = new Set();
+      reqsByScholarship[r.scholarship_id].add(name);
+    });
+
+    setComplianceRaw({ docsByApp, reqsByScholarship });
+    setComplianceLoaded(true);
+    setComplianceLoading(false);
+  };
+
+  const loadRequirementsReport = async () => {
+    if (requirementsLoaded || requirementsLoading) return;
+    setRequirementsLoading(true);
+    const [{ data: appReqs, error: e1 }, { data: eligReqs, error: e2 }] = await Promise.all([
+      supabase.from("application_requirements").select("*"),
+      supabase.from("eligibility_requirements").select("*"),
+    ]);
+    if (e1 || e2) {
+      toast.error("Failed to load requirements: " + (e1 || e2).message);
+      setRequirementsLoading(false);
+      return;
+    }
+    setRequirementsData({ application: appReqs || [], eligibility: eligReqs || [] });
+    setRequirementsLoaded(true);
+    setRequirementsLoading(false);
+  };
+
+  const selectReportType = (type) => {
+    setReportType(type);
+    if (type === "grantees")      loadGranteesReport();
+    if (type === "scholarships")  loadScholarshipsReport();
+    if (type === "students")      loadStudentsReport();
+    if (type === "compliance")    loadComplianceReport();
+    if (type === "requirements")  loadRequirementsReport();
+  };
 
   useEffect(() => { load(); loadAcademic(); loadScholarStats(); loadUpcomingDeadlines(); }, []);
 
@@ -157,6 +296,74 @@ export default function CoordinatorDashboard() {
     return true;
   });
 
+  const filteredGrantees = granteesData.filter(g=>{
+    if (granteeFilters.status!=="All"      && g.status!==granteeFilters.status) return false;
+    if (granteeFilters.academicYear!=="All"&& g.academic_year!==granteeFilters.academicYear) return false;
+    if (granteeFilters.semester!=="All"    && g.semester!==granteeFilters.semester) return false;
+    if (granteeFilters.scholarship!=="All" && g.scholarships?.scholarship_name!==granteeFilters.scholarship) return false;
+    return true;
+  });
+
+  const filteredScholarships = scholarshipsData.filter(s=>{
+    if (scholarshipStatusFilter!=="All" && s.status!==scholarshipStatusFilter) return false;
+    return true;
+  });
+
+  const granteeStatusOptions = [...new Set(granteesData.map(g=>g.status).filter(Boolean))];
+
+  const filteredStudents = studentsData.filter(s=>{
+    if (studentReportFilters.status!=="All"    && s.status!==studentReportFilters.status) return false;
+    if (studentReportFilters.course!=="All"    && s.course!==studentReportFilters.course) return false;
+    if (studentReportFilters.yearLevel!=="All" && String(s.year_level)!==studentReportFilters.yearLevel) return false;
+    return true;
+  });
+  const studentStatusOptions = [...new Set(studentsData.map(s=>s.status).filter(Boolean))];
+  const studentCourseOptions = [...new Set(studentsData.map(s=>s.course).filter(Boolean))];
+  const studentYearOptions   = [...new Set(studentsData.map(s=>s.year_level).filter(Boolean))].sort();
+
+  // Derived compliance rows — one per grantee, cross-referencing how many
+  // of their scholarship's required documents they've actually submitted.
+  const complianceRows = granteesData
+    .filter(g => complianceScholarshipFilter==="All" || g.scholarships?.scholarship_name===complianceScholarshipFilter)
+    .map(g => {
+      const required  = complianceRaw.reqsByScholarship[g.scholarship_id] || new Set();
+      const submitted = complianceRaw.docsByApp[g.application_id] || new Set();
+      const submittedCount = [...required].filter(name => submitted.has(name)).length;
+      return {
+        ...g,
+        requiredCount:  required.size,
+        submittedCount,
+        complete: required.size === 0 || submittedCount >= required.size,
+      };
+    });
+
+  const combinedRequirements = [
+    ...requirementsData.application.map(r => ({ ...r, kind: "Application" })),
+    ...requirementsData.eligibility.map(r => ({ ...r, kind: "Eligibility" })),
+  ];
+  const filteredRequirements = combinedRequirements.filter(r =>
+    requirementTypeFilter === "All" || r.kind === requirementTypeFilter
+  );
+
+  // Single source of truth for "how many records does the currently
+  // selected report type have" — used for the preview count, the Export
+  // button label, and its disabled state, instead of repeating a 7-way
+  // ternary in three different places.
+  const REPORT_RECORDS = {
+    applications:            filtered,
+    scholarshipUtilization:  scholarStats,
+    grantees:                filteredGrantees,
+    scholarships:            filteredScholarships,
+    students:                filteredStudents,
+    compliance:               complianceRows,
+    requirements:            filteredRequirements,
+  };
+  const activeRecords = REPORT_RECORDS[reportType] || [];
+  const activeLoading = {
+    grantees: granteesLoading, scholarships: scholarshipsLoading, students: studentsLoading,
+    compliance: complianceLoading, requirements: requirementsLoading,
+  }[reportType] || false;
+
   // ── PDF generation ────────────────────────────────────────────────────────
   const generatePDF = async () => {
     setGenerating(true);
@@ -173,6 +380,8 @@ export default function CoordinatorDashboard() {
     const LIGHT = [243, 247, 251];
     const BODY  = [44,  62,  77];
     const MUTED = [100, 116, 132];
+    const BLACK = [0,   0,   0];   // table body text — no color, per report design
+    const GRID  = [190, 190, 190]; // neutral gray gridlines — no blue tint
 
     const loadImg = (src) => new Promise(resolve => {
       const img = new Image(); img.src = src;
@@ -273,32 +482,110 @@ export default function CoordinatorDashboard() {
       semester:     "Semester",
       status:       "Status",
     };
-    const headers = ["#", ...Object.entries(SHORT_LABELS).filter(([k]) => columns[k]).map(([, v]) => v)];
-    const rows = filtered.map((a, idx) => {
-      const row = [String(idx + 1)];
-      if (columns.schoolId)     row.push(a.students?.school_id || "—");
-      if (columns.studentName)  row.push(`${a.students?.users?.first_name || ""} ${a.students?.users?.last_name || ""}`.trim() || "—");
-      if (columns.scholarship)  row.push(a.scholarships?.scholarship_name || "—");
-      if (columns.course)       row.push(a.students?.course || "—");
-      if (columns.yearLevel)    row.push(String(a.students?.year_level || "—"));
-      if (columns.academicYear) row.push(a.academic_year || "—");
-      if (columns.semester)     row.push(a.semester || "—");
-      if (columns.status)       row.push(a.status || "—");
-      return row;
-    });
 
-    const statusColIdx = headers.indexOf("Status");
+    let headers, rows, statusColIdx;
+
+    if (reportType === "scholarshipUtilization") {
+      headers = ["#", "Scholarship", "Slots", "Occupied", "Remaining"];
+      rows = scholarStats.map((s, idx) => [
+        String(idx + 1),
+        s.scholarship_name || "—",
+        String(s.slots ?? "—"),
+        String(s.occupied ?? 0),
+        String((s.slots ?? 0) - (s.occupied ?? 0)),
+      ]);
+      statusColIdx = -1;
+    } else if (reportType === "grantees") {
+      headers = ["#", "School ID", "Name", "Scholarship", "Status", "Date Awarded", "Acad. Year", "Semester"];
+      rows = filteredGrantees.map((g, idx) => [
+        String(idx + 1),
+        g.students?.school_id || "—",
+        `${g.students?.users?.first_name || ""} ${g.students?.users?.last_name || ""}`.trim() || "—",
+        g.scholarships?.scholarship_name || "—",
+        g.status || "—",
+        g.date_awarded || "—",
+        g.academic_year || "—",
+        g.semester || "—",
+      ]);
+      statusColIdx = headers.indexOf("Status");
+    } else if (reportType === "scholarships") {
+      headers = ["#", "Scholarship", "Sponsor", "Amount", "Budget", "Slots", "Status", "Deadline"];
+      rows = filteredScholarships.map((s, idx) => [
+        String(idx + 1),
+        s.scholarship_name || "—",
+        s.sponsor || "—",
+        s.amount != null ? `₱${Number(s.amount).toLocaleString()}` : "—",
+        s.total_budget != null ? `₱${Number(s.total_budget).toLocaleString()}` : "—",
+        String(s.slots ?? "—"),
+        s.status || "—",
+        s.submission_deadline || "—",
+      ]);
+      statusColIdx = headers.indexOf("Status");
+    } else if (reportType === "students") {
+      headers = ["#", "School ID", "Name", "Course", "Year", "Gender", "Contact No.", "Status"];
+      rows = filteredStudents.map((s, idx) => [
+        String(idx + 1),
+        s.school_id || "—",
+        `${s.users?.first_name || ""} ${s.users?.last_name || ""}`.trim() || "—",
+        s.course || "—",
+        String(s.year_level || "—"),
+        s.gender || "—",
+        s.contact_number || "—",
+        s.status || "—",
+      ]);
+      statusColIdx = headers.indexOf("Status");
+    } else if (reportType === "compliance") {
+      headers = ["#", "School ID", "Name", "Scholarship", "Required", "Submitted", "Status"];
+      rows = complianceRows.map((g, idx) => [
+        String(idx + 1),
+        g.students?.school_id || "—",
+        `${g.students?.users?.first_name || ""} ${g.students?.users?.last_name || ""}`.trim() || "—",
+        g.scholarships?.scholarship_name || "—",
+        String(g.requiredCount),
+        String(g.submittedCount),
+        g.complete ? "Complete" : "Incomplete",
+      ]);
+      statusColIdx = headers.indexOf("Status");
+    } else if (reportType === "requirements") {
+      headers = ["#", "Type", "Requirement", "Requirement Type", "Description"];
+      rows = filteredRequirements.map((r, idx) => [
+        String(idx + 1),
+        r.kind,
+        r.requirement_name || "—",
+        r.requirement_type || "—",
+        r.description || "—",
+      ]);
+      statusColIdx = -1;
+    } else {
+      headers = ["#", ...Object.entries(SHORT_LABELS).filter(([k]) => columns[k]).map(([, v]) => v)];
+      rows = filtered.map((a, idx) => {
+        const row = [String(idx + 1)];
+        if (columns.schoolId)     row.push(a.students?.school_id || "—");
+        if (columns.studentName)  row.push(`${a.students?.users?.first_name || ""} ${a.students?.users?.last_name || ""}`.trim() || "—");
+        if (columns.scholarship)  row.push(a.scholarships?.scholarship_name || "—");
+        if (columns.course)       row.push(a.students?.course || "—");
+        if (columns.yearLevel)    row.push(String(a.students?.year_level || "—"));
+        if (columns.academicYear) row.push(a.academic_year || "—");
+        if (columns.semester)     row.push(a.semester || "—");
+        if (columns.status)       row.push(a.status || "—");
+        return row;
+      });
+      statusColIdx = headers.indexOf("Status");
+    }
+
+    const tableStartY = HEADER_H + 38;
+    const CORNER_R = 1.6; // mm — "a little rounder", not a dramatic pill shape
 
     autoTable(doc, {
       head:   [headers],
       body:   rows,
-      startY: HEADER_H + 38,
+      startY: tableStartY,
       margin: { top: HEADER_H + 3, bottom: FOOTER_H + 6, left: 14, right: 14 },
       styles: {
         fontSize:     8.5,
         cellPadding:  { top: 5, bottom: 5, left: 5, right: 5 },
-        textColor:    BODY,
-        lineColor:    [210, 220, 228],
+        textColor:    BLACK,
+        lineColor:    GRID,
         lineWidth:    0.18,
         font:         "helvetica",
         overflow:     "linebreak",
@@ -311,21 +598,48 @@ export default function CoordinatorDashboard() {
         fontSize:    7.5,
         cellPadding: { top: 6, bottom: 6, left: 5, right: 5 },
       },
-      alternateRowStyles: { fillColor: LIGHT },
-      // # column — narrow and centered
+      // # column — narrow and centered, same black text as the rest
       columnStyles: {
-        0: { halign: "center", cellWidth: 10, textColor: MUTED },
+        0: { halign: "center", cellWidth: 10 },
       },
       didParseCell: (data) => {
+        // Status used to be color-coded (green/red/amber). Kept as plain
+        // bold black text instead — distinguishable by weight, not hue,
+        // to match the black-and-white table body.
         if (data.section === "body" && data.column.index === statusColIdx && statusColIdx !== -1) {
-          const val = data.cell.raw;
           data.cell.styles.fontStyle = "bold";
-          if      (val === "Approved") data.cell.styles.textColor = [22,  163, 74];
-          else if (val === "Rejected") data.cell.styles.textColor = [220, 38,  38];
-          else if (val === "Pending")  data.cell.styles.textColor = [217, 119, 6];
-          else if (val === "Active")   data.cell.styles.textColor = [22,  163, 74];
-          else                         data.cell.styles.textColor = MUTED;
         }
+      },
+      didDrawCell: (data) => {
+        // Round just the two outer top corners of the header row (first
+        // and last column), by painting over the default square header
+        // cell with a uniformly-rounded rect of the same fill. Repaints
+        // in the same navy, so it sits seamlessly over the square one
+        // autoTable already drew — this only softens the two corners
+        // that are actually visible as the table's outer edge.
+        if (data.section !== "head") return;
+        const isFirstCol = data.column.index === 0;
+        const isLastCol  = data.column.index === headers.length - 1;
+        if (!isFirstCol && !isLastCol) return;
+
+        const { x, y, width: w, height: h } = data.cell;
+        doc.setFillColor(...NAVY);
+        doc.roundedRect(x, y, w, h, CORNER_R, CORNER_R, "F");
+
+        // roundedRect rounds all 4 corners — re-square the two inner
+        // corners (the ones touching the middle of the header row) so
+        // only the true outer edge of the table looks rounded.
+        const patch = CORNER_R;
+        doc.setFillColor(...NAVY);
+        if (isFirstCol) doc.rect(x + w - patch, y, patch, h, "F"); // re-square top-right of first cell
+        if (isLastCol)  doc.rect(x, y, patch, h, "F");             // re-square top-left of last cell
+
+        // Redraw the header text — the rect repaint above covered it
+        doc.setTextColor(...WHITE);
+        doc.setFontSize(7.5); doc.setFont("helvetica", "bold");
+        const textX = data.cell.x + data.cell.padding("left");
+        const textY = data.cell.y + data.cell.height / 2 + 2.6;
+        doc.text(String(data.cell.raw ?? ""), textX, textY);
       },
       didDrawPage: (data) => {
         drawHeader();
@@ -333,65 +647,124 @@ export default function CoordinatorDashboard() {
       },
     });
 
+    // Subtle rounded-corner frame around the table's outer perimeter.
+    // NOTE: computed for a single continuous block (start of table to
+    // where it finished) — correct for the common case of a report that
+    // fits on one or two pages. For a very long multi-page table, this
+    // draws around the last page's segment only; the earlier pages'
+    // gridlines stay square. Good enough for "a little rounder" as a
+    // modest visual touch, not worth the complexity of tracking exact
+    // per-page boundaries for what's meant to be a subtle detail.
+    const tableBottom = doc.lastAutoTable.finalY;
+    doc.setDrawColor(...GRID);
+    doc.setLineWidth(0.25);
+    doc.roundedRect(14, tableStartY, pw - 28, tableBottom - tableStartY, CORNER_R, CORNER_R, "S");
+
     const ay  = academic?.academic_year?.replace(/[^a-zA-Z0-9]/g, "_") || "Report";
     const sem = academic?.semester?.replace(/\s+/g, "_") || "";
+    const REPORT_FILE_TAGS = {
+      applications:           "Report",
+      scholarshipUtilization: "Scholarship_Utilization",
+      grantees:               "Grantees",
+      scholarships:           "Scholarships",
+      students:               "Students",
+      compliance:              "Compliance",
+      requirements:           "Requirements",
+    };
+    const filename = `SmartScholar_${REPORT_FILE_TAGS[reportType] || "Report"}_${ay}${sem ? "_" + sem : ""}.pdf`;
 
     // ── Signatories (only if at least one has content) ────────────────────
     const validSigs = signatories.filter(s => s.name.trim() || s.position.trim());
     if (validSigs.length > 0) {
-      let y = (doc.lastAutoTable.finalY || 140) + 14;
+      // Split into rows of up to 3. If the naive chunking would leave a
+      // lonely single signatory on its own row (e.g. 4 → [3,1], 7 → [3,3,1]),
+      // borrow one from the previous row to balance it instead (4 → [2,2],
+      // 7 → [3,2,2]) so nothing ever sits alone on a row by itself.
+      const chunkSignatories = (sigs, perRow = 3) => {
+        const sizes = [];
+        let remaining = sigs.length;
+        while (remaining > 0) {
+          if (remaining === 1 && sizes.length > 0) {
+            sizes[sizes.length - 1] -= 1;
+            sizes.push(2);
+            remaining = 0;
+          } else if (remaining > perRow) {
+            sizes.push(perRow);
+            remaining -= perRow;
+          } else {
+            sizes.push(remaining);
+            remaining = 0;
+          }
+        }
+        const rows = [];
+        let idx = 0;
+        for (const size of sizes) {
+          rows.push(sigs.slice(idx, idx + size));
+          idx += size;
+        }
+        return rows;
+      };
 
-      if (y + 45 > ph - FOOTER_H - 10) {
-        doc.addPage();
-        drawHeader();
-        drawFooter(doc.internal.getNumberOfPages());
-        y = HEADER_H + 20;
-      }
-
-      // Each signatory gets a fixed-width column starting from the left.
-      // Max 3 per row so they never get too narrow.
+      const sigRows  = chunkSignatories(validSigs, 3);
       const COL_W    = 60;   // mm per signatory column
       const LINE_W   = 52;   // width of the signature line
       const SIG_H    = 18;   // blank space above the line for the actual signature
+      const ROW_H    = 40;   // vertical space each signatory row needs, label to position
 
-      validSigs.forEach((sig, i) => {
-        const x = 14 + i * (COL_W + 4);
+      let y = (doc.lastAutoTable.finalY || 140) + 14;
 
-        // Label (e.g. "Prepared by") — small caps above everything
-        if (sig.label) {
-          doc.setTextColor(...MUTED);
-          doc.setFontSize(7.5); doc.setFont("helvetica", "bold");
-          doc.text(sig.label.toUpperCase(), x, y);
+      sigRows.forEach((row) => {
+        // Page-break check per row, not just once for the whole block —
+        // a multi-row signatory block can now be taller than one page section.
+        if (y + ROW_H > ph - FOOTER_H - 10) {
+          doc.addPage();
+          drawHeader();
+          drawFooter(doc.internal.getNumberOfPages());
+          y = HEADER_H + 20;
         }
 
-        // Blank space for the actual handwritten signature
-        // (SIG_H mm of empty space between label and the line)
-        const lineY = y + SIG_H;
+        row.forEach((sig, i) => {
+          const x = 14 + i * (COL_W + 4);
+          const centerX = x + LINE_W / 2;
 
-        // Signature line — only if name is provided
-        if (sig.name.trim()) {
-          doc.setDrawColor(...NAVY);
-          doc.setLineWidth(0.5);
-          doc.line(x, lineY, x + LINE_W, lineY);
-        }
+          // Label (e.g. "Prepared by") — small caps above everything
+          if (sig.label) {
+            doc.setTextColor(...MUTED);
+            doc.setFontSize(7.5); doc.setFont("helvetica", "bold");
+            doc.text(sig.label.toUpperCase(), x, y);
+          }
 
-        // Name — bold, left-aligned, just below the line
-        if (sig.name.trim()) {
-          doc.setTextColor(...NAVY);
-          doc.setFontSize(8.5); doc.setFont("helvetica", "bold");
-          doc.text(sig.name.toUpperCase(), x, lineY + 5);
-        }
+          // Blank space for the actual handwritten signature
+          // (SIG_H mm of empty space between label and the line)
+          const lineY = y + SIG_H;
 
-        // Position — muted, left-aligned, below the name
-        if (sig.position.trim()) {
-          doc.setTextColor(...BODY);
-          doc.setFontSize(7.5); doc.setFont("helvetica", "normal");
-          doc.text(sig.position, x, lineY + 11);
-        }
+          // Signature line — only if name is provided
+          if (sig.name.trim()) {
+            doc.setDrawColor(...NAVY);
+            doc.setLineWidth(0.5);
+            doc.line(x, lineY, x + LINE_W, lineY);
+          }
+
+          // Name — bold, centered under the signature line
+          if (sig.name.trim()) {
+            doc.setTextColor(...NAVY);
+            doc.setFontSize(8.5); doc.setFont("helvetica", "bold");
+            doc.text(sig.name.toUpperCase(), centerX, lineY + 5, { align: "center" });
+          }
+
+          // Position — muted, centered under the name
+          if (sig.position.trim()) {
+            doc.setTextColor(...BODY);
+            doc.setFontSize(7.5); doc.setFont("helvetica", "normal");
+            doc.text(sig.position, centerX, lineY + 11, { align: "center" });
+          }
+        });
+
+        y += ROW_H;
       });
     }
 
-    doc.save(`SmartScholar_Report_${ay}${sem ? "_" + sem : ""}.pdf`);
+    doc.save(filename);
     setGenerating(false);
   };
 
@@ -561,6 +934,40 @@ export default function CoordinatorDashboard() {
 
             <div style={st.modalBody}>
 
+              {/* Report Type */}
+              <div>
+                <p style={st.sectionLabel}>Report Type</p>
+                <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
+                  {[
+                    ["applications", "Applications Report"],
+                    ["scholarshipUtilization", "Scholarship Slot Utilization"],
+                    ["grantees", "Grantees Report"],
+                    ["scholarships", "Scholarships Report"],
+                    ["students", "Students Report"],
+                    ["compliance", "Compliance Report"],
+                    ["requirements", "Requirements Report"],
+                  ].map(([v,label])=>{
+                    const isLoadingThis = {
+                      grantees: granteesLoading, scholarships: scholarshipsLoading, students: studentsLoading,
+                      compliance: complianceLoading, requirements: requirementsLoading,
+                    }[v];
+                    return (
+                    <button key={v} onClick={()=>selectReportType(v)} style={{
+                      padding:"10px 16px",
+                      borderRadius:8,
+                      border: reportType===v ? "2px solid var(--navy-600)" : "1px solid var(--border-strong)",
+                      background: reportType===v ? "var(--navy-50)" : "var(--surface)",
+                      color: reportType===v ? "var(--navy-700)" : "var(--text-primary)",
+                      fontWeight: reportType===v ? 700 : 500,
+                      fontSize:13, cursor:"pointer",
+                    }}>
+                      {label}{isLoadingThis ? " …" : ""}
+                    </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Report Title */}
               <div>
                 <p style={st.sectionLabel}>Report Title</p>
@@ -592,6 +999,8 @@ export default function CoordinatorDashboard() {
                 </div>
               </div>
 
+              {reportType === "applications" && (
+              <>
               {/* Filters */}
               <div>
                 <p style={st.sectionLabel}>Filters</p>
@@ -633,6 +1042,87 @@ export default function CoordinatorDashboard() {
                   ))}
                 </div>
               </div>
+              </>
+              )}
+
+              {reportType === "grantees" && (
+                <div>
+                  <p style={st.sectionLabel}>Filters</p>
+                  <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))", gap:10}}>
+                    {[
+                      ["Status",        "status",       ["All",...granteeStatusOptions]],
+                      ["Academic Year", "academicYear", ["All",...filterOptions.academicYears]],
+                      ["Semester",      "semester",     ["All","1st Semester","2nd Semester"]],
+                      ["Scholarship",   "scholarship",  ["All",...filterOptions.scholarships]],
+                    ].map(([label,key,opts])=>(
+                      <div key={key}>
+                        <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>{label}</label>
+                        <select style={st.sel} value={granteeFilters[key]}
+                          onChange={e=>setGranteeFilters({...granteeFilters,[key]:e.target.value})}>
+                          {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {reportType === "scholarships" && (
+                <div>
+                  <p style={st.sectionLabel}>Filters</p>
+                  <div style={{maxWidth:220}}>
+                    <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>Status</label>
+                    <select style={st.sel} value={scholarshipStatusFilter} onChange={e=>setScholarshipStatusFilter(e.target.value)}>
+                      {["All","Active","Inactive"].map(o=><option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {reportType === "students" && (
+                <div>
+                  <p style={st.sectionLabel}>Filters</p>
+                  <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))", gap:10}}>
+                    {[
+                      ["Status",     "status",     ["All",...studentStatusOptions]],
+                      ["Course",     "course",     ["All",...studentCourseOptions]],
+                      ["Year Level", "yearLevel",  ["All",...studentYearOptions.map(String)]],
+                    ].map(([label,key,opts])=>(
+                      <div key={key}>
+                        <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>{label}</label>
+                        <select style={st.sel} value={studentReportFilters[key]}
+                          onChange={e=>setStudentReportFilters({...studentReportFilters,[key]:e.target.value})}>
+                          {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {reportType === "compliance" && (
+                <div>
+                  <p style={st.sectionLabel}>Filters</p>
+                  <div style={{maxWidth:220}}>
+                    <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>Scholarship</label>
+                    <select style={st.sel} value={complianceScholarshipFilter} onChange={e=>setComplianceScholarshipFilter(e.target.value)}>
+                      {["All",...filterOptions.scholarships].map(o=><option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {reportType === "requirements" && (
+                <div>
+                  <p style={st.sectionLabel}>Filters</p>
+                  <div style={{maxWidth:220}}>
+                    <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>Type</label>
+                    <select style={st.sel} value={requirementTypeFilter} onChange={e=>setRequirementTypeFilter(e.target.value)}>
+                      {["All","Application","Eligibility"].map(o=><option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
 
               {/* Signatories */}
               <div>
@@ -678,66 +1168,152 @@ export default function CoordinatorDashboard() {
                 </button>
               </div>
 
-              {/* Live preview */}
+              {/* Live preview — one config-driven table for every report
+                  type instead of a separate hand-written <table> per
+                  type. Every report always gets a leading '#' column. */}
               <div>
                 <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8}}>
                   <p style={{...st.sectionLabel, margin:0}}>
                     Preview
                     <span style={{marginLeft:8, fontWeight:400, textTransform:"none", letterSpacing:0, color:"var(--text-secondary)"}}>
-                      — {filtered.length} record{filtered.length!==1?"s":""}
+                      — {activeRecords.length} record{activeRecords.length!==1?"s":""}
                     </span>
                   </p>
                 </div>
                 <div style={st.previewWrap}>
-                  <table style={st.previewTable}>
-                    <thead>
-                      <tr>
-                        {Object.entries(COLUMN_LABELS).filter(([k])=>columns[k]).map(([,l])=>(
-                          <th key={l} style={st.previewTh}>{l}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.slice(0,8).map((a,i)=>(
-                        <tr key={a.application_id} style={{background:i%2===0?"var(--surface)":"var(--surface-muted)"}}>
-                          {columns.schoolId     && <td style={st.previewTd}>{a.students?.school_id||"—"}</td>}
-                          {columns.studentName  && <td style={st.previewTd}>{a.students?.users?.first_name} {a.students?.users?.last_name}</td>}
-                          {columns.scholarship  && <td style={st.previewTd}>{a.scholarships?.scholarship_name||"—"}</td>}
-                          {columns.course       && <td style={st.previewTd}>{a.students?.course||"—"}</td>}
-                          {columns.yearLevel    && <td style={st.previewTd}>{a.students?.year_level||"—"}</td>}
-                          {columns.academicYear && <td style={st.previewTd}>{a.academic_year||"—"}</td>}
-                          {columns.semester     && <td style={st.previewTd}>{a.semester||"—"}</td>}
-                          {columns.status       && (
-                            <td style={st.previewTd}>
-                              <span style={{
-                                padding:"3px 10px", borderRadius:999, fontSize:11, fontWeight:700,
-                                background: a.status==="Approved"?"var(--success-100)": a.status==="Rejected"?"var(--danger-100)": a.status==="Pending"?"var(--warning-100)":"var(--ink-100)",
-                                color:      a.status==="Approved"?"var(--success-700)": a.status==="Rejected"?"var(--danger-700)": a.status==="Pending"?"var(--warning-700)":"var(--ink-600)",
-                              }}>
-                                {a.status}
-                              </span>
-                            </td>
+                  {(() => {
+                    const renderStatusPill = (status) => (
+                      <span style={{
+                        padding:"3px 10px", borderRadius:999, fontSize:11, fontWeight:700,
+                        background: status==="Approved"||status==="Complete"||status==="Active"   ? "var(--success-100)"
+                                  : status==="Rejected"||status==="Incomplete"                     ? "var(--danger-100)"
+                                  : status==="Pending"                                             ? "var(--warning-100)"
+                                  : "var(--ink-100)",
+                        color:      status==="Approved"||status==="Complete"||status==="Active"    ? "var(--success-700)"
+                                  : status==="Rejected"||status==="Incomplete"                      ? "var(--danger-700)"
+                                  : status==="Pending"                                              ? "var(--warning-700)"
+                                  : "var(--ink-600)",
+                      }}>
+                        {status}
+                      </span>
+                    );
+
+                    const previewColumnsByType = {
+                      applications: [
+                        columns.schoolId     && { label:"School ID",  render:a=>a.students?.school_id||"—" },
+                        columns.studentName  && { label:"Name",       render:a=>`${a.students?.users?.first_name||""} ${a.students?.users?.last_name||""}`.trim()||"—" },
+                        columns.scholarship  && { label:"Scholarship",render:a=>a.scholarships?.scholarship_name||"—" },
+                        columns.course       && { label:"Course",     render:a=>a.students?.course||"—" },
+                        columns.yearLevel    && { label:"Year",       render:a=>a.students?.year_level||"—" },
+                        columns.academicYear && { label:"Acad. Year", render:a=>a.academic_year||"—" },
+                        columns.semester     && { label:"Semester",   render:a=>a.semester||"—" },
+                        columns.status       && { label:"Status",     render:a=>renderStatusPill(a.status) },
+                      ].filter(Boolean),
+                      scholarshipUtilization: [
+                        { label:"Scholarship", render:s=>s.scholarship_name||"—" },
+                        { label:"Slots",       render:s=>s.slots ?? "—" },
+                        { label:"Occupied",    render:s=>s.occupied ?? 0 },
+                        { label:"Remaining",   render:s=>(s.slots??0)-(s.occupied??0) },
+                      ],
+                      grantees: [
+                        { label:"School ID",    render:g=>g.students?.school_id||"—" },
+                        { label:"Name",         render:g=>`${g.students?.users?.first_name||""} ${g.students?.users?.last_name||""}`.trim()||"—" },
+                        { label:"Scholarship",  render:g=>g.scholarships?.scholarship_name||"—" },
+                        { label:"Status",       render:g=>renderStatusPill(g.status) },
+                        { label:"Date Awarded", render:g=>g.date_awarded||"—" },
+                        { label:"Acad. Year",   render:g=>g.academic_year||"—" },
+                        { label:"Semester",     render:g=>g.semester||"—" },
+                      ],
+                      scholarships: [
+                        { label:"Scholarship", render:s=>s.scholarship_name||"—" },
+                        { label:"Sponsor",     render:s=>s.sponsor||"—" },
+                        { label:"Amount",      render:s=>s.amount!=null?`₱${Number(s.amount).toLocaleString()}`:"—" },
+                        { label:"Budget",      render:s=>s.total_budget!=null?`₱${Number(s.total_budget).toLocaleString()}`:"—" },
+                        { label:"Slots",       render:s=>s.slots ?? "—" },
+                        { label:"Status",      render:s=>renderStatusPill(s.status) },
+                        { label:"Deadline",    render:s=>s.submission_deadline||"—" },
+                      ],
+                      students: [
+                        { label:"School ID",   render:s=>s.school_id||"—" },
+                        { label:"Name",        render:s=>`${s.users?.first_name||""} ${s.users?.last_name||""}`.trim()||"—" },
+                        { label:"Course",      render:s=>s.course||"—" },
+                        { label:"Year",        render:s=>s.year_level||"—" },
+                        { label:"Gender",      render:s=>s.gender||"—" },
+                        { label:"Contact No.", render:s=>s.contact_number||"—" },
+                        { label:"Status",      render:s=>renderStatusPill(s.status) },
+                      ],
+                      compliance: [
+                        { label:"School ID",   render:g=>g.students?.school_id||"—" },
+                        { label:"Name",        render:g=>`${g.students?.users?.first_name||""} ${g.students?.users?.last_name||""}`.trim()||"—" },
+                        { label:"Scholarship", render:g=>g.scholarships?.scholarship_name||"—" },
+                        { label:"Required",    render:g=>g.requiredCount },
+                        { label:"Submitted",   render:g=>g.submittedCount },
+                        { label:"Status",      render:g=>renderStatusPill(g.complete ? "Complete" : "Incomplete") },
+                      ],
+                      requirements: [
+                        { label:"Type",             render:r=>r.kind },
+                        { label:"Requirement",      render:r=>r.requirement_name||"—" },
+                        { label:"Requirement Type", render:r=>r.requirement_type||"—" },
+                        { label:"Description",      render:r=>r.description||"—" },
+                      ],
+                    };
+
+                    const keyFns = {
+                      applications:            (a)   => a.application_id,
+                      scholarshipUtilization:  (s)   => s.scholarship_id,
+                      grantees:                (g)   => g.grantee_id,
+                      scholarships:            (s)   => s.scholarship_id,
+                      students:                (s)   => s.student_id,
+                      compliance:               (g)   => g.grantee_id,
+                      requirements:            (r,i) => `${r.kind}-${r.application_requirement_id || r.eligibility_requirement_id || i}`,
+                    };
+
+                    const cols  = previewColumnsByType[reportType] || [];
+                    const keyFn = keyFns[reportType] || ((_, i) => i);
+                    const colSpan = cols.length + 1; // +1 for the '#' column
+
+                    return (
+                      <table style={st.previewTable}>
+                        <thead>
+                          <tr>
+                            <th style={st.previewTh}>#</th>
+                            {cols.map(c => <th key={c.label} style={st.previewTh}>{c.label}</th>)}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeLoading ? (
+                            <tr>
+                              <td colSpan={colSpan} style={{...st.previewTd, textAlign:"center", color:"var(--text-secondary)", padding:28}}>
+                                Loading…
+                              </td>
+                            </tr>
+                          ) : activeRecords.length === 0 ? (
+                            <tr>
+                              <td colSpan={colSpan} style={{...st.previewTd, textAlign:"center", color:"var(--text-secondary)", padding:28}}>
+                                No records found
+                              </td>
+                            </tr>
+                          ) : (
+                            <>
+                              {activeRecords.slice(0, 8).map((row, i) => (
+                                <tr key={keyFn(row, i)} style={{background:i%2===0?"var(--surface)":"var(--surface-muted)"}}>
+                                  <td style={{...st.previewTd, textAlign:"center", color:"var(--text-secondary)"}}>{i + 1}</td>
+                                  {cols.map(c => <td key={c.label} style={st.previewTd}>{c.render(row)}</td>)}
+                                </tr>
+                              ))}
+                              {activeRecords.length > 8 && (
+                                <tr>
+                                  <td colSpan={colSpan} style={{...st.previewTd, textAlign:"center", color:"var(--text-secondary)", fontStyle:"italic", fontSize:12}}>
+                                    …and {activeRecords.length - 8} more row{activeRecords.length - 8 !== 1 ? "s" : ""}
+                                  </td>
+                                </tr>
+                              )}
+                            </>
                           )}
-                        </tr>
-                      ))}
-                      {filtered.length===0 && (
-                        <tr>
-                          <td colSpan={Object.values(columns).filter(Boolean).length}
-                            style={{...st.previewTd, textAlign:"center", color:"var(--text-secondary)", padding:28}}>
-                            No records match these filters
-                          </td>
-                        </tr>
-                      )}
-                      {filtered.length>8 && (
-                        <tr>
-                          <td colSpan={Object.values(columns).filter(Boolean).length}
-                            style={{...st.previewTd, textAlign:"center", color:"var(--text-secondary)", fontStyle:"italic", fontSize:12}}>
-                            …and {filtered.length-8} more row{filtered.length-8!==1?"s":""}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                        </tbody>
+                      </table>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -748,11 +1324,11 @@ export default function CoordinatorDashboard() {
                 Cancel
               </button>
               <button
-                style={{...st.btnBlue, opacity: generating||filtered.length===0 ? .55 : 1, cursor: generating||filtered.length===0 ? "not-allowed" : "pointer"}}
+                style={{...st.btnBlue, opacity: generating||activeLoading||activeRecords.length===0 ? .55 : 1, cursor: generating||activeLoading||activeRecords.length===0 ? "not-allowed" : "pointer"}}
                 onClick={generatePDF}
-                disabled={generating||filtered.length===0}
+                disabled={generating||activeLoading||activeRecords.length===0}
               >
-                {generating ? "Generating…" : `Export PDF  (${filtered.length} record${filtered.length!==1?"s":""})`}
+                {generating ? "Generating…" : `Export PDF  (${activeRecords.length} record${activeRecords.length!==1?"s":""})`}
               </button>
             </div>
           </div>
