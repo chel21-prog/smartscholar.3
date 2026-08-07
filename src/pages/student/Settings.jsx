@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { signOutCurrentAccount } from "@/lib/authSync";
 import { useState } from "react";
 
 export default function Settings() {
@@ -7,7 +8,7 @@ export default function Settings() {
   const logout = async () => {
     setLoading(true);
 
-    await supabase.auth.signOut();
+    await signOutCurrentAccount();
 
     // redirect to login page
     window.location.href = "/";

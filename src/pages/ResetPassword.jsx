@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { signOutCurrentAccount } from "../lib/authSync";
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
 
@@ -37,7 +38,7 @@ export default function ResetPassword() {
     setLoading(false);
     if (updateError) { setError(updateError.message); return; }
     setSuccess(true);
-    await supabase.auth.signOut();
+    await signOutCurrentAccount();
     setTimeout(() => navigate("/Login"), 2500);
   };
 

@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { onRemoteSignOut } from "@/lib/authSync";
 
 const SessionContext = createContext(null);
 
@@ -36,6 +37,15 @@ export function SessionProvider({ children }) {
     const result = await fetchSession();
     setState({ loading: false, ...result });
   }, [fetchSession]);
+
+  // Kept in sync below, and read via a getter function (not the `state`
+  // value directly) by the cross-tab listener — that listener's effect
+  // only subscribes once on mount, so reading `state` directly there would
+  // capture a permanently-stale null from the first render.
+  const authUserIdRef = useRef(null);
+  useEffect(() => {
+    authUserIdRef.current = state.authUser?.id || null;
+  }, [state.authUser]);
 
   useEffect(() => {
     refresh();
@@ -77,6 +87,23 @@ export function SessionProvider({ children }) {
 
     return () => sub?.subscription?.unsubscribe();
   }, [refresh, fetchSession]);
+
+  // Cross-tab sign-out sync, scoped to this specific account. Now that
+  // each tab holds its own independent session (see lib/supabase.js),
+  // signing out in one tab no longer automatically affects any other tab
+  // — which is correct when the other tab is a *different* account, but
+  // wrong when it's the *same* account open in two tabs. This closes that
+  // gap: if the broadcasted sign-out matches this tab's current account,
+  // sign out here too (which flows into the SIGNED_OUT branch above and
+  // clears state normally). A broadcast for a different account is
+  // ignored entirely — that tab is left exactly as it was.
+  useEffect(() => {
+    const unsubscribe = onRemoteSignOut(
+      () => authUserIdRef.current,
+      () => { supabase.auth.signOut({ scope: "local" }); }
+    );
+    return unsubscribe;
+  }, []);
 
   return (
     <SessionContext.Provider value={{ ...state, refresh }}>

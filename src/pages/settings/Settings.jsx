@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { signOutCurrentAccount } from "@/lib/authSync";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, Badge } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Input";
@@ -64,7 +65,7 @@ const [showCurrent, setShowCurrent] = useState(false);
 
   const logout = async () => {
     setLoggingOut(true);
-    await supabase.auth.signOut();
+    await signOutCurrentAccount();
     navigate("/Login");
   };
 
