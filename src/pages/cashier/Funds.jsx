@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import SearchFilterBar from "@/components/ui/SearchFilterBar";
+import StatCard from "@/components/ui/StatCard";
+import TableSkeleton from "@/components/ui/TableSkeleton";
+import { getCached, setCached } from "@/lib/dataCache";
 import s from "./Funds.module.css";
 
 const PAGE_SIZE = 8;
@@ -165,9 +169,12 @@ function buildSchedule(grantee, scholarship) {
   });
 }
 
+const CACHE_KEY = "cashier-funds";
+
 export default function Funds() {
-  const [loading, setLoading] = useState(true);
-  const [scholarships, setScholarships] = useState([]);
+  const cachedScholarships = getCached(CACHE_KEY);
+  const [loading, setLoading] = useState(!cachedScholarships);
+  const [scholarships, setScholarships] = useState(cachedScholarships || []);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
   const [page, setPage] = useState(1);
@@ -191,7 +198,7 @@ export default function Funds() {
   useEffect(() => { loadScholarships(); }, []);
 
   async function loadScholarships() {
-    setLoading(true);
+    if (!getCached(CACHE_KEY)) setLoading(true);
     const { data, error } = await supabase
       .from("scholarships")
       .select(`
@@ -243,6 +250,7 @@ export default function Funds() {
     }
 
     setScholarships(data || []);
+    setCached(CACHE_KEY, data || []);
     setLoading(false);
     return data || [];
   }
@@ -423,7 +431,13 @@ export default function Funds() {
       const keyword = search.toLowerCase();
       const matchesSearch =
         scholarship.scholarship_name?.toLowerCase().includes(keyword) ||
-        scholarship.sponsor?.toLowerCase().includes(keyword);
+        scholarship.sponsor?.toLowerCase().includes(keyword) ||
+        scholarship.payout_frequency?.toLowerCase().includes(keyword) ||
+        scholarship.duration_type?.toLowerCase().includes(keyword) ||
+        String(scholarship.total_budget || "").includes(keyword) ||
+        String(releasedAmount(scholarship)).includes(keyword) ||
+        String(remainingBudget(scholarship)).includes(keyword) ||
+        String(scholarship.grantees?.length || "").includes(keyword);
 
       let matchesFilter = true;
       if (filter === "With Budget") matchesFilter = remainingBudget(scholarship) > 0;
@@ -440,10 +454,6 @@ export default function Funds() {
   const totalReleased = scholarships.reduce((sum, sch) => sum + releasedAmount(sch), 0);
   const totalRemaining = totalBudget - totalReleased;
 
-  if (loading) {
-    return <div className={s.loading}>Loading scholarship funds...</div>;
-  }
-
   return (
     <div className={s.page}>
       {/* ================= HEADER ================= */}
@@ -458,43 +468,50 @@ export default function Funds() {
 
       {/* ================= SUMMARY ================= */}
       <div className={s.statsGrid}>
-        <div className={s.statCard}>
-          <span>Total Budget</span>
-          <strong>₱{totalBudget.toLocaleString()}</strong>
-        </div>
-        <div className={s.statCard}>
-          <span>Total Released</span>
-          <strong className={s.successText}>₱{totalReleased.toLocaleString()}</strong>
-        </div>
-        <div className={s.statCard}>
-          <span>Remaining Budget</span>
-          <strong className={s.primaryText}>₱{totalRemaining.toLocaleString()}</strong>
-        </div>
-        <div className={s.statCard}>
-          <span>Scholarships</span>
-          <strong>{scholarships.length}</strong>
-        </div>
+        <StatCard
+          label="Total Budget"
+          value={`₱${totalBudget.toLocaleString()}`}
+          explain="Sum of total_budget across every scholarship."
+        />
+        <StatCard
+          label="Total Released"
+          value={`₱${totalReleased.toLocaleString()}`}
+          tone="success"
+          explain="Sum of amount_released across every fund release, for every grantee, across every scholarship."
+        />
+        <StatCard
+          label="Remaining Budget"
+          value={`₱${totalRemaining.toLocaleString()}`}
+          tone="info"
+          explain="Total Budget minus Total Released."
+        />
+        <StatCard
+          label="Scholarships"
+          value={scholarships.length}
+          explain="Total number of scholarship programs currently loaded."
+        />
       </div>
 
       {/* ================= FILTER BAR ================= */}
-      <div className={s.filterBar}>
-        <input
-          className={s.searchInput}
-          type="text"
-          placeholder="Search scholarship or sponsor..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-        />
-        <select
-          className={s.filterSelect}
-          value={filter}
-          onChange={(e) => { setFilter(e.target.value); setPage(1); }}
-        >
-          <option value="All">All</option>
-          <option value="With Budget">With Budget</option>
-          <option value="Fully Released">Fully Released</option>
-        </select>
-      </div>
+      <SearchFilterBar
+        search={search}
+        onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        searchPlaceholder="Search by scholarship, sponsor, frequency, duration, budget..."
+        resultCount={filtered.length}
+        totalCount={scholarships.length}
+        filters={[
+          {
+            label: "Budget status",
+            value: filter,
+            onChange: (v) => { setFilter(v); setPage(1); },
+            options: [
+              { value: "All", label: "All Budget Statuses" },
+              { value: "With Budget", label: "With Budget" },
+              { value: "Fully Released", label: "Fully Released" },
+            ],
+          },
+        ]}
+      />
 
       {/* ================= SCHOLARSHIP TABLE ================= */}
       <div className={s.tableWrap}>
@@ -514,7 +531,9 @@ export default function Funds() {
             </tr>
           </thead>
           <tbody>
-            {currentScholarships.length === 0 ? (
+            {loading ? (
+              <tr><td colSpan={10} style={{ padding: "14px 16px" }}><TableSkeleton columns={10} rows={6} /></td></tr>
+            ) : currentScholarships.length === 0 ? (
               <tr><td colSpan={10} className={s.emptyState}>No scholarship funds found.</td></tr>
             ) : (
               currentScholarships.map((scholarship) => {

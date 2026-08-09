@@ -3,6 +3,10 @@ import { supabase } from "@/lib/supabase";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import AnnouncementModal from "@/components/ui/AnnouncementModal";
+import StatCard from "@/components/ui/StatCard";
+import InfoTooltip from "@/components/ui/InfoTooltip";
+import PageLoader from "@/components/ui/PageLoader";
+import { getCached, setCached } from "@/lib/dataCache";
 import { useToast } from "@/context/ToastContext";
 
 // ─── stable style objects defined outside the component ──────────────────────
@@ -20,6 +24,8 @@ const st = {
   infoGrid:    { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:14, marginBottom:22 },
   infoCard:    { background:"var(--surface)", borderRadius:10, padding:10, boxShadow:"var(--shadow-sm)", border:"1px solid var(--border)", minHeight:220, maxHeight:260, display:"flex", flexDirection:"column" },
   infoTitle:   { marginBottom:12, fontSize:15, fontWeight:600, color:"var(--text-primary)", padding:"0 6px" },
+  infoTitleRow:{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12, padding:"0 6px" },
+  infoTitleTxt:{ margin:0, fontSize:15, fontWeight:600, color:"var(--text-primary)" },
   infoRow:     { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 6px", borderBottom:"1px solid var(--border)" },
   cardContent: { flex:1, overflow:"auto", paddingRight:6, scrollbarWidth:"thin" },
   countBadge:  { borderRadius:20, padding:"2px 9px", fontSize:12, fontWeight:600, color:"#fff" },
@@ -52,6 +58,19 @@ const st = {
   answer:      { color:"var(--text-secondary)", lineHeight:1.6 },
 };
 
+// Descriptive "All ___" labels for report-filter dropdowns, instead of a
+// bare "All" that doesn't say what it's "all" of.
+const ALL_LABEL = {
+  "Academic Year": "All Academic Years",
+  "Semester":      "All Semesters",
+  "Scholarship":   "All Scholarships",
+  "Status":        "All Status",
+  "Course":        "All Courses",
+  "Year Level":    "All Year Levels",
+  "Type":          "All Types",
+};
+const allLabel = (label) => ALL_LABEL[label] || `All ${label}`;
+
 const COLUMN_LABELS = {
   schoolId:     "School ID",
   studentName:  "Student Name",
@@ -63,15 +82,18 @@ const COLUMN_LABELS = {
   status:       "Status",
 };
 
+const CACHE_KEY = "coordinator-dashboard";
+
 export default function CoordinatorDashboard() {
   const toast = useToast();
-  const [applications,   setApplications]   = useState([]);
+  const cached = getCached(CACHE_KEY);
+  const [applications,   setApplications]   = useState(cached?.applications || []);
   const [selectedApp,    setSelectedApp]    = useState(null);
   const [answers,        setAnswers]        = useState([]);
-  const [loading,        setLoading]        = useState(true);
+  const [loading,        setLoading]        = useState(!cached);
   const [academic,       setAcademic]       = useState(null);
-  const [scholarStats,   setScholarStats]   = useState([]);
-  const [upcomingDeadlines, setUpcomingDeadlines] = useState([]);
+  const [scholarStats,   setScholarStats]   = useState(cached?.scholarStats || []);
+  const [upcomingDeadlines, setUpcomingDeadlines] = useState(cached?.upcomingDeadlines || []);
   const [showReportModal,    setShowReportModal]    = useState(false);
   const [showAnnouncement,   setShowAnnouncement]   = useState(false);
   const [generating,     setGenerating]    = useState(false);
@@ -223,7 +245,7 @@ export default function CoordinatorDashboard() {
   useEffect(() => { load(); loadAcademic(); loadScholarStats(); loadUpcomingDeadlines(); }, []);
 
   const load = async () => {
-    setLoading(true);
+    if (!getCached(CACHE_KEY)) setLoading(true);
     const { data } = await supabase.from("scholarship_applications").select(`
       application_id,status,application_date,scholarship_id,academic_year,semester,
       students(school_id,course,year_level,users(first_name,middle_name,last_name)),
@@ -238,6 +260,7 @@ export default function CoordinatorDashboard() {
       statuses:     [...new Set(d.map(a=>a.status).filter(Boolean))],
       academicYears:[...new Set(d.map(a=>a.academic_year).filter(Boolean))],
     });
+    setCached(CACHE_KEY, { ...getCached(CACHE_KEY), applications: d });
     setLoading(false);
   };
 
@@ -251,15 +274,18 @@ export default function CoordinatorDashboard() {
       supabase.from("scholarships").select("scholarship_id,scholarship_name,slots"),
       supabase.from("grantees").select("scholarship_id,status"),
     ]);
-    setScholarStats((scholarships||[]).map(s=>({
+    const stats = (scholarships||[]).map(s=>({
       ...s, occupied:(grantees||[]).filter(g=>g.scholarship_id===s.scholarship_id&&g.status==="Active").length,
-    })));
+    }));
+    setScholarStats(stats);
+    setCached(CACHE_KEY, { ...getCached(CACHE_KEY), scholarStats: stats });
   };
 
   const loadUpcomingDeadlines = async () => {
     const { data } = await supabase.from("scholarships").select("scholarship_name,submission_deadline")
       .eq("status","Active").order("submission_deadline",{ascending:true}).limit(5);
     setUpcomingDeadlines(data||[]);
+    setCached(CACHE_KEY, { ...getCached(CACHE_KEY), upcomingDeadlines: data||[] });
   };
 
   const saveAcademic = async () => {
@@ -773,7 +799,7 @@ export default function CoordinatorDashboard() {
   const pendingCount      = applications.filter(a=>a.status==="Pending").length;
   const totalScholarships = scholarStats.length;
 
-  if (loading) return <p style={{padding:20,color:"var(--text-secondary)"}}>Loading...</p>;
+  if (loading) return <PageLoader label="Loading dashboard…" />;
 
   return (
     <div style={st.container}>
@@ -806,22 +832,40 @@ export default function CoordinatorDashboard() {
       {/* ── stat cards ── */}
       <div style={st.cardGrid}>
         {[
-          ["Applications This Month", applications.filter(a=>{const d=new Date(a.application_date),n=new Date();return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear()}).length],
-          ["Grantees", totalGrantees],
-          ["Acceptance Rate", totalApplicants ? Math.round(applications.filter(a=>a.status==="Approved").length/totalApplicants*100)+"%" : "0%"],
-          ["Scholarships", totalScholarships],
-        ].map(([label,val])=>(
-          <div key={label} style={st.card}>
-            <p style={st.cardLabel}>{label}</p>
-            <h2 style={st.cardValue}>{val}</h2>
-          </div>
+          {
+            label: "Applications This Month",
+            val: applications.filter(a=>{const d=new Date(a.application_date),n=new Date();return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear()}).length,
+            explain: "Count of applications whose application date falls in the current calendar month and year.",
+          },
+          {
+            label: "Grantees",
+            val: totalGrantees,
+            explain: "Sum of the \"occupied\" slot count across every scholarship — i.e. how many active grantees currently hold a slot.",
+          },
+          {
+            label: "Acceptance Rate",
+            val: totalApplicants ? Math.round(applications.filter(a=>a.status==="Approved").length/totalApplicants*100)+"%" : "0%",
+            explain: "Applications with status \"Approved\" ÷ total applications × 100, rounded to the nearest whole percent.",
+          },
+          {
+            label: "Scholarships",
+            val: totalScholarships,
+            explain: "Total number of scholarship programs currently in the system, regardless of status.",
+          },
+        ].map(({label,val,explain})=>(
+          <StatCard key={label} label={label} value={val} explain={explain} />
         ))}
       </div>
 
       {/* ── info grid ── */}
       <div style={st.infoGrid}>
         <div style={st.infoCard}>
-          <h3 style={st.infoTitle}>Scholarship Slots</h3>
+          <div style={st.infoTitleRow}>
+            <h3 style={st.infoTitleTxt}>Scholarship Slots</h3>
+            <InfoTooltip label="Scholarship Slots">
+              For each scholarship, occupied slots ÷ total slots. Badge turns red at full capacity, amber at 80%+ full, green otherwise.
+            </InfoTooltip>
+          </div>
           <div style={st.cardContent}>
             {scholarStats.map(s=>(
               <div key={s.scholarship_id} style={st.infoRow}>
@@ -835,7 +879,12 @@ export default function CoordinatorDashboard() {
         </div>
 
         <div style={st.infoCard}>
-          <h3 style={st.infoTitle}>Upcoming Deadlines</h3>
+          <div style={st.infoTitleRow}>
+            <h3 style={st.infoTitleTxt}>Upcoming Deadlines</h3>
+            <InfoTooltip label="Upcoming Deadlines">
+              Scholarships whose submission deadline is still ahead, listed by soonest submission_deadline first.
+            </InfoTooltip>
+          </div>
           <div style={st.cardContent}>
             {upcomingDeadlines.map((d,i)=>(
               <div key={i} style={st.infoRow}>
@@ -847,7 +896,12 @@ export default function CoordinatorDashboard() {
         </div>
 
         <div style={st.infoCard}>
-          <h3 style={st.infoTitle}>Recent Activity</h3>
+          <div style={st.infoTitleRow}>
+            <h3 style={st.infoTitleTxt}>Recent Activity</h3>
+            <InfoTooltip label="Recent Activity">
+              The 5 most recently loaded applications, showing each applicant's current status.
+            </InfoTooltip>
+          </div>
           <div style={st.cardContent}>
             {applications.slice(0,5).map(a=>(
               <div key={a.application_id} style={st.infoRow}>
@@ -859,7 +913,12 @@ export default function CoordinatorDashboard() {
         </div>
 
         <div style={st.infoCard}>
-          <h3 style={st.infoTitle}>Summary</h3>
+          <div style={st.infoTitleRow}>
+            <h3 style={st.infoTitleTxt}>Summary</h3>
+            <InfoTooltip label="Summary">
+              Total = all applications loaded. Approved/Pending/Rejected = count of applications with that exact status.
+            </InfoTooltip>
+          </div>
           <div style={st.cardContent}>
             {[["Total",totalApplicants],["Approved",applications.filter(a=>a.status==="Approved").length],["Pending",pendingCount],["Rejected",applications.filter(a=>a.status==="Rejected").length]].map(([l,v])=>(
               <div key={l} style={st.infoRow}>
@@ -1017,7 +1076,7 @@ export default function CoordinatorDashboard() {
                       <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>{label}</label>
                       <select style={st.sel} value={reportFilters[key]}
                         onChange={e=>setReportFilters({...reportFilters,[key]:e.target.value})}>
-                        {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                        {opts.map(o=><option key={o} value={o}>{o==="All"?allLabel(label):o}</option>)}
                       </select>
                     </div>
                   ))}
@@ -1059,7 +1118,7 @@ export default function CoordinatorDashboard() {
                         <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>{label}</label>
                         <select style={st.sel} value={granteeFilters[key]}
                           onChange={e=>setGranteeFilters({...granteeFilters,[key]:e.target.value})}>
-                          {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                          {opts.map(o=><option key={o} value={o}>{o==="All"?allLabel(label):o}</option>)}
                         </select>
                       </div>
                     ))}
@@ -1073,7 +1132,7 @@ export default function CoordinatorDashboard() {
                   <div style={{maxWidth:220}}>
                     <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>Status</label>
                     <select style={st.sel} value={scholarshipStatusFilter} onChange={e=>setScholarshipStatusFilter(e.target.value)}>
-                      {["All","Active","Inactive"].map(o=><option key={o} value={o}>{o}</option>)}
+                      {["All","Active","Inactive"].map(o=><option key={o} value={o}>{o==="All"?"All Status":o}</option>)}
                     </select>
                   </div>
                 </div>
@@ -1092,7 +1151,7 @@ export default function CoordinatorDashboard() {
                         <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>{label}</label>
                         <select style={st.sel} value={studentReportFilters[key]}
                           onChange={e=>setStudentReportFilters({...studentReportFilters,[key]:e.target.value})}>
-                          {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                          {opts.map(o=><option key={o} value={o}>{o==="All"?allLabel(label):o}</option>)}
                         </select>
                       </div>
                     ))}
@@ -1106,7 +1165,7 @@ export default function CoordinatorDashboard() {
                   <div style={{maxWidth:220}}>
                     <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>Scholarship</label>
                     <select style={st.sel} value={complianceScholarshipFilter} onChange={e=>setComplianceScholarshipFilter(e.target.value)}>
-                      {["All",...filterOptions.scholarships].map(o=><option key={o} value={o}>{o}</option>)}
+                      {["All",...filterOptions.scholarships].map(o=><option key={o} value={o}>{o==="All"?"All Scholarships":o}</option>)}
                     </select>
                   </div>
                 </div>
@@ -1118,7 +1177,7 @@ export default function CoordinatorDashboard() {
                   <div style={{maxWidth:220}}>
                     <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>Type</label>
                     <select style={st.sel} value={requirementTypeFilter} onChange={e=>setRequirementTypeFilter(e.target.value)}>
-                      {["All","Application","Eligibility"].map(o=><option key={o} value={o}>{o}</option>)}
+                      {["All","Application","Eligibility"].map(o=><option key={o} value={o}>{o==="All"?"All Types":o}</option>)}
                     </select>
                   </div>
                 </div>

@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import SearchFilterBar from "@/components/ui/SearchFilterBar";
+import StatCard from "@/components/ui/StatCard";
+import TableSkeleton from "@/components/ui/TableSkeleton";
+import { getCached, setCached } from "@/lib/dataCache";
 import s from "./Grantees.module.css";
 
 const PAGE_SIZE = 10;
+const CACHE_KEY = "cashier-grantees";
 
 export default function Grantees() {
 
-    const [loading,setLoading] = useState(true);
+    const cachedRows = getCached(CACHE_KEY);
+    const [loading,setLoading] = useState(!cachedRows);
 
-    const [rows,setRows] = useState([]);
+    const [rows,setRows] = useState(cachedRows || []);
 
     const [search,setSearch] = useState("");
 
@@ -32,7 +38,7 @@ export default function Grantees() {
 
     async function load(){
 
-        setLoading(true);
+        if (!getCached(CACHE_KEY)) setLoading(true);
 
         const {data,error}=await supabase
 
@@ -78,6 +84,8 @@ export default function Grantees() {
         else{
 
             setRows(data||[]);
+
+            setCached(CACHE_KEY, data||[]);
 
         }
 
@@ -125,7 +133,19 @@ export default function Grantees() {
 
         ||
 
-        row.scholarships?.scholarship_name?.toLowerCase().includes(keyword);
+        row.scholarships?.scholarship_name?.toLowerCase().includes(keyword)
+
+        ||
+
+        String(row.scholarships?.amount||"").includes(keyword)
+
+        ||
+
+        releaseStatus(row).toLowerCase().includes(keyword)
+
+        ||
+
+        (releaseDate(row)||"").toLowerCase().includes(keyword);
 
         const matchesStatus=
 
@@ -299,20 +319,6 @@ const pendingCount=
 
 rows.length-releasedCount;
 
-if(loading){
-
-    return(
-
-        <div className={s.loading}>
-
-            Loading Grantees...
-
-        </div>
-
-    );
-
-}
-
 return (
 
 <div className={s.page}>
@@ -333,87 +339,55 @@ return (
 
     <div className={s.summaryGrid}>
 
-        <div className={s.summaryCard}>
-            <span>Total Grantees</span>
-            <h2>{rows.length}</h2>
-        </div>
-
-        <div className={s.summaryCard}>
-            <span>Released</span>
-            <h2>{releasedCount}</h2>
-        </div>
-
-        <div className={s.summaryCard}>
-            <span>Pending</span>
-            <h2>{pendingCount}</h2>
-        </div>
-
-    </div>
-
-    <div className={s.filters}>
-
-        <input
-
-            className={s.search}
-
-            placeholder="Search student..."
-
-            value={search}
-
-            onChange={(e)=>{
-
-                setSearch(e.target.value);
-
-                setPage(1);
-
-            }}
-
+        <StatCard
+            label="Total Grantees"
+            value={rows.length}
+            explain="Total number of grantee records currently loaded."
         />
 
-        <select
+        <StatCard
+            label="Released"
+            value={releasedCount}
+            tone="success"
+            explain="Grantees whose most recent/derived release status is &quot;Released&quot;."
+        />
 
-            value={statusFilter}
-
-            onChange={(e)=>{
-
-                setStatusFilter(e.target.value);
-
-                setPage(1);
-
-            }}
-
-        >
-
-            <option>All</option>
-            <option>Active</option>
-            <option>Inactive</option>
-            <option>Pending</option>
-
-        </select>
-
-        <select
-
-            value={scholarshipFilter}
-
-            onChange={(e)=>{
-
-                setScholarshipFilter(e.target.value);
-
-                setPage(1);
-
-            }}
-
-        >
-
-            {scholarshipOptions.map(option=>(
-
-                <option key={option}>{option}</option>
-
-            ))}
-
-        </select>
+        <StatCard
+            label="Pending"
+            value={pendingCount}
+            tone="warning"
+            explain="Total Grantees minus Released — grantees who haven't had a fund release yet."
+        />
 
     </div>
+
+    <SearchFilterBar
+        search={search}
+        onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        searchPlaceholder="Search by student, school ID, scholarship, amount, status, date..."
+        resultCount={filtered.length}
+        totalCount={rows.length}
+        filters={[
+            {
+                label: "Status",
+                value: statusFilter,
+                onChange: (v) => { setStatusFilter(v); setPage(1); },
+                options: [
+                    { value: "All", label: "All Status" },
+                    { value: "Active", label: "Active" },
+                    { value: "Inactive", label: "Inactive" },
+                    { value: "Pending", label: "Pending" },
+                ],
+            },
+            {
+                label: "Scholarship",
+                value: scholarshipFilter,
+                onChange: (v) => { setScholarshipFilter(v); setPage(1); },
+                options: scholarshipOptions.map((o) => ({ value: o, label: o === "All" ? "All Scholarships" : o })),
+                width: 220,
+            },
+        ]}
+    />
 
     <div className={s.tableContainer}>
 
@@ -443,7 +417,13 @@ return (
 
             <tbody>
 
-                {currentRows.map(grantee=>(
+                {loading ? (
+                    <tr>
+                        <td colSpan={7} style={{ padding: "14px 16px" }}>
+                            <TableSkeleton columns={7} rows={6} />
+                        </td>
+                    </tr>
+                ) : currentRows.map(grantee=>(
 
                     <tr key={grantee.grantee_id}>
 

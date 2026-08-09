@@ -54,6 +54,14 @@
     margin-top:8px;
 }
 
+.statLabelRow{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-top:8px;
+}
+.statLabelRow .statLabel{ margin-top:0; }
+
 .toolbar{
     display:flex;
     gap:12px;
