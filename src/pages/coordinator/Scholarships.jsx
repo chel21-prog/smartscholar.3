@@ -2,10 +2,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useToast } from "@/context/ToastContext";
+import SearchFilterBar from "@/components/ui/SearchFilterBar";
+import TableSkeleton from "@/components/ui/TableSkeleton";
+import { getCached, setCached } from "@/lib/dataCache";
 import s from "./Scholarships.module.css";
 
 // ─── helpers ────────────────────────────────────────────────
 const STATUS_OPTIONS = ["Active", "Suspended", "Terminated"];
+const CACHE_KEY = "coordinator-scholarships";
 
 const STATUS_TONE = {
   Active:     s.badgeSuccess,
@@ -15,7 +19,9 @@ const STATUS_TONE = {
 
 export default function Scholarships() {
   // ── list / pagination / filter ──────────────────────────
-  const [list,          setList]          = useState([]);
+  const cachedData = getCached(CACHE_KEY);
+  const [list,          setList]          = useState(cachedData?.list || []);
+  const [loading,       setLoading]       = useState(!cachedData);
   const [search,        setSearch]        = useState("");
   const [statusFilter,  setStatusFilter]  = useState("All");
   const [sponsorFilter, setSponsorFilter] = useState("All");
@@ -83,6 +89,7 @@ export default function Scholarships() {
   useEffect(() => { load(); loadFormTemplates(); }, []);
 
   const load = async () => {
+    if (!getCached(CACHE_KEY)) setLoading(true);
     const { data } = await supabase.from("scholarships").select(`
       *,
       grantees(fund_releases(amount_released))
@@ -92,6 +99,8 @@ export default function Scholarships() {
     setList(data || []);
     setAppReq(app  || []);
     setEligReq(elig || []);
+    setCached(CACHE_KEY, { list: data || [] });
+    setLoading(false);
   };
 
   const loadFormTemplates = async () => {
@@ -113,7 +122,11 @@ export default function Scholarships() {
       (s.sponsor || "").toLowerCase().includes(kw) ||
       (s.description || "").toLowerCase().includes(kw) ||
       String(s.amount || "").includes(kw) ||
+      String(s.total_budget || "").includes(kw) ||
+      String(s.slots || "").includes(kw) ||
       (s.submission_deadline || "").includes(kw) ||
+      (s.payout_frequency || "").toLowerCase().includes(kw) ||
+      (s.duration_type || "").toLowerCase().includes(kw) ||
       (s.status || "").toLowerCase().includes(kw);
     return matchSearch &&
       (statusFilter  === "All" || s.status  === statusFilter) &&
@@ -437,21 +450,33 @@ export default function Scholarships() {
       </div>
 
       {/* filters */}
-      <div className={s.filterRow}>
-        <input className={s.searchInput} placeholder="Search scholarships…" value={search}
-          onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} />
-        <select className={s.filterSelect} value={statusFilter}
-          onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
-          <option value="All">All Status</option>
-          <option value="Active">Active</option>
-          <option value="Suspended">Suspended</option>
-          <option value="Terminated">Terminated</option>
-        </select>
-        <select className={s.filterSelect} value={sponsorFilter}
-          onChange={e => { setSponsorFilter(e.target.value); setCurrentPage(1); }}>
-          {sponsors.map(sp => <option key={sp} value={sp}>{sp === "All" ? "All Sponsors" : sp}</option>)}
-        </select>
-      </div>
+      <SearchFilterBar
+        search={search}
+        onSearchChange={(v) => { setSearch(v); setCurrentPage(1); }}
+        searchPlaceholder="Search by name, sponsor, description, amount, budget, slots, deadline..."
+        resultCount={filtered.length}
+        totalCount={list.length}
+        filters={[
+          {
+            label: "Status",
+            value: statusFilter,
+            onChange: (v) => { setStatusFilter(v); setCurrentPage(1); },
+            options: [
+              { value: "All", label: "All Status" },
+              { value: "Active", label: "Active" },
+              { value: "Suspended", label: "Suspended" },
+              { value: "Terminated", label: "Terminated" },
+            ],
+          },
+          {
+            label: "Sponsor",
+            value: sponsorFilter,
+            onChange: (v) => { setSponsorFilter(v); setCurrentPage(1); },
+            options: sponsors.map((sp) => ({ value: sp, label: sp === "All" ? "All Sponsors" : sp })),
+            width: 220,
+          },
+        ]}
+      />
 
       {/* table */}
       <div className={s.tableWrap}>
@@ -470,7 +495,13 @@ export default function Scholarships() {
             </tr>
           </thead>
           <tbody>
-            {paginated.map(sch => (
+            {loading ? (
+              <tr>
+                <td colSpan={15} style={{ padding: "14px 16px" }}>
+                  <TableSkeleton columns={15} rows={6} />
+                </td>
+              </tr>
+            ) : paginated.map(sch => (
               <tr key={sch.scholarship_id} className={s.tr}>
                 <td className={s.td}>{sch.scholarship_name}</td>
                 <td className={s.td}>{sch.sponsor}</td>

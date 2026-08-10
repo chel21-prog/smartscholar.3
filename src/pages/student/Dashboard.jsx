@@ -4,17 +4,22 @@ import { Badge, EmptyState } from "@/components/ui/Card";
 import { TableWrap, Table } from "@/components/ui/Table";
 import uiStyles from "@/components/ui/ui.module.css";
 import PageLoader from "@/components/ui/PageLoader";
+import InfoTooltip from "@/components/ui/InfoTooltip";
+import { getCached, setCached } from "@/lib/dataCache";
 import s from "./Dashboard.module.css";
 
+const CACHE_KEY = "student-dashboard";
+
 export default function Dashboard() {
-  const [scholarships,   setScholarships]   = useState([]);
-  const [requirementsMap,setRequirementsMap] = useState([]);
-  const [eligibilityDefs,setEligibilityDefs] = useState([]); // id -> requirement_name lookup
-  const [studentReq,     setStudentReq]     = useState([]);
-  const [studentId,      setStudentId]      = useState(null);
-  const [studentProfile, setStudentProfile] = useState(null); // { course, year_level }
-  const [loading,        setLoading]        = useState(true);
-  const [applications,   setApplications]   = useState([]);
+  const cached = getCached(CACHE_KEY);
+  const [scholarships,   setScholarships]   = useState(cached?.scholarships || []);
+  const [requirementsMap,setRequirementsMap] = useState(cached?.requirementsMap || []);
+  const [eligibilityDefs,setEligibilityDefs] = useState(cached?.eligibilityDefs || []); // id -> requirement_name lookup
+  const [studentReq,     setStudentReq]     = useState(cached?.studentReq || []);
+  const [studentId,      setStudentId]      = useState(cached?.studentId || null);
+  const [studentProfile, setStudentProfile] = useState(cached?.studentProfile || null); // { course, year_level }
+  const [loading,        setLoading]        = useState(!cached);
+  const [applications,   setApplications]   = useState(cached?.applications || []);
   const [academic,       setAcademic]       = useState(null);
   const [sortMode,       setSortMode]       = useState("best"); // best | amount | convenience
 
@@ -49,7 +54,7 @@ export default function Dashboard() {
 
   // ── data ────────────────────────────────────────────────
   const load = async () => {
-    setLoading(true);
+    if (!getCached(CACHE_KEY)) setLoading(true);
     try {
       const { data: authData } = await supabase.auth.getUser();
       const user = authData?.user;
@@ -66,8 +71,7 @@ export default function Dashboard() {
         .eq("user_id", userRow.user_id).single();
 
       const sid = studentRow.student_id;
-      setStudentId(sid);
-      setStudentProfile({
+      const profile = {
         course: studentRow.course,
         year_level: studentRow.year_level,
         // Everything below is only used for auto-filling the application
@@ -79,7 +83,9 @@ export default function Dashboard() {
         gender: studentRow.gender,
         contact_number: studentRow.contact_number,
         school_id: studentRow.school_id,
-      });
+      };
+      setStudentId(sid);
+      setStudentProfile(profile);
 
       const [{ data: appData }, { data: scholData }, { data: reqMap }, { data: studData }, { data: eligDefs }] =
         await Promise.all([
@@ -95,6 +101,16 @@ export default function Dashboard() {
       setRequirementsMap(reqMap  || []);
       setStudentReq(studData     || []);
       setEligibilityDefs(eligDefs || []);
+
+      setCached(CACHE_KEY, {
+        studentId: sid,
+        studentProfile: profile,
+        applications: appData || [],
+        scholarships: scholData || [],
+        requirementsMap: reqMap || [],
+        studentReq: studData || [],
+        eligibilityDefs: eligDefs || [],
+      });
     } catch (err) { console.error(err); }
     setLoading(false);
   };
@@ -431,15 +447,30 @@ export default function Dashboard() {
       <div className={s.statsRow}>
         <div className={s.statCard}>
           <div className={s.statNum}>{scholarships.length}</div>
-          <div className={s.statLbl}>Total scholarships</div>
+          <div className={s.statLblRow}>
+            <span className={s.statLbl}>Total scholarships</span>
+            <InfoTooltip label="Total scholarships" align="left">
+              Count of every scholarship program currently loaded, regardless of eligibility.
+            </InfoTooltip>
+          </div>
         </div>
         <div className={s.statCard}>
           <div className={`${s.statNum} ${s.statSuccess}`}>{eligible.length}</div>
-          <div className={s.statLbl}>Eligible</div>
+          <div className={s.statLblRow}>
+            <span className={s.statLbl}>Eligible</span>
+            <InfoTooltip label="Eligible" align="left">
+              Scholarships where you meet every linked eligibility requirement (each shows status "Compliant" in your profile).
+            </InfoTooltip>
+          </div>
         </div>
         <div className={s.statCard}>
           <div className={`${s.statNum} ${s.statDanger}`}>{notEligible.length}</div>
-          <div className={s.statLbl}>May need more requirements</div>
+          <div className={s.statLblRow}>
+            <span className={s.statLbl}>May need more requirements</span>
+            <InfoTooltip label="May need more requirements" align="left">
+              Scholarships where at least one linked eligibility requirement is missing or not yet marked "Compliant".
+            </InfoTooltip>
+          </div>
         </div>
       </div>
 

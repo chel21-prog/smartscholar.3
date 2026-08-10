@@ -7,9 +7,11 @@ import Button from "@/components/ui/Button";
 import { TableWrap, Table } from "@/components/ui/Table";
 import PageLoader from "@/components/ui/PageLoader";
 import { getMissingProfileFields } from "@/lib/profileCompleteness";
+import { getCached, setCached } from "@/lib/dataCache";
 import styles from "./Profile.module.css";
 
 const STATUS_CYCLE = ["Compliant", "Non-Compliant"];
+const CACHE_KEY = "student-profile";
 
 export default function Profile() {
   const location = useLocation();
@@ -20,9 +22,9 @@ export default function Profile() {
   const [showReminder, setShowReminder] = useState(!!location.state?.profileIncomplete);
   const [redirectMissingFields] = useState(location.state?.missingFields || []);
 
-  const [student, setStudent] = useState(null);
-  const [requirements, setRequirements] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [student, setStudent] = useState(getCached(CACHE_KEY)?.student || null);
+  const [requirements, setRequirements] = useState(getCached(CACHE_KEY)?.requirements || []);
+  const [loading, setLoading] = useState(!getCached(CACHE_KEY));
   const [refreshing, setRefreshing] = useState(false);
   // "idle" | "saving" | "saved" - reflects real auto-save state instead
   // of a static label that used to read "Auto Saved" even before the
@@ -30,7 +32,7 @@ export default function Profile() {
   const [saveState, setSaveState] = useState("idle");
   const saveTimeout = useRef(null);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(getCached(CACHE_KEY)?.form || {
     first_name: "",
     middle_name: "",
     last_name: "",
@@ -47,7 +49,7 @@ export default function Profile() {
   }, []);
 
   const load = async () => {
-    setLoading(true);
+    if (!getCached(CACHE_KEY)) setLoading(true);
 
     try {
       const { data } = await supabase.auth.getUser();
@@ -68,8 +70,9 @@ export default function Profile() {
 
       setStudent(studentData);
 
+      let nextForm = null;
       if (studentData) {
-        setForm({
+        nextForm = {
           first_name: userRow?.first_name || "",
           middle_name: userRow?.middle_name || "",
           last_name: userRow?.last_name || "",
@@ -79,7 +82,8 @@ export default function Profile() {
           ethnicity: studentData.ethnicity || "",
           gender: studentData.gender || "",
           contact_number: studentData.contact_number || "",
-        });
+        };
+        setForm(nextForm);
       }
 
       const { data: req } = await supabase
@@ -99,6 +103,7 @@ export default function Profile() {
       });
 
       setRequirements(merged);
+      setCached(CACHE_KEY, { student: studentData, requirements: merged, form: nextForm });
     } catch (err) {
       console.error(err);
     } finally {

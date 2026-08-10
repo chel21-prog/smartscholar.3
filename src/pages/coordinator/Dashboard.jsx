@@ -3,6 +3,10 @@ import { supabase } from "@/lib/supabase";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import AnnouncementModal from "@/components/ui/AnnouncementModal";
+import StatCard from "@/components/ui/StatCard";
+import InfoTooltip from "@/components/ui/InfoTooltip";
+import PageLoader from "@/components/ui/PageLoader";
+import { getCached, setCached } from "@/lib/dataCache";
 import { useToast } from "@/context/ToastContext";
 
 // ─── stable style objects defined outside the component ──────────────────────
@@ -20,6 +24,8 @@ const st = {
   infoGrid:    { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:14, marginBottom:22 },
   infoCard:    { background:"var(--surface)", borderRadius:10, padding:10, boxShadow:"var(--shadow-sm)", border:"1px solid var(--border)", minHeight:220, maxHeight:260, display:"flex", flexDirection:"column" },
   infoTitle:   { marginBottom:12, fontSize:15, fontWeight:600, color:"var(--text-primary)", padding:"0 6px" },
+  infoTitleRow:{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12, padding:"0 6px" },
+  infoTitleTxt:{ margin:0, fontSize:15, fontWeight:600, color:"var(--text-primary)" },
   infoRow:     { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 6px", borderBottom:"1px solid var(--border)" },
   cardContent: { flex:1, overflow:"auto", paddingRight:6, scrollbarWidth:"thin" },
   countBadge:  { borderRadius:20, padding:"2px 9px", fontSize:12, fontWeight:600, color:"#fff" },
@@ -39,10 +45,10 @@ const st = {
   sel:         { width:"100%", height:38, padding:"0 10px", background:"var(--surface)", color:"var(--text-primary)", border:"1px solid var(--border-strong)", borderRadius:8, fontSize:13, outline:"none" },
   inp:         { width:"100%", height:38, padding:"0 10px", boxSizing:"border-box", background:"var(--surface)", color:"var(--text-primary)", border:"1px solid var(--border-strong)", borderRadius:8, fontSize:13, outline:"none" },
   checkLabel:  { display:"flex", alignItems:"center", gap:6, padding:"7px 10px", border:"1px solid var(--border)", borderRadius:8, background:"var(--surface)", fontSize:13, color:"var(--text-primary)", cursor:"pointer" },
-  previewWrap: { border:"1px solid var(--border)", borderRadius:10, overflow:"auto", maxHeight:260, background:"var(--surface)" },
+  previewWrap: { border:"1px solid var(--border)", borderRadius:10, overflowX:"auto", overflowY:"auto", maxHeight:260, background:"var(--surface)" },
   previewTable:{ width:"100%", borderCollapse:"collapse", fontSize:11, minWidth:560 },
-  previewTh:   { background:"var(--navy-900)", color:"#fff", padding:"8px 10px", textAlign:"left", fontWeight:600, fontSize:10, textTransform:"uppercase", letterSpacing:".3px", whiteSpace:"nowrap" },
-  previewTd:   { padding:"7px 10px", borderBottom:"1px solid var(--border)", color:"var(--text-primary)", verticalAlign:"middle" },
+  previewTh:   { background:"var(--navy-900)", color:"#fff", padding:"8px 10px", textAlign:"left", fontWeight:600, fontSize:10, textTransform:"uppercase", letterSpacing:".3px", whiteSpace:"nowrap", position:"sticky", top:0, zIndex:1 },
+  previewTd:   { padding:"7px 10px", borderBottom:"1px solid var(--border)", color:"var(--text-primary)", verticalAlign:"middle", whiteSpace:"nowrap" },
   sigRow:      { display:"flex", gap:6, alignItems:"center", marginBottom:6 },
   studentCard: { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:14, background:"var(--surface-muted)", padding:16, borderRadius:10, marginBottom:12, border:"1px solid var(--border)" },
   badge:       { display:"inline-block", padding:"3px 10px", borderRadius:999, fontSize:11, fontWeight:600 },
@@ -51,6 +57,19 @@ const st = {
   question:    { fontWeight:600, marginBottom:6, color:"var(--text-primary)", fontSize:11, textTransform:"uppercase", letterSpacing:".3px" },
   answer:      { color:"var(--text-secondary)", lineHeight:1.6 },
 };
+
+// Descriptive "All ___" labels for report-filter dropdowns, instead of a
+// bare "All" that doesn't say what it's "all" of.
+const ALL_LABEL = {
+  "Academic Year": "All Academic Years",
+  "Semester":      "All Semesters",
+  "Scholarship":   "All Scholarships",
+  "Status":        "All Status",
+  "Course":        "All Courses",
+  "Year Level":    "All Year Levels",
+  "Type":          "All Types",
+};
+const allLabel = (label) => ALL_LABEL[label] || `All ${label}`;
 
 const COLUMN_LABELS = {
   schoolId:     "School ID",
@@ -63,15 +82,69 @@ const COLUMN_LABELS = {
   status:       "Status",
 };
 
+// Column-selection labels for every other report type — same idea as
+// COLUMN_LABELS above (applications), just one map per report so each
+// type's "Columns to include" checklist shows the right fields.
+const UTILIZATION_COLUMN_LABELS = {
+  scholarship: "Scholarship",
+  slots:       "Slots",
+  occupied:    "Occupied",
+  remaining:   "Remaining",
+};
+const GRANTEE_COLUMN_LABELS = {
+  schoolId:     "School ID",
+  studentName:  "Name",
+  scholarship:  "Scholarship",
+  status:       "Status",
+  dateAwarded:  "Date Awarded",
+  academicYear: "Academic Year",
+  semester:     "Semester",
+};
+const SCHOLARSHIP_COLUMN_LABELS = {
+  scholarship: "Scholarship",
+  sponsor:     "Sponsor",
+  amount:      "Amount",
+  budget:      "Budget",
+  slots:       "Slots",
+  status:      "Status",
+  deadline:    "Deadline",
+};
+const STUDENT_COLUMN_LABELS = {
+  schoolId:    "School ID",
+  studentName: "Name",
+  course:      "Course",
+  yearLevel:   "Year Level",
+  gender:      "Gender",
+  contact:     "Contact No.",
+  status:      "Status",
+};
+const COMPLIANCE_COLUMN_LABELS = {
+  schoolId:    "School ID",
+  studentName: "Name",
+  scholarship: "Scholarship",
+  required:    "Required",
+  submitted:   "Submitted",
+  status:      "Status",
+};
+const REQUIREMENT_COLUMN_LABELS = {
+  type:            "Type",
+  requirement:     "Requirement",
+  requirementType: "Requirement Type",
+  description:     "Description",
+};
+
+const CACHE_KEY = "coordinator-dashboard";
+
 export default function CoordinatorDashboard() {
   const toast = useToast();
-  const [applications,   setApplications]   = useState([]);
+  const cached = getCached(CACHE_KEY);
+  const [applications,   setApplications]   = useState(cached?.applications || []);
   const [selectedApp,    setSelectedApp]    = useState(null);
   const [answers,        setAnswers]        = useState([]);
-  const [loading,        setLoading]        = useState(true);
+  const [loading,        setLoading]        = useState(!cached);
   const [academic,       setAcademic]       = useState(null);
-  const [scholarStats,   setScholarStats]   = useState([]);
-  const [upcomingDeadlines, setUpcomingDeadlines] = useState([]);
+  const [scholarStats,   setScholarStats]   = useState(cached?.scholarStats || []);
+  const [upcomingDeadlines, setUpcomingDeadlines] = useState(cached?.upcomingDeadlines || []);
   const [showReportModal,    setShowReportModal]    = useState(false);
   const [showAnnouncement,   setShowAnnouncement]   = useState(false);
   const [generating,     setGenerating]    = useState(false);
@@ -80,6 +153,12 @@ export default function CoordinatorDashboard() {
   const [reportType,     setReportType]    = useState("applications"); // "applications" | "scholarshipUtilization"
   const [reportTitle,    setReportTitle]   = useState("SCHOLARSHIP REPORT");
   const [columns,        setColumns]       = useState({ schoolId:true, studentName:true, scholarship:true, course:true, yearLevel:true, academicYear:true, semester:true, status:true });
+  const [utilizationColumns, setUtilizationColumns] = useState({ scholarship:true, slots:true, occupied:true, remaining:true });
+  const [granteeColumns, setGranteeColumns] = useState({ schoolId:true, studentName:true, scholarship:true, status:true, dateAwarded:true, academicYear:true, semester:true });
+  const [scholarshipColumns, setScholarshipColumns] = useState({ scholarship:true, sponsor:true, amount:true, budget:true, slots:true, status:true, deadline:true });
+  const [studentColumns, setStudentColumns] = useState({ schoolId:true, studentName:true, course:true, yearLevel:true, gender:true, contact:true, status:true });
+  const [complianceColumns, setComplianceColumns] = useState({ schoolId:true, studentName:true, scholarship:true, required:true, submitted:true, status:true });
+  const [requirementColumns, setRequirementColumns] = useState({ type:true, requirement:true, requirementType:true, description:true });
   const [signatories,    setSignatories]   = useState([{ label:"", name:"", position:"" }]);
   const [filterOptions,  setFilterOptions] = useState({ scholarships:[], courses:[], yearLevels:[], statuses:[], academicYears:[] });
   const [reportFilters,  setReportFilters] = useState({ academicYear:"All", semester:"All", scholarship:"All", course:"All", yearLevel:"All", status:"All" });
@@ -223,7 +302,7 @@ export default function CoordinatorDashboard() {
   useEffect(() => { load(); loadAcademic(); loadScholarStats(); loadUpcomingDeadlines(); }, []);
 
   const load = async () => {
-    setLoading(true);
+    if (!getCached(CACHE_KEY)) setLoading(true);
     const { data } = await supabase.from("scholarship_applications").select(`
       application_id,status,application_date,scholarship_id,academic_year,semester,
       students(school_id,course,year_level,users(first_name,middle_name,last_name)),
@@ -238,6 +317,7 @@ export default function CoordinatorDashboard() {
       statuses:     [...new Set(d.map(a=>a.status).filter(Boolean))],
       academicYears:[...new Set(d.map(a=>a.academic_year).filter(Boolean))],
     });
+    setCached(CACHE_KEY, { ...getCached(CACHE_KEY), applications: d });
     setLoading(false);
   };
 
@@ -251,15 +331,18 @@ export default function CoordinatorDashboard() {
       supabase.from("scholarships").select("scholarship_id,scholarship_name,slots"),
       supabase.from("grantees").select("scholarship_id,status"),
     ]);
-    setScholarStats((scholarships||[]).map(s=>({
+    const stats = (scholarships||[]).map(s=>({
       ...s, occupied:(grantees||[]).filter(g=>g.scholarship_id===s.scholarship_id&&g.status==="Active").length,
-    })));
+    }));
+    setScholarStats(stats);
+    setCached(CACHE_KEY, { ...getCached(CACHE_KEY), scholarStats: stats });
   };
 
   const loadUpcomingDeadlines = async () => {
     const { data } = await supabase.from("scholarships").select("scholarship_name,submission_deadline")
       .eq("status","Active").order("submission_deadline",{ascending:true}).limit(5);
     setUpcomingDeadlines(data||[]);
+    setCached(CACHE_KEY, { ...getCached(CACHE_KEY), upcomingDeadlines: data||[] });
   };
 
   const saveAcademic = async () => {
@@ -486,75 +569,87 @@ export default function CoordinatorDashboard() {
     let headers, rows, statusColIdx;
 
     if (reportType === "scholarshipUtilization") {
-      headers = ["#", "Scholarship", "Slots", "Occupied", "Remaining"];
-      rows = scholarStats.map((s, idx) => [
-        String(idx + 1),
-        s.scholarship_name || "—",
-        String(s.slots ?? "—"),
-        String(s.occupied ?? 0),
-        String((s.slots ?? 0) - (s.occupied ?? 0)),
-      ]);
+      const cols = Object.entries(UTILIZATION_COLUMN_LABELS).filter(([k]) => utilizationColumns[k]);
+      headers = ["#", ...cols.map(([, v]) => v)];
+      rows = scholarStats.map((s, idx) => {
+        const row = [String(idx + 1)];
+        if (utilizationColumns.scholarship) row.push(s.scholarship_name || "—");
+        if (utilizationColumns.slots)       row.push(String(s.slots ?? "—"));
+        if (utilizationColumns.occupied)    row.push(String(s.occupied ?? 0));
+        if (utilizationColumns.remaining)   row.push(String((s.slots ?? 0) - (s.occupied ?? 0)));
+        return row;
+      });
       statusColIdx = -1;
     } else if (reportType === "grantees") {
-      headers = ["#", "School ID", "Name", "Scholarship", "Status", "Date Awarded", "Acad. Year", "Semester"];
-      rows = filteredGrantees.map((g, idx) => [
-        String(idx + 1),
-        g.students?.school_id || "—",
-        `${g.students?.users?.first_name || ""} ${g.students?.users?.last_name || ""}`.trim() || "—",
-        g.scholarships?.scholarship_name || "—",
-        g.status || "—",
-        g.date_awarded || "—",
-        g.academic_year || "—",
-        g.semester || "—",
-      ]);
+      const cols = Object.entries(GRANTEE_COLUMN_LABELS).filter(([k]) => granteeColumns[k]);
+      headers = ["#", ...cols.map(([, v]) => v)];
+      rows = filteredGrantees.map((g, idx) => {
+        const row = [String(idx + 1)];
+        if (granteeColumns.schoolId)     row.push(g.students?.school_id || "—");
+        if (granteeColumns.studentName)  row.push(`${g.students?.users?.first_name || ""} ${g.students?.users?.last_name || ""}`.trim() || "—");
+        if (granteeColumns.scholarship)  row.push(g.scholarships?.scholarship_name || "—");
+        if (granteeColumns.status)       row.push(g.status || "—");
+        if (granteeColumns.dateAwarded)  row.push(g.date_awarded || "—");
+        if (granteeColumns.academicYear) row.push(g.academic_year || "—");
+        if (granteeColumns.semester)     row.push(g.semester || "—");
+        return row;
+      });
       statusColIdx = headers.indexOf("Status");
     } else if (reportType === "scholarships") {
-      headers = ["#", "Scholarship", "Sponsor", "Amount", "Budget", "Slots", "Status", "Deadline"];
-      rows = filteredScholarships.map((s, idx) => [
-        String(idx + 1),
-        s.scholarship_name || "—",
-        s.sponsor || "—",
-        s.amount != null ? `₱${Number(s.amount).toLocaleString()}` : "—",
-        s.total_budget != null ? `₱${Number(s.total_budget).toLocaleString()}` : "—",
-        String(s.slots ?? "—"),
-        s.status || "—",
-        s.submission_deadline || "—",
-      ]);
+      const cols = Object.entries(SCHOLARSHIP_COLUMN_LABELS).filter(([k]) => scholarshipColumns[k]);
+      headers = ["#", ...cols.map(([, v]) => v)];
+      rows = filteredScholarships.map((s, idx) => {
+        const row = [String(idx + 1)];
+        if (scholarshipColumns.scholarship) row.push(s.scholarship_name || "—");
+        if (scholarshipColumns.sponsor)     row.push(s.sponsor || "—");
+        if (scholarshipColumns.amount)      row.push(s.amount != null ? `₱${Number(s.amount).toLocaleString()}` : "—");
+        if (scholarshipColumns.budget)      row.push(s.total_budget != null ? `₱${Number(s.total_budget).toLocaleString()}` : "—");
+        if (scholarshipColumns.slots)       row.push(String(s.slots ?? "—"));
+        if (scholarshipColumns.status)      row.push(s.status || "—");
+        if (scholarshipColumns.deadline)    row.push(s.submission_deadline || "—");
+        return row;
+      });
       statusColIdx = headers.indexOf("Status");
     } else if (reportType === "students") {
-      headers = ["#", "School ID", "Name", "Course", "Year", "Gender", "Contact No.", "Status"];
-      rows = filteredStudents.map((s, idx) => [
-        String(idx + 1),
-        s.school_id || "—",
-        `${s.users?.first_name || ""} ${s.users?.last_name || ""}`.trim() || "—",
-        s.course || "—",
-        String(s.year_level || "—"),
-        s.gender || "—",
-        s.contact_number || "—",
-        s.status || "—",
-      ]);
+      const cols = Object.entries(STUDENT_COLUMN_LABELS).filter(([k]) => studentColumns[k]);
+      headers = ["#", ...cols.map(([, v]) => v)];
+      rows = filteredStudents.map((s, idx) => {
+        const row = [String(idx + 1)];
+        if (studentColumns.schoolId)    row.push(s.school_id || "—");
+        if (studentColumns.studentName) row.push(`${s.users?.first_name || ""} ${s.users?.last_name || ""}`.trim() || "—");
+        if (studentColumns.course)      row.push(s.course || "—");
+        if (studentColumns.yearLevel)   row.push(String(s.year_level || "—"));
+        if (studentColumns.gender)      row.push(s.gender || "—");
+        if (studentColumns.contact)     row.push(s.contact_number || "—");
+        if (studentColumns.status)      row.push(s.status || "—");
+        return row;
+      });
       statusColIdx = headers.indexOf("Status");
     } else if (reportType === "compliance") {
-      headers = ["#", "School ID", "Name", "Scholarship", "Required", "Submitted", "Status"];
-      rows = complianceRows.map((g, idx) => [
-        String(idx + 1),
-        g.students?.school_id || "—",
-        `${g.students?.users?.first_name || ""} ${g.students?.users?.last_name || ""}`.trim() || "—",
-        g.scholarships?.scholarship_name || "—",
-        String(g.requiredCount),
-        String(g.submittedCount),
-        g.complete ? "Complete" : "Incomplete",
-      ]);
+      const cols = Object.entries(COMPLIANCE_COLUMN_LABELS).filter(([k]) => complianceColumns[k]);
+      headers = ["#", ...cols.map(([, v]) => v)];
+      rows = complianceRows.map((g, idx) => {
+        const row = [String(idx + 1)];
+        if (complianceColumns.schoolId)    row.push(g.students?.school_id || "—");
+        if (complianceColumns.studentName) row.push(`${g.students?.users?.first_name || ""} ${g.students?.users?.last_name || ""}`.trim() || "—");
+        if (complianceColumns.scholarship) row.push(g.scholarships?.scholarship_name || "—");
+        if (complianceColumns.required)    row.push(String(g.requiredCount));
+        if (complianceColumns.submitted)   row.push(String(g.submittedCount));
+        if (complianceColumns.status)      row.push(g.complete ? "Complete" : "Incomplete");
+        return row;
+      });
       statusColIdx = headers.indexOf("Status");
     } else if (reportType === "requirements") {
-      headers = ["#", "Type", "Requirement", "Requirement Type", "Description"];
-      rows = filteredRequirements.map((r, idx) => [
-        String(idx + 1),
-        r.kind,
-        r.requirement_name || "—",
-        r.requirement_type || "—",
-        r.description || "—",
-      ]);
+      const cols = Object.entries(REQUIREMENT_COLUMN_LABELS).filter(([k]) => requirementColumns[k]);
+      headers = ["#", ...cols.map(([, v]) => v)];
+      rows = filteredRequirements.map((r, idx) => {
+        const row = [String(idx + 1)];
+        if (requirementColumns.type)            row.push(r.kind);
+        if (requirementColumns.requirement)     row.push(r.requirement_name || "—");
+        if (requirementColumns.requirementType) row.push(r.requirement_type || "—");
+        if (requirementColumns.description)     row.push(r.description || "—");
+        return row;
+      });
       statusColIdx = -1;
     } else {
       headers = ["#", ...Object.entries(SHORT_LABELS).filter(([k]) => columns[k]).map(([, v]) => v)];
@@ -773,7 +868,29 @@ export default function CoordinatorDashboard() {
   const pendingCount      = applications.filter(a=>a.status==="Pending").length;
   const totalScholarships = scholarStats.length;
 
-  if (loading) return <p style={{padding:20,color:"var(--text-secondary)"}}>Loading...</p>;
+  // Shared "Columns to include" checklist — same look for every report
+  // type, just fed a different label map + state pair each time.
+  const renderColumnPicker = (labels, state, setState) => (
+    <div>
+      <p style={st.sectionLabel}>Columns to include</p>
+      <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))", gap:8}}>
+        {Object.entries(labels).map(([key,label])=>(
+          <label key={key} style={{
+            ...st.checkLabel,
+            background:   state[key] ? "var(--navy-50)"  : "var(--surface)",
+            borderColor:  state[key] ? "var(--navy-300)" : "var(--border)",
+            fontWeight:   state[key] ? 600 : 400,
+            color:        state[key] ? "var(--navy-700)" : "var(--text-primary)",
+          }}>
+            <input type="checkbox" checked={state[key]} onChange={()=>setState({...state,[key]:!state[key]})} />
+            {label}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (loading) return <PageLoader label="Loading dashboard…" />;
 
   return (
     <div style={st.container}>
@@ -806,22 +923,40 @@ export default function CoordinatorDashboard() {
       {/* ── stat cards ── */}
       <div style={st.cardGrid}>
         {[
-          ["Applications This Month", applications.filter(a=>{const d=new Date(a.application_date),n=new Date();return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear()}).length],
-          ["Grantees", totalGrantees],
-          ["Acceptance Rate", totalApplicants ? Math.round(applications.filter(a=>a.status==="Approved").length/totalApplicants*100)+"%" : "0%"],
-          ["Scholarships", totalScholarships],
-        ].map(([label,val])=>(
-          <div key={label} style={st.card}>
-            <p style={st.cardLabel}>{label}</p>
-            <h2 style={st.cardValue}>{val}</h2>
-          </div>
+          {
+            label: "Applications This Month",
+            val: applications.filter(a=>{const d=new Date(a.application_date),n=new Date();return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear()}).length,
+            explain: "Count of applications whose application date falls in the current calendar month and year.",
+          },
+          {
+            label: "Grantees",
+            val: totalGrantees,
+            explain: "Sum of the \"occupied\" slot count across every scholarship — i.e. how many active grantees currently hold a slot.",
+          },
+          {
+            label: "Acceptance Rate",
+            val: totalApplicants ? Math.round(applications.filter(a=>a.status==="Approved").length/totalApplicants*100)+"%" : "0%",
+            explain: "Applications with status \"Approved\" ÷ total applications × 100, rounded to the nearest whole percent.",
+          },
+          {
+            label: "Scholarships",
+            val: totalScholarships,
+            explain: "Total number of scholarship programs currently in the system, regardless of status.",
+          },
+        ].map(({label,val,explain})=>(
+          <StatCard key={label} label={label} value={val} explain={explain} />
         ))}
       </div>
 
       {/* ── info grid ── */}
       <div style={st.infoGrid}>
         <div style={st.infoCard}>
-          <h3 style={st.infoTitle}>Scholarship Slots</h3>
+          <div style={st.infoTitleRow}>
+            <h3 style={st.infoTitleTxt}>Scholarship Slots</h3>
+            <InfoTooltip label="Scholarship Slots">
+              For each scholarship, occupied slots ÷ total slots. Badge turns red at full capacity, amber at 80%+ full, green otherwise.
+            </InfoTooltip>
+          </div>
           <div style={st.cardContent}>
             {scholarStats.map(s=>(
               <div key={s.scholarship_id} style={st.infoRow}>
@@ -835,7 +970,12 @@ export default function CoordinatorDashboard() {
         </div>
 
         <div style={st.infoCard}>
-          <h3 style={st.infoTitle}>Upcoming Deadlines</h3>
+          <div style={st.infoTitleRow}>
+            <h3 style={st.infoTitleTxt}>Upcoming Deadlines</h3>
+            <InfoTooltip label="Upcoming Deadlines">
+              Scholarships whose submission deadline is still ahead, listed by soonest submission_deadline first.
+            </InfoTooltip>
+          </div>
           <div style={st.cardContent}>
             {upcomingDeadlines.map((d,i)=>(
               <div key={i} style={st.infoRow}>
@@ -847,7 +987,12 @@ export default function CoordinatorDashboard() {
         </div>
 
         <div style={st.infoCard}>
-          <h3 style={st.infoTitle}>Recent Activity</h3>
+          <div style={st.infoTitleRow}>
+            <h3 style={st.infoTitleTxt}>Recent Activity</h3>
+            <InfoTooltip label="Recent Activity">
+              The 5 most recently loaded applications, showing each applicant's current status.
+            </InfoTooltip>
+          </div>
           <div style={st.cardContent}>
             {applications.slice(0,5).map(a=>(
               <div key={a.application_id} style={st.infoRow}>
@@ -859,7 +1004,12 @@ export default function CoordinatorDashboard() {
         </div>
 
         <div style={st.infoCard}>
-          <h3 style={st.infoTitle}>Summary</h3>
+          <div style={st.infoTitleRow}>
+            <h3 style={st.infoTitleTxt}>Summary</h3>
+            <InfoTooltip label="Summary">
+              Total = all applications loaded. Approved/Pending/Rejected = count of applications with that exact status.
+            </InfoTooltip>
+          </div>
           <div style={st.cardContent}>
             {[["Total",totalApplicants],["Approved",applications.filter(a=>a.status==="Approved").length],["Pending",pendingCount],["Rejected",applications.filter(a=>a.status==="Rejected").length]].map(([l,v])=>(
               <div key={l} style={st.infoRow}>
@@ -1017,7 +1167,7 @@ export default function CoordinatorDashboard() {
                       <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>{label}</label>
                       <select style={st.sel} value={reportFilters[key]}
                         onChange={e=>setReportFilters({...reportFilters,[key]:e.target.value})}>
-                        {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                        {opts.map(o=><option key={o} value={o}>{o==="All"?allLabel(label):o}</option>)}
                       </select>
                     </div>
                   ))}
@@ -1025,24 +1175,14 @@ export default function CoordinatorDashboard() {
               </div>
 
               {/* Columns */}
-              <div>
-                <p style={st.sectionLabel}>Columns to include</p>
-                <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))", gap:8}}>
-                  {Object.entries(COLUMN_LABELS).map(([key,label])=>(
-                    <label key={key} style={{
-                      ...st.checkLabel,
-                      background:   columns[key] ? "var(--navy-50)"  : "var(--surface)",
-                      borderColor:  columns[key] ? "var(--navy-300)" : "var(--border)",
-                      fontWeight:   columns[key] ? 600 : 400,
-                      color:        columns[key] ? "var(--navy-700)" : "var(--text-primary)",
-                    }}>
-                      <input type="checkbox" checked={columns[key]} onChange={()=>setColumns({...columns,[key]:!columns[key]})} />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </div>
+              {renderColumnPicker(COLUMN_LABELS, columns, setColumns)}
               </>
+              )}
+
+              {reportType === "scholarshipUtilization" && (
+                <div>
+                  {renderColumnPicker(UTILIZATION_COLUMN_LABELS, utilizationColumns, setUtilizationColumns)}
+                </div>
               )}
 
               {reportType === "grantees" && (
@@ -1059,11 +1199,12 @@ export default function CoordinatorDashboard() {
                         <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>{label}</label>
                         <select style={st.sel} value={granteeFilters[key]}
                           onChange={e=>setGranteeFilters({...granteeFilters,[key]:e.target.value})}>
-                          {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                          {opts.map(o=><option key={o} value={o}>{o==="All"?allLabel(label):o}</option>)}
                         </select>
                       </div>
                     ))}
                   </div>
+                  {renderColumnPicker(GRANTEE_COLUMN_LABELS, granteeColumns, setGranteeColumns)}
                 </div>
               )}
 
@@ -1073,9 +1214,10 @@ export default function CoordinatorDashboard() {
                   <div style={{maxWidth:220}}>
                     <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>Status</label>
                     <select style={st.sel} value={scholarshipStatusFilter} onChange={e=>setScholarshipStatusFilter(e.target.value)}>
-                      {["All","Active","Inactive"].map(o=><option key={o} value={o}>{o}</option>)}
+                      {["All","Active","Inactive"].map(o=><option key={o} value={o}>{o==="All"?"All Status":o}</option>)}
                     </select>
                   </div>
+                  {renderColumnPicker(SCHOLARSHIP_COLUMN_LABELS, scholarshipColumns, setScholarshipColumns)}
                 </div>
               )}
 
@@ -1092,11 +1234,12 @@ export default function CoordinatorDashboard() {
                         <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>{label}</label>
                         <select style={st.sel} value={studentReportFilters[key]}
                           onChange={e=>setStudentReportFilters({...studentReportFilters,[key]:e.target.value})}>
-                          {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                          {opts.map(o=><option key={o} value={o}>{o==="All"?allLabel(label):o}</option>)}
                         </select>
                       </div>
                     ))}
                   </div>
+                  {renderColumnPicker(STUDENT_COLUMN_LABELS, studentColumns, setStudentColumns)}
                 </div>
               )}
 
@@ -1106,9 +1249,10 @@ export default function CoordinatorDashboard() {
                   <div style={{maxWidth:220}}>
                     <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>Scholarship</label>
                     <select style={st.sel} value={complianceScholarshipFilter} onChange={e=>setComplianceScholarshipFilter(e.target.value)}>
-                      {["All",...filterOptions.scholarships].map(o=><option key={o} value={o}>{o}</option>)}
+                      {["All",...filterOptions.scholarships].map(o=><option key={o} value={o}>{o==="All"?"All Scholarships":o}</option>)}
                     </select>
                   </div>
+                  {renderColumnPicker(COMPLIANCE_COLUMN_LABELS, complianceColumns, setComplianceColumns)}
                 </div>
               )}
 
@@ -1118,9 +1262,10 @@ export default function CoordinatorDashboard() {
                   <div style={{maxWidth:220}}>
                     <label style={{fontSize:11,fontWeight:700,color:"var(--text-secondary)",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:".3px"}}>Type</label>
                     <select style={st.sel} value={requirementTypeFilter} onChange={e=>setRequirementTypeFilter(e.target.value)}>
-                      {["All","Application","Eligibility"].map(o=><option key={o} value={o}>{o}</option>)}
+                      {["All","Application","Eligibility"].map(o=><option key={o} value={o}>{o==="All"?"All Types":o}</option>)}
                     </select>
                   </div>
+                  {renderColumnPicker(REQUIREMENT_COLUMN_LABELS, requirementColumns, setRequirementColumns)}
                 </div>
               )}
 
@@ -1210,52 +1355,52 @@ export default function CoordinatorDashboard() {
                         columns.status       && { label:"Status",     render:a=>renderStatusPill(a.status) },
                       ].filter(Boolean),
                       scholarshipUtilization: [
-                        { label:"Scholarship", render:s=>s.scholarship_name||"—" },
-                        { label:"Slots",       render:s=>s.slots ?? "—" },
-                        { label:"Occupied",    render:s=>s.occupied ?? 0 },
-                        { label:"Remaining",   render:s=>(s.slots??0)-(s.occupied??0) },
-                      ],
+                        utilizationColumns.scholarship && { label:"Scholarship", render:s=>s.scholarship_name||"—" },
+                        utilizationColumns.slots        && { label:"Slots",       render:s=>s.slots ?? "—" },
+                        utilizationColumns.occupied     && { label:"Occupied",    render:s=>s.occupied ?? 0 },
+                        utilizationColumns.remaining    && { label:"Remaining",   render:s=>(s.slots??0)-(s.occupied??0) },
+                      ].filter(Boolean),
                       grantees: [
-                        { label:"School ID",    render:g=>g.students?.school_id||"—" },
-                        { label:"Name",         render:g=>`${g.students?.users?.first_name||""} ${g.students?.users?.last_name||""}`.trim()||"—" },
-                        { label:"Scholarship",  render:g=>g.scholarships?.scholarship_name||"—" },
-                        { label:"Status",       render:g=>renderStatusPill(g.status) },
-                        { label:"Date Awarded", render:g=>g.date_awarded||"—" },
-                        { label:"Acad. Year",   render:g=>g.academic_year||"—" },
-                        { label:"Semester",     render:g=>g.semester||"—" },
-                      ],
+                        granteeColumns.schoolId     && { label:"School ID",    render:g=>g.students?.school_id||"—" },
+                        granteeColumns.studentName  && { label:"Name",         render:g=>`${g.students?.users?.first_name||""} ${g.students?.users?.last_name||""}`.trim()||"—" },
+                        granteeColumns.scholarship  && { label:"Scholarship",  render:g=>g.scholarships?.scholarship_name||"—" },
+                        granteeColumns.status       && { label:"Status",       render:g=>renderStatusPill(g.status) },
+                        granteeColumns.dateAwarded  && { label:"Date Awarded", render:g=>g.date_awarded||"—" },
+                        granteeColumns.academicYear && { label:"Acad. Year",   render:g=>g.academic_year||"—" },
+                        granteeColumns.semester     && { label:"Semester",     render:g=>g.semester||"—" },
+                      ].filter(Boolean),
                       scholarships: [
-                        { label:"Scholarship", render:s=>s.scholarship_name||"—" },
-                        { label:"Sponsor",     render:s=>s.sponsor||"—" },
-                        { label:"Amount",      render:s=>s.amount!=null?`₱${Number(s.amount).toLocaleString()}`:"—" },
-                        { label:"Budget",      render:s=>s.total_budget!=null?`₱${Number(s.total_budget).toLocaleString()}`:"—" },
-                        { label:"Slots",       render:s=>s.slots ?? "—" },
-                        { label:"Status",      render:s=>renderStatusPill(s.status) },
-                        { label:"Deadline",    render:s=>s.submission_deadline||"—" },
-                      ],
+                        scholarshipColumns.scholarship && { label:"Scholarship", render:s=>s.scholarship_name||"—" },
+                        scholarshipColumns.sponsor      && { label:"Sponsor",     render:s=>s.sponsor||"—" },
+                        scholarshipColumns.amount       && { label:"Amount",      render:s=>s.amount!=null?`₱${Number(s.amount).toLocaleString()}`:"—" },
+                        scholarshipColumns.budget       && { label:"Budget",      render:s=>s.total_budget!=null?`₱${Number(s.total_budget).toLocaleString()}`:"—" },
+                        scholarshipColumns.slots        && { label:"Slots",       render:s=>s.slots ?? "—" },
+                        scholarshipColumns.status       && { label:"Status",      render:s=>renderStatusPill(s.status) },
+                        scholarshipColumns.deadline     && { label:"Deadline",    render:s=>s.submission_deadline||"—" },
+                      ].filter(Boolean),
                       students: [
-                        { label:"School ID",   render:s=>s.school_id||"—" },
-                        { label:"Name",        render:s=>`${s.users?.first_name||""} ${s.users?.last_name||""}`.trim()||"—" },
-                        { label:"Course",      render:s=>s.course||"—" },
-                        { label:"Year",        render:s=>s.year_level||"—" },
-                        { label:"Gender",      render:s=>s.gender||"—" },
-                        { label:"Contact No.", render:s=>s.contact_number||"—" },
-                        { label:"Status",      render:s=>renderStatusPill(s.status) },
-                      ],
+                        studentColumns.schoolId    && { label:"School ID",   render:s=>s.school_id||"—" },
+                        studentColumns.studentName && { label:"Name",        render:s=>`${s.users?.first_name||""} ${s.users?.last_name||""}`.trim()||"—" },
+                        studentColumns.course      && { label:"Course",      render:s=>s.course||"—" },
+                        studentColumns.yearLevel   && { label:"Year",        render:s=>s.year_level||"—" },
+                        studentColumns.gender      && { label:"Gender",      render:s=>s.gender||"—" },
+                        studentColumns.contact     && { label:"Contact No.", render:s=>s.contact_number||"—" },
+                        studentColumns.status      && { label:"Status",      render:s=>renderStatusPill(s.status) },
+                      ].filter(Boolean),
                       compliance: [
-                        { label:"School ID",   render:g=>g.students?.school_id||"—" },
-                        { label:"Name",        render:g=>`${g.students?.users?.first_name||""} ${g.students?.users?.last_name||""}`.trim()||"—" },
-                        { label:"Scholarship", render:g=>g.scholarships?.scholarship_name||"—" },
-                        { label:"Required",    render:g=>g.requiredCount },
-                        { label:"Submitted",   render:g=>g.submittedCount },
-                        { label:"Status",      render:g=>renderStatusPill(g.complete ? "Complete" : "Incomplete") },
-                      ],
+                        complianceColumns.schoolId    && { label:"School ID",   render:g=>g.students?.school_id||"—" },
+                        complianceColumns.studentName && { label:"Name",        render:g=>`${g.students?.users?.first_name||""} ${g.students?.users?.last_name||""}`.trim()||"—" },
+                        complianceColumns.scholarship && { label:"Scholarship", render:g=>g.scholarships?.scholarship_name||"—" },
+                        complianceColumns.required    && { label:"Required",    render:g=>g.requiredCount },
+                        complianceColumns.submitted   && { label:"Submitted",   render:g=>g.submittedCount },
+                        complianceColumns.status      && { label:"Status",      render:g=>renderStatusPill(g.complete ? "Complete" : "Incomplete") },
+                      ].filter(Boolean),
                       requirements: [
-                        { label:"Type",             render:r=>r.kind },
-                        { label:"Requirement",      render:r=>r.requirement_name||"—" },
-                        { label:"Requirement Type", render:r=>r.requirement_type||"—" },
-                        { label:"Description",      render:r=>r.description||"—" },
-                      ],
+                        requirementColumns.type            && { label:"Type",             render:r=>r.kind },
+                        requirementColumns.requirement      && { label:"Requirement",      render:r=>r.requirement_name||"—" },
+                        requirementColumns.requirementType  && { label:"Requirement Type", render:r=>r.requirement_type||"—" },
+                        requirementColumns.description      && { label:"Description",      render:r=>r.description||"—" },
+                      ].filter(Boolean),
                     };
 
                     const keyFns = {

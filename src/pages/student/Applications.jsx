@@ -7,13 +7,17 @@ import { Field, Input } from "@/components/ui/Input";
 import PageLoader from "@/components/ui/PageLoader";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useToast } from "@/context/ToastContext";
+import { getCached, setCached } from "@/lib/dataCache";
 import styles from "./Applications.module.css";
 
+const CACHE_KEY = "student-applications";
+
 export default function Applications() {
-  const [applications, setApplications] = useState([]);
+  const cached = getCached(CACHE_KEY);
+  const [applications, setApplications] = useState(cached || []);
   const [selectedApp, setSelectedApp] = useState(null);
   const [answers, setAnswers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cached);
 
   const [editApp, setEditApp] = useState(null);
   const [formFields, setFormFields] = useState([]);
@@ -30,7 +34,7 @@ export default function Applications() {
   }, []);
 
   const load = async () => {
-    setLoading(true);
+    if (!getCached(CACHE_KEY)) setLoading(true);
 
     try {
       const { data: authData } = await supabase.auth.getUser();
@@ -62,6 +66,7 @@ export default function Applications() {
         .order("application_date", { ascending: false });
 
       setApplications(data || []);
+      setCached(CACHE_KEY, data || []);
     } catch (err) {
       console.error(err);
       toast.error("Couldn't load your applications. Please try refreshing the page.");

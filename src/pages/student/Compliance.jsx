@@ -3,11 +3,15 @@ import { supabase } from "@/lib/supabase";
 import { Card, Badge, EmptyState } from "@/components/ui/Card";
 import { TableWrap, Table } from "@/components/ui/Table";
 import PageLoader from "@/components/ui/PageLoader";
+import { getCached, setCached } from "@/lib/dataCache";
 import styles from "./Compliance.module.css";
 
+const CACHE_KEY = "student-compliance";
+
 export default function Compliance() {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cachedRows = getCached(CACHE_KEY);
+  const [rows, setRows] = useState(cachedRows || []);
+  const [loading, setLoading] = useState(!cachedRows);
   // Per-row upload state: a Set of "<application_id>|<requirement_name>"
   // keys that are currently uploading. Fixes the bug where one active
   // upload was disabling every file input on the page simultaneously.
@@ -18,7 +22,7 @@ export default function Compliance() {
   }, []);
 
   const load = async () => {
-    setLoading(true);
+    if (!getCached(CACHE_KEY)) setLoading(true);
 
     try {
       const {
@@ -88,6 +92,7 @@ export default function Compliance() {
       }
 
       setRows(Object.values(grouped));
+      setCached(CACHE_KEY, Object.values(grouped));
     } catch (err) {
       console.error(err);
     } finally {
