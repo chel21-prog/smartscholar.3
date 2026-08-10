@@ -82,7 +82,6 @@ const COLUMN_LABELS = {
   status:       "Status",
 };
 
-<<<<<<< HEAD
 // Column-selection labels for every other report type — same idea as
 // COLUMN_LABELS above (applications), just one map per report so each
 // type's "Columns to include" checklist shows the right fields.
@@ -134,8 +133,6 @@ const REQUIREMENT_COLUMN_LABELS = {
   description:     "Description",
 };
 
-=======
->>>>>>> 223d6d667244638cc7e82d96f925545338c40f74
 const CACHE_KEY = "coordinator-dashboard";
 
 export default function CoordinatorDashboard() {
@@ -871,7 +868,6 @@ export default function CoordinatorDashboard() {
   const pendingCount      = applications.filter(a=>a.status==="Pending").length;
   const totalScholarships = scholarStats.length;
 
-<<<<<<< HEAD
   // Shared "Columns to include" checklist — same look for every report
   // type, just fed a different label map + state pair each time.
   const renderColumnPicker = (labels, state, setState) => (
@@ -894,8 +890,6 @@ export default function CoordinatorDashboard() {
     </div>
   );
 
-=======
->>>>>>> 223d6d667244638cc7e82d96f925545338c40f74
   if (loading) return <PageLoader label="Loading dashboard…" />;
 
   return (

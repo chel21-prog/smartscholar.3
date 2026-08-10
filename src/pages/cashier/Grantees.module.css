@@ -303,90 +303,25 @@
 
 }
 
-.badgePending{
-
-    display:inline-flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    min-width:90px;
-
-    padding:6px 14px;
-
-    border-radius:999px;
-
-    background:var(--warning-100);
-
-    color:var(--warning-700);
-
-    font-size:13px;
-
-    font-weight:700;
-
-}
-
 /* ===========================
    BUTTONS
 =========================== */
 
 .releaseBtn{
-
     border:none;
-
-    .releaseBtn{
-
     background:var(--navy-600);
-
-}
-
     color:white;
-
     padding:10px 18px;
-
     border-radius:10px;
-
     cursor:pointer;
-
     font-weight:600;
-
     transition:.2s;
-
 }
 
 .releaseBtn:hover{
-
     filter:brightness(.95);
-
     transform:translateY(-1px);
-     background:var(--navy-700);
-}
-
-.undoBtn{
-
-    border:none;
-
-    background:var(--danger-600);
-
-    color:white;
-
-    padding:10px 18px;
-
-    border-radius:10px;
-
-    cursor:pointer;
-
-    font-weight:600;
-
-    transition:.2s;
-
-}
-
-.undoBtn:hover{
-
-    background:var(--danger-700);
-
+    background:var(--navy-700);
 }
 
 /* ===========================
