@@ -65,6 +65,35 @@
 
 .clearBtn:hover { background: var(--border-strong); }
 
+<<<<<<< HEAD
+=======
+.select {
+  height: 38px;
+  padding: 0 10px;
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  min-width: 130px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.select:focus {
+  border-color: var(--navy-500);
+  box-shadow: 0 0 0 3px var(--navy-100);
+}
+
+.selectActive {
+  border-color: var(--navy-500);
+  background: var(--navy-50);
+  color: var(--navy-700);
+  font-weight: 600;
+}
+
+>>>>>>> 223d6d667244638cc7e82d96f925545338c40f74
 .count {
   margin-left: auto;
   font-size: 12px;
