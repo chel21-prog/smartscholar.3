@@ -1163,7 +1163,7 @@ export default function CoordinatorDashboard() {
               <div>
                 <p style={st.sectionLabel}>Page Orientation</p>
                 <div style={{display:"flex", gap:8}}>
-                  {[["portrait","⬜ Portrait"],["landscape","⬛ Landscape"]].map(([v,label])=>(
+                  {[["portrait","Portrait"],["landscape","Landscape"]].map(([v,label])=>(
                     <button key={v} onClick={()=>setReportLayout(v)} style={{
                       padding:"10px 20px",
                       borderRadius:8,
