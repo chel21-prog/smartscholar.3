@@ -1,173 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import SearchFilterBar from "@/components/ui/SearchFilterBar";
+import StatCard from "@/components/ui/StatCard";
+import TableSkeleton from "@/components/ui/TableSkeleton";
+import { getCached, setCached } from "@/lib/dataCache";
+import {
+  totalPayoutsAllowed, periodKey, buildSchedule,
+  isEligible, isFullyPaidOut, payoutProgressLabel, latestRelease,
+} from "@/lib/payoutSchedule";
 import s from "./Funds.module.css";
 
 const PAGE_SIZE = 8;
 
-// How many "semester slots" each duration is worth. Used to derive how many
-// total payouts a grantee is entitled to, combined with payout_frequency.
-const DURATION_TO_SEMESTERS = {
-  "1 Semester": 1,
-  "1 Academic Year": 2,
-  "2 Academic Years": 4,
-  "3 Academic Years": 6,
-  "4 Academic Years": 8,
-  "Until Graduation": Infinity,
-};
-
-// Assumed academic calendar length. Adjust here if your school year runs
-// differently — everything else derives from this one constant.
-const MONTHS_PER_SEMESTER = 5;
-
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-/**
- * How many payouts is this scholarship entitled to release, in total,
- * for one grantee — given its duration and how often it pays out.
- * Returns Infinity for "Until Graduation" (ends only when the grantee's
- * status/verification says the scholarship should stop).
- *
- * `grantee.duration_extension_semesters` (granted by a coordinator for
- * things like "took a 5th year to graduate") adds extra semester-slots
- * before converting to the scholarship's payout frequency.
- */
-function totalPayoutsAllowed(scholarship, grantee = null) {
-  const base = DURATION_TO_SEMESTERS[scholarship.duration_type] ?? 1;
-  if (base === Infinity) return Infinity;
-
-  const extension = Number(grantee?.duration_extension_semesters || 0);
-  const semesters = base + extension;
-
-  switch (scholarship.payout_frequency) {
-    case "One-time":
-      return 1;
-    case "Annual":
-      return Math.max(1, Math.round(semesters / 2));
-    case "Monthly":
-      return semesters * MONTHS_PER_SEMESTER;
-    case "Semester":
-    default:
-      return semesters;
-  }
-}
-
-/** Unique key for a payout period, used to block duplicate releases. */
-function periodKey({ academic_year, semester, payout_period }) {
-  return [academic_year || "", semester || "", payout_period || ""].join("|");
-}
-
-// ── academic-year / date sequencing helpers ───────────────
-// These let us AUTO-GENERATE the expected schedule of periods for a grantee
-// (instead of the cashier typing AY/semester from scratch every time).
-
-function parseAY(ay) {
-  const m = /^(\d{4})\D+(\d{4})$/.exec((ay || "").trim());
-  if (!m) return null;
-  return [Number(m[1]), Number(m[2])];
-}
-
-function nextAY(ay) {
-  const parsed = parseAY(ay);
-  if (!parsed) return ay; // can't parse — leave as-is, cashier can fix manually
-  return `${parsed[0] + 1}-${parsed[1] + 1}`;
-}
-
-function guessCurrentAY() {
-  const now = new Date();
-  const y = now.getFullYear();
-  // PH academic year runs roughly June → March.
-  return now.getMonth() >= 5 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
-}
-
-function addMonths(date, n) {
-  const d = new Date(date);
-  d.setMonth(d.getMonth() + n);
-  return d;
-}
-
-function academicYearForMonth(date) {
-  const y = date.getFullYear();
-  return date.getMonth() >= 5 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
-}
-
-/**
- * Builds the full expected payout schedule for a grantee: every period they
- * should receive money for, in order, each marked Paid / Due / Upcoming.
- * "Due" = the earliest unpaid period — this is what auto-fills the release
- * form, so a backlogged grantee always gets caught up on the OLDEST missing
- * period first, never accidentally on "today's" period.
- */
-function buildSchedule(grantee, scholarship) {
-  const frequency = scholarship.payout_frequency || "Semester";
-  const cap = totalPayoutsAllowed(scholarship, grantee);
-  const releases = grantee.fund_releases || [];
-  const terminated = grantee.status === "Inactive" && grantee.verification_result === "Ineligible";
-
-  let rawPeriods = [];
-
-  if (frequency === "One-time") {
-    rawPeriods = [{ academic_year: null, semester: null, payout_period: "One-time", label: "One-time payout" }];
-  } else if (frequency === "Semester") {
-    let ay = grantee.academic_year || guessCurrentAY();
-    let semester = grantee.semester === "2nd Semester" ? "2nd Semester" : "1st Semester";
-    const count = cap === Infinity ? Math.max(releases.length + 4, 4) : cap;
-    for (let i = 0; i < count; i++) {
-      rawPeriods.push({ academic_year: ay, semester, payout_period: null, label: `${ay} · ${semester}` });
-      if (semester === "1st Semester") {
-        semester = "2nd Semester";
-      } else {
-        semester = "1st Semester";
-        ay = nextAY(ay);
-      }
-    }
-  } else if (frequency === "Annual") {
-    let ay = grantee.academic_year || guessCurrentAY();
-    const count = cap === Infinity ? Math.max(releases.length + 4, 4) : cap;
-    for (let i = 0; i < count; i++) {
-      rawPeriods.push({ academic_year: ay, semester: null, payout_period: null, label: `AY ${ay}` });
-      ay = nextAY(ay);
-    }
-  } else if (frequency === "Monthly") {
-    const start = grantee.date_awarded ? new Date(grantee.date_awarded) : new Date();
-    const count = cap === Infinity ? Math.max(releases.length + 4, 4) : cap;
-    for (let i = 0; i < count; i++) {
-      const d = addMonths(start, i);
-      const month = MONTHS[d.getMonth()];
-      const ay = academicYearForMonth(d);
-      rawPeriods.push({ academic_year: ay, semester: null, payout_period: month, label: `${month} ${d.getFullYear()} (AY ${ay})` });
-    }
-  }
-
-  const releaseMap = new Map(releases.map((r) => [periodKey(r), r]));
-  let dueAssigned = false;
-
-  return rawPeriods.map((period) => {
-    const release = releaseMap.get(periodKey(period));
-    let status;
-    if (release?.status === "Skipped") {
-      status = "Skipped";
-    } else if (release) {
-      status = "Paid";
-    } else if (terminated) {
-      // The grantee's scholarship ended — any period that never got paid
-      // never will, and that's expected, not a gap to chase.
-      status = "Discontinued";
-    } else if (!dueAssigned) {
-      status = "Due";
-      dueAssigned = true;
-    } else {
-      status = "Upcoming";
-    }
-    return { ...period, status, release };
-  });
-}
+const CACHE_KEY = "cashier-funds";
 
 export default function Funds() {
-  const [loading, setLoading] = useState(true);
-  const [scholarships, setScholarships] = useState([]);
+  const cachedScholarships = getCached(CACHE_KEY);
+  const [loading, setLoading] = useState(!cachedScholarships);
+  const [scholarships, setScholarships] = useState(cachedScholarships || []);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
   const [page, setPage] = useState(1);
@@ -191,7 +41,7 @@ export default function Funds() {
   useEffect(() => { loadScholarships(); }, []);
 
   async function loadScholarships() {
-    setLoading(true);
+    if (!getCached(CACHE_KEY)) setLoading(true);
     const { data, error } = await supabase
       .from("scholarships")
       .select(`
@@ -243,6 +93,7 @@ export default function Funds() {
     }
 
     setScholarships(data || []);
+    setCached(CACHE_KEY, data || []);
     setLoading(false);
     return data || [];
   }
@@ -267,36 +118,10 @@ export default function Funds() {
   }
 
   // ── payout status helpers ────────────────────────────────
+  // isEligible / isFullyPaidOut / payoutProgressLabel / latestRelease now
+  // live in @/lib/payoutSchedule (shared with cashier/Grantees.jsx).
   function releasedCount(grantee) {
     return grantee.fund_releases?.length || 0;
-  }
-
-  function latestRelease(grantee) {
-    if (!grantee.fund_releases?.length) return null;
-    return [...grantee.fund_releases].sort(
-      (a, b) => new Date(b.release_date) - new Date(a.release_date)
-    )[0];
-  }
-
-  /** Is this grantee cleared to receive money at all right now? */
-  function isEligible(grantee) {
-    return grantee.status === "Active" && grantee.verification_result === "Verified";
-  }
-
-  function isFullyPaidOut(grantee, scholarship) {
-    const cap = totalPayoutsAllowed(scholarship, grantee);
-    return cap !== Infinity && releasedCount(grantee) >= cap;
-  }
-
-  function payoutProgressLabel(grantee, scholarship) {
-    const cap = totalPayoutsAllowed(scholarship, grantee);
-    const releases = grantee.fund_releases || [];
-    const released = releases.filter((r) => r.status !== "Skipped").length;
-    const skipped = releases.filter((r) => r.status === "Skipped").length;
-    const skippedNote = skipped > 0 ? ` (${skipped} skipped)` : "";
-    return cap === Infinity
-      ? `${released} released${skippedNote} · ongoing`
-      : `${released} / ${cap} released${skippedNote}`;
   }
 
   // ── release flow ─────────────────────────────────────────
@@ -423,7 +248,13 @@ export default function Funds() {
       const keyword = search.toLowerCase();
       const matchesSearch =
         scholarship.scholarship_name?.toLowerCase().includes(keyword) ||
-        scholarship.sponsor?.toLowerCase().includes(keyword);
+        scholarship.sponsor?.toLowerCase().includes(keyword) ||
+        scholarship.payout_frequency?.toLowerCase().includes(keyword) ||
+        scholarship.duration_type?.toLowerCase().includes(keyword) ||
+        String(scholarship.total_budget || "").includes(keyword) ||
+        String(releasedAmount(scholarship)).includes(keyword) ||
+        String(remainingBudget(scholarship)).includes(keyword) ||
+        String(scholarship.grantees?.length || "").includes(keyword);
 
       let matchesFilter = true;
       if (filter === "With Budget") matchesFilter = remainingBudget(scholarship) > 0;
@@ -440,10 +271,6 @@ export default function Funds() {
   const totalReleased = scholarships.reduce((sum, sch) => sum + releasedAmount(sch), 0);
   const totalRemaining = totalBudget - totalReleased;
 
-  if (loading) {
-    return <div className={s.loading}>Loading scholarship funds...</div>;
-  }
-
   return (
     <div className={s.page}>
       {/* ================= HEADER ================= */}
@@ -458,43 +285,50 @@ export default function Funds() {
 
       {/* ================= SUMMARY ================= */}
       <div className={s.statsGrid}>
-        <div className={s.statCard}>
-          <span>Total Budget</span>
-          <strong>₱{totalBudget.toLocaleString()}</strong>
-        </div>
-        <div className={s.statCard}>
-          <span>Total Released</span>
-          <strong className={s.successText}>₱{totalReleased.toLocaleString()}</strong>
-        </div>
-        <div className={s.statCard}>
-          <span>Remaining Budget</span>
-          <strong className={s.primaryText}>₱{totalRemaining.toLocaleString()}</strong>
-        </div>
-        <div className={s.statCard}>
-          <span>Scholarships</span>
-          <strong>{scholarships.length}</strong>
-        </div>
+        <StatCard
+          label="Total Budget"
+          value={`₱${totalBudget.toLocaleString()}`}
+          explain="Sum of total_budget across every scholarship."
+        />
+        <StatCard
+          label="Total Released"
+          value={`₱${totalReleased.toLocaleString()}`}
+          tone="success"
+          explain="Sum of amount_released across every fund release, for every grantee, across every scholarship."
+        />
+        <StatCard
+          label="Remaining Budget"
+          value={`₱${totalRemaining.toLocaleString()}`}
+          tone="info"
+          explain="Total Budget minus Total Released."
+        />
+        <StatCard
+          label="Scholarships"
+          value={scholarships.length}
+          explain="Total number of scholarship programs currently loaded."
+        />
       </div>
 
       {/* ================= FILTER BAR ================= */}
-      <div className={s.filterBar}>
-        <input
-          className={s.searchInput}
-          type="text"
-          placeholder="Search scholarship or sponsor..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-        />
-        <select
-          className={s.filterSelect}
-          value={filter}
-          onChange={(e) => { setFilter(e.target.value); setPage(1); }}
-        >
-          <option value="All">All</option>
-          <option value="With Budget">With Budget</option>
-          <option value="Fully Released">Fully Released</option>
-        </select>
-      </div>
+      <SearchFilterBar
+        search={search}
+        onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        searchPlaceholder="Search by scholarship, sponsor, frequency, duration, budget..."
+        resultCount={filtered.length}
+        totalCount={scholarships.length}
+        filters={[
+          {
+            label: "Budget status",
+            value: filter,
+            onChange: (v) => { setFilter(v); setPage(1); },
+            options: [
+              { value: "All", label: "All Budget Statuses" },
+              { value: "With Budget", label: "With Budget" },
+              { value: "Fully Released", label: "Fully Released" },
+            ],
+          },
+        ]}
+      />
 
       {/* ================= SCHOLARSHIP TABLE ================= */}
       <div className={s.tableWrap}>
@@ -514,7 +348,9 @@ export default function Funds() {
             </tr>
           </thead>
           <tbody>
-            {currentScholarships.length === 0 ? (
+            {loading ? (
+              <tr><td colSpan={10} style={{ padding: "14px 16px" }}><TableSkeleton columns={10} rows={6} /></td></tr>
+            ) : currentScholarships.length === 0 ? (
               <tr><td colSpan={10} className={s.emptyState}>No scholarship funds found.</td></tr>
             ) : (
               currentScholarships.map((scholarship) => {

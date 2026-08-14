@@ -2,15 +2,23 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { useNavigate } from "react-router-dom";
+import SearchFilterBar from "@/components/ui/SearchFilterBar";
+import TableSkeleton from "@/components/ui/TableSkeleton";
+import { getCached, setCached } from "@/lib/dataCache";
 import styles from "./CoordinatorApplications.module.css";
 
+const CACHE_KEY = "coordinator-applications";
+
 export default function CoordinatorApplications() {
-  const [applications, setApplications] = useState([]);
+  const navigate = useNavigate();
+  const cachedApps = getCached(CACHE_KEY);
+  const [applications, setApplications] = useState(cachedApps || []);
   const [selectedApp, setSelectedApp] = useState(null);
   const [answers, setAnswers] = useState([]);
   const [appDocuments, setAppDocuments] = useState([]);
   const [loadingAppDetail, setLoadingAppDetail] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedApps);
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
 
@@ -43,7 +51,7 @@ const [sendNotification, setSendNotification] = useState(true);
   // LOAD APPLICATIONS
   // =========================
   const load = async () => {
-    setLoading(true);
+    if (!getCached(CACHE_KEY)) setLoading(true);
 
     const { data } = await supabase
   .from("scholarship_applications")
@@ -77,6 +85,7 @@ const [sendNotification, setSendNotification] = useState(true);
   .order("application_date", { ascending: false });
 
     setApplications(data || []);
+    setCached(CACHE_KEY, data || []);
     setLoading(false);
   };
 
@@ -472,8 +481,6 @@ const addFooter = (doc, footerImage) => {
     return matchesSearch && matchesStatus;
 });
 
-  if (loading) return <p>Loading...</p>;
-
   const totalPages = Math.ceil(
     filtered.length / rowsPerPage
 );
@@ -485,37 +492,41 @@ const paginated = filtered.slice(
   return (
     <div className={styles.page}>
 
-      <div className={styles.header}>
+      <div className={styles.header} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:10 }}>
   <div>
     <h1 className={styles.title}>Applications</h1>
     <p className={styles.subtitle}>
       Review scholarship applications, approve or reject submissions, and notify applicants.
     </p>
   </div>
+  <button
+    onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "applications", returnTo: "/coordinator/applications" } } })}
+    style={{ padding:"9px 16px", background:"#16a34a", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
+  >
+    Generate Report
+  </button>
 </div>
 
-<div className={styles.toolbar}>
-
-    <input
-        type="text"
-        placeholder="Search..."
-        value={search}
-        onChange={(e)=>setSearch(e.target.value)}
-        className={styles.search}
-    />
-
-    <select
-        value={filter}
-        onChange={(e)=>setFilter(e.target.value)}
-        className={styles.select}
-    >
-        <option>All</option>
-        <option>Pending</option>
-        <option>Approved</option>
-        <option>Rejected</option>
-    </select>
-
-</div>
+<SearchFilterBar
+  search={search}
+  onSearchChange={(v) => { setSearch(v); setCurrentPage(1); }}
+  searchPlaceholder="Search by student, scholarship, AY, semester, status, date..."
+  resultCount={filtered.length}
+  totalCount={applications.length}
+  filters={[
+    {
+      label: "Status",
+      value: filter,
+      onChange: (v) => { setFilter(v); setCurrentPage(1); },
+      options: [
+        { value: "All", label: "All Status" },
+        { value: "Pending", label: "Pending" },
+        { value: "Approved", label: "Approved" },
+        { value: "Rejected", label: "Rejected" },
+      ],
+    },
+  ]}
+/>
 
       {/* TABLE */}
 
@@ -534,7 +545,13 @@ const paginated = filtered.slice(
         </thead>
 
         <tbody>
-          {paginated.map((a) => (
+          {loading ? (
+            <tr>
+              <td colSpan={7} style={{ padding: "14px 16px" }}>
+                <TableSkeleton columns={7} rows={6} />
+              </td>
+            </tr>
+          ) : paginated.map((a) => (
             <tr key={a.application_id}>
               <td className={styles.td}>{getStudentName(a)}</td>
               <td className={styles.td}>{a.scholarships?.scholarship_name}</td>

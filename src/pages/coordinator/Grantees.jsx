@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Modal from "@/components/ui/Modal";
+import { useNavigate } from "react-router-dom";
+import SearchFilterBar from "@/components/ui/SearchFilterBar";
+import InfoTooltip from "@/components/ui/InfoTooltip";
+import TableSkeleton from "@/components/ui/TableSkeleton";
+import { getCached, setCached } from "@/lib/dataCache";
 import styles from "./Grantees.module.css";
+
+const CACHE_KEY = "coordinator-grantees";
 
 const VERIFICATION_LABELS = {
   Verified: "Verified",
@@ -10,8 +17,10 @@ const VERIFICATION_LABELS = {
 };
 
 export default function Grantees() {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const cachedRows = getCached(CACHE_KEY);
+  const [rows, setRows] = useState(cachedRows || []);
+  const [loading, setLoading] = useState(!cachedRows);
   const [currentPage, setCurrentPage] = useState(1);
 const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search,setSearch]=useState("");
@@ -56,7 +65,7 @@ const [yearFilter, setYearFilter] = useState("All");
   yearFilter,
 ]);
   const load = async () => {
-  setLoading(true);
+  if (!getCached(CACHE_KEY)) setLoading(true);
 
   const { data, error } = await supabase
     .from("grantees")
@@ -136,6 +145,7 @@ const [yearFilter, setYearFilter] = useState("All");
   });
 
   setRows(formatted);
+  setCached(CACHE_KEY, formatted);
   setLoading(false);
 };
 
@@ -209,8 +219,7 @@ const [yearFilter, setYearFilter] = useState("All");
     load();
   };
 
-  if (loading) return <p style={{ padding: 20 }}>Loading...</p>;
- const grouped = rows.reduce((acc, r) => {
+  const grouped = rows.reduce((acc, r) => {
   const key = r.school_id; // better if you use student_id
 
   if (!acc[key]) {
@@ -337,88 +346,84 @@ const endRow =
             View all approved scholarship recipients and their submitted requirements.
         </p>
     </div>
+    <button
+      onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "grantees", returnTo: "/coordinator/grantees" } } })}
+      style={{ padding:"9px 16px", background:"#16a34a", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
+    >
+      Generate Report
+    </button>
 </div>
     
     <div className={styles.statsRow}>
   <div className={styles.statCard}>
     <div className={styles.statNumber}>{rows.length}</div>
-    <div className={styles.statLabel}>Scholarship Awards</div>
+    <div className={styles.statLabelRow}>
+      <span className={styles.statLabel}>Scholarship Awards</span>
+      <InfoTooltip label="Scholarship Awards">
+        Total number of grantee rows loaded — one row per student-scholarship award.
+      </InfoTooltip>
+    </div>
   </div>
 
   <div className={styles.statCard}>
     <div className={styles.statNumber}>
       {Object.keys(grouped).length}
     </div>
-    <div className={styles.statLabel}>Total Grantees</div>
+    <div className={styles.statLabelRow}>
+      <span className={styles.statLabel}>Total Grantees</span>
+      <InfoTooltip label="Total Grantees">
+        Distinct students who hold at least one scholarship award, after grouping all awards by student.
+      </InfoTooltip>
+    </div>
   </div>
 
   <div className={styles.statCard}>
     <div className={styles.statNumber}>
       {rows.filter((r) => r.status === "Active").length}
     </div>
-    <div className={styles.statLabel}>Active Grantees</div>
+    <div className={styles.statLabelRow}>
+      <span className={styles.statLabel}>Active Grantees</span>
+      <InfoTooltip label="Active Grantees">
+        Count of grantee awards whose status is exactly "Active".
+      </InfoTooltip>
+    </div>
   </div>
 </div>
 
-<div className={styles.toolbar}>
-
-    <input
-        type="text"
-        placeholder="Search grantees..."
-        value={search}
-        onChange={(e)=>setSearch(e.target.value)}
-        className={styles.search}
-    />
-
-    <select
-        value={statusFilter}
-        onChange={(e)=>setStatusFilter(e.target.value)}
-        className={styles.select}
-    >
-        {statusOptions.map(option=>(
-            <option key={option}>
-                {option}
-            </option>
-        ))}
-    </select>
-
-    <select
-        value={scholarshipFilter}
-        onChange={(e)=>setScholarshipFilter(e.target.value)}
-        className={styles.select}
-    >
-        {scholarshipOptions.map(option=>(
-            <option key={option}>
-                {option}
-            </option>
-        ))}
-    </select>
-
-    <select
-        value={yearFilter}
-        onChange={(e)=>setYearFilter(e.target.value)}
-        className={styles.select}
-    >
-        {yearOptions.map(option=>(
-            <option key={option}>
-                {option}
-            </option>
-        ))}
-    </select>
-
-    <select
-        value={semesterFilter}
-        onChange={(e)=>setSemesterFilter(e.target.value)}
-        className={styles.select}
-    >
-        {semesterOptions.map(option=>(
-            <option key={option}>
-                {option}
-            </option>
-        ))}
-    </select>
-
-</div>
+<SearchFilterBar
+  search={search}
+  onSearchChange={(v) => { setSearch(v); setCurrentPage(1); }}
+  searchPlaceholder="Search by student, school ID, scholarship, status, AY, semester..."
+  resultCount={tableRows.length}
+  totalCount={rows.length}
+  filters={[
+    {
+      label: "Status",
+      value: statusFilter,
+      onChange: (v) => { setStatusFilter(v); setCurrentPage(1); },
+      options: statusOptions.map((o) => ({ value: o, label: o === "All" ? "All Status" : o })),
+    },
+    {
+      label: "Scholarship",
+      value: scholarshipFilter,
+      onChange: (v) => { setScholarshipFilter(v); setCurrentPage(1); },
+      options: scholarshipOptions.map((o) => ({ value: o, label: o === "All" ? "All Scholarships" : o })),
+      width: 220,
+    },
+    {
+      label: "Academic Year",
+      value: yearFilter,
+      onChange: (v) => { setYearFilter(v); setCurrentPage(1); },
+      options: yearOptions.map((o) => ({ value: o, label: o === "All" ? "All Academic Years" : o })),
+    },
+    {
+      label: "Semester",
+      value: semesterFilter,
+      onChange: (v) => { setSemesterFilter(v); setCurrentPage(1); },
+      options: semesterOptions.map((o) => ({ value: o, label: o === "All" ? "All Semesters" : o })),
+    },
+  ]}
+/>
 
       <div className={styles.tableContainer}>
         <table className={styles.table}>
@@ -438,7 +443,13 @@ const endRow =
           </thead>
 
           <tbody>
-  {paginated.map((row) => {
+  {loading ? (
+    <tr>
+      <td colSpan={10} style={{ padding: "14px 16px" }}>
+        <TableSkeleton columns={10} rows={6} />
+      </td>
+    </tr>
+  ) : paginated.map((row) => {
     const student = row.student;
     const s = row.scholarship;
 

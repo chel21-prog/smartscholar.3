@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import styles from "./Requirements.module.css";
 
 export default function Requirements() {
+  const navigate = useNavigate();
   const [appReq,  setAppReq]  = useState([]);
   const [eligReq, setEligReq] = useState([]);
 
@@ -280,6 +282,12 @@ export default function Requirements() {
             Manage application and eligibility requirements used across scholarships.
           </p>
         </div>
+        <button
+          onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "requirements", returnTo: "/coordinator/requirements" } } })}
+          style={{ padding:"9px 16px", background:"#16a34a", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
+        >
+          Generate Report
+        </button>
       </div>
 
       <div className={styles.grid}>

@@ -1,18 +1,25 @@
 import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/context/ToastContext";
+import SearchFilterBar from "@/components/ui/SearchFilterBar";
+import TableSkeleton from "@/components/ui/TableSkeleton";
+import { getCached, setCached } from "@/lib/dataCache";
 import s from "./Students.module.css";
 const STATUS_OPTIONS = ["Enrolled", "Graduated", "Dropped", "Inactive"];
+const CACHE_KEY = "coordinator-students";
 
 export default function Students() {
   const toast = useToast();
-  const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const cached = getCached(CACHE_KEY);
+  const [students, setStudents] = useState(cached?.students || []);
+  const [loading, setLoading] = useState(!cached);
 
   const [openGrant, setOpenGrant] = useState(false);
 const [selectedStudent, setSelectedStudent] = useState(null);
 
-const [scholarships, setScholarships] = useState([]);
+const [scholarships, setScholarships] = useState(cached?.scholarships || []);
 const [selectedScholarship, setSelectedScholarship] = useState("");
 
 const [academicSettings, setAcademicSettings] = useState(null);
@@ -34,7 +41,10 @@ const semester = academicSettings?.semester || "";
 }, []);
 
   const loadStudents = async () => {
-  setLoading(true);
+  // If we already have data from a previous visit this session, keep it
+  // on screen and refetch quietly in the background instead of blanking
+  // the page — only a true first visit shows the loading state.
+  if (!getCached(CACHE_KEY)) setLoading(true);
 
   // Load students
   const { data, error } = await supabase
@@ -68,6 +78,10 @@ const semester = academicSettings?.semester || "";
 
   if (!scholError) setScholarships(schols || []);
   else toast.error("Failed to load scholarships: " + scholError.message);
+
+  if (!error && !scholError) {
+    setCached(CACHE_KEY, { students: data || [], scholarships: schols || [] });
+  }
 
   setLoading(false);
 };
@@ -244,58 +258,40 @@ const paginatedStudents = filteredStudents.slice(
       Manage student records, enrollment status, and scholarship assignments.
     </p>
   </div>
-  
-</div>
-<div className={s.toolbar}>
-  <input
-    type="text"
-    placeholder="Search students..."
-    value={search}
-    onChange={(e) => {
-      setSearch(e.target.value);
-      setCurrentPage(1);
-    }}
-    className={s.input}
-style={{ maxWidth:320 }}
-  />
-
-  <select
-    value={statusFilter}
-    onChange={(e) => {
-      setStatusFilter(e.target.value);
-      setCurrentPage(1);
-    }}
-    className={s.input}
-style={{ maxWidth:180 }}
+  <button
+    onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "students", returnTo: "/coordinator/students" } } })}
+    style={{ padding:"9px 16px", background:"#16a34a", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
   >
-    <option value="All">All Status</option>
-    <option value="Enrolled">Enrolled</option>
-    <option value="Graduated">Graduated</option>
-    <option value="Dropped">Dropped</option>
-    <option value="Inactive">Inactive</option>
-  </select>
-
-  <select
-    value={courseFilter}
-    onChange={(e) => {
-      setCourseFilter(e.target.value);
-      setCurrentPage(1);
-    }}
-    className={s.input}
-style={{ maxWidth:220 }}
-  >
-    {courses.map((course) => (
-      <option
-        key={course}
-        value={course}
-      >
-        {course === "All"
-          ? "All Courses"
-          : course}
-      </option>
-    ))}
-  </select>
+    Generate Report
+  </button>
 </div>
+<SearchFilterBar
+  search={search}
+  onSearchChange={(v) => { setSearch(v); setCurrentPage(1); }}
+  searchPlaceholder="Search students by name, ID, email, course, contact..."
+  resultCount={filteredStudents.length}
+  totalCount={students.length}
+  filters={[
+    {
+      label: "Status",
+      value: statusFilter,
+      onChange: (v) => { setStatusFilter(v); setCurrentPage(1); },
+      options: [
+        { value: "All", label: "All Status" },
+        { value: "Enrolled", label: "Enrolled" },
+        { value: "Graduated", label: "Graduated" },
+        { value: "Dropped", label: "Dropped" },
+        { value: "Inactive", label: "Inactive" },
+      ],
+    },
+    {
+      label: "Course",
+      value: courseFilter,
+      onChange: (v) => { setCourseFilter(v); setCurrentPage(1); },
+      options: courses.map((c) => ({ value: c, label: c === "All" ? "All Courses" : c })),
+    },
+  ]}
+/>
       {openGrant && (
   <div className={s.overlay} onClick={() => setOpenGrant(false)}>
     <div
@@ -399,10 +395,7 @@ style={{ maxWidth:220 }}
     </div>
   </div>
 )}
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <div className={s.tableWrap}>
+      <div className={s.tableWrap}>
           <table className={s.table}>
             <thead>
               <tr>
@@ -421,7 +414,14 @@ style={{ maxWidth:220 }}
             </thead>
 
             <tbody>
-              {paginatedStudents.map((student, index) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={11} style={{ padding: "14px 16px" }}>
+                    <TableSkeleton columns={11} rows={6} />
+                  </td>
+                </tr>
+              ) : (
+                paginatedStudents.map((student, index) => (
                 <tr
   key={student.student_id}
   className={index % 2 === 0 ? s.rowEven : s.rowOdd}
@@ -485,13 +485,13 @@ transition: ".2s",
                       </button>
                     </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
           
         </div>
         
-      )}
       <div className={s.pagination}>
   <span className={s.pageInfo}>
     {filteredStudents.length === 0

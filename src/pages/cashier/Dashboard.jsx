@@ -2,23 +2,30 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import AnnouncementModal from "@/components/ui/AnnouncementModal";
 import PageLoader from "@/components/ui/PageLoader";
+import StatCard from "@/components/ui/StatCard";
+import InfoTooltip from "@/components/ui/InfoTooltip";
+import { getCached, setCached } from "@/lib/dataCache";
+
+const CACHE_KEY = "cashier-dashboard";
 
 export default function CashierDashboard() {
-  const [grantees,          setGrantees]          = useState([]);
-  const [releases,          setReleases]          = useState([]);
-  const [loading,           setLoading]           = useState(true);
+  const cached = getCached(CACHE_KEY);
+  const [grantees,          setGrantees]          = useState(cached?.grantees || []);
+  const [releases,          setReleases]          = useState(cached?.releases || []);
+  const [loading,           setLoading]           = useState(!cached);
   const [showAnnouncement,  setShowAnnouncement]  = useState(false);
 
   useEffect(() => { load(); }, []);
 
   const load = async () => {
-    setLoading(true);
+    if (!getCached(CACHE_KEY)) setLoading(true);
     const [{ data: g }, { data: r }] = await Promise.all([
       supabase.from("grantees").select("grantee_id,status"),
       supabase.from("fund_releases").select("release_id,amount_released,status,release_date"),
     ]);
     setGrantees(g || []);
     setReleases(r || []);
+    setCached(CACHE_KEY, { grantees: g || [], releases: r || [] });
     setLoading(false);
   };
 
@@ -31,10 +38,22 @@ export default function CashierDashboard() {
   const total          = releasedCount + pending || 1;
 
   const stats = [
-    ["Total Grantees",       totalGrantees,                          ""],
-    ["Total Released",        `₱${totalReleased.toLocaleString()}`,  "var(--success-600)"],
-    ["Pending Releases",      pending,                                "var(--warning-600)"],
-    ["Completed Releases",    releasedCount,                          "var(--navy-600)"],
+    {
+      label: "Total Grantees", value: totalGrantees, color: "",
+      explain: "Total number of rows in the grantees table, regardless of status.",
+    },
+    {
+      label: "Total Released", value: `₱${totalReleased.toLocaleString()}`, color: "var(--success-600)",
+      explain: "Sum of amount_released for every fund release whose status is \"Released\".",
+    },
+    {
+      label: "Pending Releases", value: pending, color: "var(--warning-600)",
+      explain: "Count of fund releases whose status is \"Pending\" — scheduled but not yet paid out.",
+    },
+    {
+      label: "Completed Releases", value: releasedCount, color: "var(--navy-600)",
+      explain: "Count of fund releases whose status is \"Released\".",
+    },
   ];
 
   return (
@@ -53,17 +72,19 @@ export default function CashierDashboard() {
 
       {/* KPI cards */}
       <div style={s.grid}>
-        {stats.map(([label, value, color]) => (
-          <div key={label} style={s.card}>
-            <div style={{fontSize:22,fontWeight:800,color:color||"var(--text-primary)",lineHeight:1}}>{value}</div>
-            <div style={{marginTop:6,fontSize:11,fontWeight:600,color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:".3px"}}>{label}</div>
-          </div>
+        {stats.map(({label, value, color, explain}) => (
+          <StatCard key={label} label={label} value={value} explain={explain} color={color || undefined} />
         ))}
       </div>
 
       {/* Bar chart */}
       <div style={s.chartBox}>
-        <h3 style={{margin:"0 0 16px",fontSize:16,fontWeight:700,color:"var(--text-primary)"}}>Release Status Overview</h3>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+          <h3 style={{margin:0,fontSize:16,fontWeight:700,color:"var(--text-primary)"}}>Release Status Overview</h3>
+          <InfoTooltip label="Release Status Overview">
+            Bars compare the count of fund releases with status "Released" vs "Pending", each scaled against their combined total.
+          </InfoTooltip>
+        </div>
         {[["Released", releasedCount, "var(--success-600)"], ["Pending", pending, "var(--warning-600)"]].map(([label, val, color]) => (
           <div key={label} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
             <div style={{width:80,fontSize:13,color:"var(--text-secondary)",fontWeight:600}}>{label}</div>
@@ -77,7 +98,12 @@ export default function CashierDashboard() {
 
       {/* Recent releases table */}
       <div style={s.tableBox}>
-        <h3 style={{margin:"0 0 14px",fontSize:16,fontWeight:700,color:"var(--text-primary)"}}>Recent Fund Releases</h3>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+          <h3 style={{margin:0,fontSize:16,fontWeight:700,color:"var(--text-primary)"}}>Recent Fund Releases</h3>
+          <InfoTooltip label="Recent Fund Releases">
+            The first 8 fund release records, in the order they were returned from the database.
+          </InfoTooltip>
+        </div>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
             <thead>

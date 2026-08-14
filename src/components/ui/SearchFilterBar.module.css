@@ -1,0 +1,133 @@
+.wrap {
+  margin-bottom: 16px;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 260px;
+  min-width: 200px;
+  max-width: 340px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 11px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  height: 38px;
+  padding: 0 32px 0 32px;
+  box-sizing: border-box;
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.searchInput::placeholder { color: var(--text-secondary); }
+
+.searchInput:focus {
+  border-color: var(--navy-500);
+  box-shadow: 0 0 0 3px var(--navy-100);
+}
+
+.clearBtn {
+  position: absolute;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: 10px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.clearBtn:hover { background: var(--border-strong); }
+
+.count {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* ── active-filter chips ──────────────────────────────── */
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 12px;
+  background: var(--navy-100);
+  color: var(--navy-700);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  max-width: 260px;
+}
+
+.chipX {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,.6);
+  color: var(--navy-700);
+  font-size: 9px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.chipX:hover { background: #fff; }
+
+.clearAll {
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+
+.clearAll:hover { color: var(--danger-600); }
+
+@media (max-width: 560px) {
+  .searchWrap { max-width: none; flex-basis: 100%; }
+  .count { margin-left: 0; }
+  .chip { max-width: 100%; }
+}
