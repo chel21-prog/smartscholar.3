@@ -4,6 +4,7 @@ import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import { getCached, setCached } from "@/lib/dataCache";
+import { useToast } from "@/context/ToastContext";
 import {
   totalPayoutsAllowed, periodKey, buildSchedule,
   isEligible, isFullyPaidOut, payoutProgressLabel, latestRelease,
@@ -15,6 +16,7 @@ const PAGE_SIZE = 8;
 const CACHE_KEY = "cashier-funds";
 
 export default function Funds() {
+  const toast = useToast();
   const cachedScholarships = getCached(CACHE_KEY);
   const [loading, setLoading] = useState(!cachedScholarships);
   const [scholarships, setScholarships] = useState(cachedScholarships || []);
@@ -147,11 +149,11 @@ export default function Funds() {
     const remaining = remainingBudget(selectedScholarship);
 
     if (remaining < amount) {
-      alert("Insufficient scholarship budget for this payout.");
+      toast.error("Insufficient scholarship budget for this payout.");
       return;
     }
     if (isFullyPaidOut(selectedGrantee, selectedScholarship)) {
-      alert("This grantee has already received every payout this scholarship allows.");
+      toast.error("This grantee has already received every payout this scholarship allows.");
       return;
     }
 
@@ -170,7 +172,7 @@ export default function Funds() {
     // schedule already hides Paid rows, but covers races/stale data).
     const existingKeys = new Set((selectedGrantee.fund_releases || []).map(periodKey));
     if (existingKeys.has(periodKey(payload))) {
-      alert("A payout for this exact period has already been released. Refresh and pick another period.");
+      toast.error("A payout for this exact period has already been released. Refresh and pick another period.");
       return;
     }
 
@@ -179,7 +181,7 @@ export default function Funds() {
     setSaving(false);
 
     if (error) {
-      alert(error.message);
+      toast.error(error.message);
       return;
     }
 
@@ -190,7 +192,7 @@ export default function Funds() {
     if (updated) setSelectedScholarship(updated);
 
     closeReleaseModal();
-    alert("Payout released successfully.");
+    toast.success("Payout released successfully.");
   }
 
   // ── skip period flow ─────────────────────────────────────
@@ -209,7 +211,7 @@ export default function Funds() {
   async function submitSkip() {
     if (!selectedGrantee || !skipPeriodTarget) return;
     if (!skipReason.trim()) {
-      alert("Enter a reason (e.g. leave of absence, did not enroll that term).");
+      toast.error("Enter a reason (e.g. leave of absence, did not enroll that term).");
       return;
     }
 
@@ -229,7 +231,7 @@ export default function Funds() {
     setSkipping(false);
 
     if (error) {
-      alert(error.message);
+      toast.error(error.message);
       return;
     }
 

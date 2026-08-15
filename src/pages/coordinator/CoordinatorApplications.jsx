@@ -5,7 +5,9 @@ import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import TableSkeleton from "@/components/ui/TableSkeleton";
+import Modal from "@/components/ui/Modal";
 import { getCached, setCached } from "@/lib/dataCache";
+import { getReportSecurity } from "@/lib/reportSecurity";
 import styles from "./CoordinatorApplications.module.css";
 
 const CACHE_KEY = "coordinator-applications";
@@ -32,6 +34,13 @@ const MARGIN_BOTTOM = 10;
 const [approveOpen, setApproveOpen] = useState(false);
 
 const [rejectOpen, setRejectOpen] = useState(false);
+
+// ── export-one-application flow — same "secure with a password?" choice
+// as the main Generate Report modal, just scaled down to one record.
+const [exportTarget, setExportTarget] = useState(null);
+const [exportSecure, setExportSecure] = useState(false);
+const [exportPassword, setExportPassword] = useState(null); // fetched when the confirm dialog opens
+const [exporting, setExporting] = useState(false);
 
 const [selectedApplication, setSelectedApplication] = useState(null);
 
@@ -256,10 +265,6 @@ Thank you.`
 if (notifError) {
   console.error(notifError);
 }
-
-  if (notifError) {
-    console.log(notifError);
-  }
 }
 
     setApplications((prev) =>
@@ -335,11 +340,31 @@ await load();
   // =========================
   // ⭐ EXPORT SINGLE APPLICATION
   // =========================
+  const openExportConfirm = async (app) => {
+    setExportTarget(app);
+    setExportSecure(false);
+    const security = await getReportSecurity();
+    setExportPassword(security?.password || null);
+  };
+
+  const closeExportConfirm = () => {
+    setExportTarget(null);
+    setExportPassword(null);
+  };
+
   const exportApplicationPDF = async (app) => {
+  setExporting(true);
   const headerImage = await getBase64Image("/header.png");
   const footerImage = await getBase64Image("/footer.png");
 
-  const doc = new jsPDF();
+  const passwordProtect = exportSecure && exportPassword;
+  const doc = new jsPDF(passwordProtect ? {
+    encryption: {
+      userPassword: exportPassword,
+      ownerPassword: exportPassword,
+      userPermissions: ["print"],
+    },
+  } : undefined);
 
   const { data } = await supabase
     .from("application_form_responses")
@@ -372,6 +397,8 @@ await load();
   });
 
   doc.save(`application_${app.application_id}.pdf`);
+  setExporting(false);
+  closeExportConfirm();
 };
 
 const addHeader = (doc, app, headerImage) => {
@@ -572,7 +599,7 @@ const paginated = filtered.slice(
 
                 <button
   className={`${styles.actionBtn} ${styles.exportBtn}`}
-  onClick={() => exportApplicationPDF(a)}
+  onClick={() => openExportConfirm(a)}
 >
                   Export
                 </button>
@@ -589,7 +616,6 @@ const paginated = filtered.slice(
                     <button
   className={`${styles.actionBtn} ${styles.rejectBtn}`}
   onClick={() => {
-    console.log("Reject button clicked");
     openRejectModal(a);
   }}
 >
@@ -956,6 +982,47 @@ approveOpen && (
 </div>
   )
 }
+
+      <Modal
+        open={!!exportTarget}
+        onClose={exporting ? undefined : closeExportConfirm}
+        title="Export Application PDF"
+        size="sm"
+        footer={
+          <>
+            <button className={styles.secondaryBtn} onClick={closeExportConfirm} disabled={exporting}>
+              Cancel
+            </button>
+            <button
+              className={`${styles.actionBtn} ${styles.exportBtn}`}
+              onClick={() => exportApplicationPDF(exportTarget)}
+              disabled={exporting}
+            >
+              {exporting ? "Exporting…" : "Export PDF"}
+            </button>
+          </>
+        }
+      >
+        <p style={{ margin: "0 0 14px", fontSize: 14, color: "var(--text-secondary)" }}>
+          Exporting {exportTarget ? getStudentName(exportTarget) : ""}'s application as a PDF.
+        </p>
+
+        {exportPassword ? (
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={exportSecure}
+              onChange={(e) => setExportSecure(e.target.checked)}
+              style={{ width: 15, height: 15, cursor: "pointer" }}
+            />
+            🔒 Secure this PDF with a password
+          </label>
+        ) : (
+          <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary)" }}>
+            No export password set up yet — add one in Settings to enable password protection.
+          </p>
+        )}
+      </Modal>
 
     </div>
   );

@@ -8,6 +8,7 @@ import StatCard from "@/components/ui/StatCard";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import PageLoader from "@/components/ui/PageLoader";
 import { getCached, setCached } from "@/lib/dataCache";
+import { getReportSecurity } from "@/lib/reportSecurity";
 import { useToast } from "@/context/ToastContext";
 
 // ─── stable style objects defined outside the component ──────────────────────
@@ -150,6 +151,8 @@ export default function CoordinatorDashboard() {
   const [scholarStats,   setScholarStats]   = useState(cached?.scholarStats || []);
   const [upcomingDeadlines, setUpcomingDeadlines] = useState(cached?.upcomingDeadlines || []);
   const [showReportModal,    setShowReportModal]    = useState(false);
+  const [reportSecurity,     setReportSecurity]     = useState(null); // { password } | null — fetched lazily when the modal opens
+  const [securePdf,          setSecurePdf]          = useState(false); // per-export opt-in toggle, not tied to any global on/off
   const [showAnnouncement,   setShowAnnouncement]   = useState(false);
   const [generating,     setGenerating]    = useState(false);
   const [form,           setForm]          = useState({ academic_year:"", semester:"" });
@@ -303,6 +306,17 @@ export default function CoordinatorDashboard() {
     if (type === "requirements")  loadRequirementsReport();
   };
 
+  // Fetches the coordinator's PDF-protection password fresh each time the
+  // modal opens (not cached) — if it was just changed in Settings, the
+  // very next report generated should reflect that immediately. The
+  // toggle itself always starts unchecked — protecting an export is a
+  // deliberate choice made per-report, not a sticky setting.
+  const openReportModal = () => {
+    setShowReportModal(true);
+    setSecurePdf(false);
+    getReportSecurity().then(setReportSecurity);
+  };
+
   // Other coordinator pages don't duplicate this whole report builder —
   // instead their "Generate Report" button sends the coordinator here
   // with `location.state.openReport`, and closing the modal sends them
@@ -311,7 +325,7 @@ export default function CoordinatorDashboard() {
   useEffect(() => {
     const openReport = location.state?.openReport;
     if (openReport) {
-      setShowReportModal(true);
+      openReportModal();
       setReportReturnTo(openReport.returnTo || null);
       if (openReport.type) selectReportType(openReport.type);
       // Clear the navigation state so refreshing or navigating back
@@ -482,7 +496,18 @@ export default function CoordinatorDashboard() {
     setGenerating(true);
 
     const isLandscape = reportLayout === "landscape";
-    const doc = new jsPDF({ orientation: isLandscape ? "landscape" : "portrait", unit: "mm" });
+    const passwordProtect = securePdf && reportSecurity?.password;
+    const doc = new jsPDF({
+      orientation: isLandscape ? "landscape" : "portrait",
+      unit: "mm",
+      ...(passwordProtect ? {
+        encryption: {
+          userPassword: reportSecurity.password,
+          ownerPassword: reportSecurity.password,
+          userPermissions: ["print"],
+        },
+      } : {}),
+    });
 
     const pw = doc.internal.pageSize.getWidth();
     const ph = doc.internal.pageSize.getHeight();
@@ -941,7 +966,7 @@ export default function CoordinatorDashboard() {
               <option>2nd Semester</option>
             </select>
           </div>
-          <button style={st.btnGreen} onClick={()=>{setReportReturnTo(null); setShowReportModal(true);}}>
+          <button style={st.btnGreen} onClick={()=>{setReportReturnTo(null); openReportModal();}}>
             Generate Report
           </button>
           <button style={{...st.btnGreen, background:"var(--navy-700)"}} onClick={()=>setShowAnnouncement(true)}>
@@ -1495,6 +1520,21 @@ export default function CoordinatorDashboard() {
             </div>
 
             <div style={st.modalFoot}>
+              {reportSecurity?.password ? (
+                <label style={{fontSize:12,fontWeight:600,color:"var(--navy-700)",display:"flex",alignItems:"center",gap:8,marginRight:"auto",cursor:"pointer"}}>
+                  <input
+                    type="checkbox"
+                    checked={securePdf}
+                    onChange={(e)=>setSecurePdf(e.target.checked)}
+                    style={{width:15,height:15,cursor:"pointer"}}
+                  />
+                  🔒 Secure this report with a password
+                </label>
+              ) : (
+                <span style={{fontSize:12,color:"var(--text-secondary)",marginRight:"auto"}}>
+                  No export password set up yet — add one in Settings to enable this
+                </span>
+              )}
               <button style={st.btnRed} onClick={closeReportModal} disabled={generating}>
                 Cancel
               </button>

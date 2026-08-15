@@ -1,10 +1,24 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/context/SessionContext";
 import styles from "./NotificationBell.module.css";
 
+// Where clicking a notification should take you, by notification_type.
+// Types not listed here (General/Reminder/Other announcements, etc.) just
+// mark themselves read — there's nowhere more specific to send you for a
+// plain FYI announcement, so navigating would just be confusing.
+const ROUTE_FOR_TYPE = {
+  "Application":   "/student/applications",
+  "Approval":      "/student/applications",
+  "Compliance":    "/student/compliance",
+  "Fund Release":  "/student/dashboard",
+  "Finance":       "/student/dashboard",
+};
+
 export default function NotificationBell() {
   const { profile } = useSession();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null); // { top, left, width }
@@ -122,6 +136,33 @@ export default function NotificationBell() {
     );
   };
 
+  const deleteNotification = async (id, e) => {
+    e.stopPropagation(); // don't also trigger the row's click-to-open behavior
+    setNotifications((prev) => prev.filter((n) => n.notification_id !== id));
+    const { error } = await supabase.from("notifications").delete().eq("notification_id", id);
+    if (error) {
+      // Put it back if the delete didn't actually go through server-side.
+      loadNotifications();
+    }
+  };
+
+  const clearAll = async () => {
+    const ids = notifications.map((n) => n.notification_id);
+    if (ids.length === 0) return;
+    setNotifications([]);
+    const { error } = await supabase.from("notifications").delete().in("notification_id", ids);
+    if (error) loadNotifications();
+  };
+
+  const openNotification = (n) => {
+    if (!n.is_read) markRead(n.notification_id);
+    const route = ROUTE_FOR_TYPE[n.notification_type];
+    if (route) {
+      setOpen(false);
+      navigate(route);
+    }
+  };
+
   return (
     <div ref={boxRef} className={styles.wrapper}>
       <button
@@ -146,29 +187,52 @@ export default function NotificationBell() {
           aria-label="Notifications"
           style={{ top: pos.top, left: pos.left, width: pos.width }}
         >
-          <h4 className={styles.dropdownTitle}>Notifications</h4>
+          <div className={styles.dropdownHead}>
+            <h4 className={styles.dropdownTitle}>Notifications</h4>
+            {notifications.length > 0 && (
+              <button className={styles.clearAllBtn} onClick={clearAll}>Clear all</button>
+            )}
+          </div>
 
           {notifications.length === 0 ? (
             <p className={styles.empty}>You're all caught up!</p>
           ) : (
-            notifications.map((n) => (
-              <div
-                key={n.notification_id}
-                className={`${styles.item} ${n.is_read ? "" : styles.itemUnread}`}
-                onClick={() => markRead(n.notification_id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && markRead(n.notification_id)
-                }
-              >
-                <strong className={styles.itemTitle}>{n.title}</strong>
-                <p className={styles.itemMessage}>{n.message}</p>
-                <small className={styles.itemTime}>
-                  {new Date(n.created_at).toLocaleString()}
-                </small>
-              </div>
-            ))
+            notifications.map((n) => {
+              const goesSomewhere = !!ROUTE_FOR_TYPE[n.notification_type];
+              return (
+                <div
+                  key={n.notification_id}
+                  className={`${styles.item} ${n.is_read ? "" : styles.itemUnread}`}
+                  onClick={() => openNotification(n)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && openNotification(n)
+                  }
+                >
+                  <div className={styles.itemTopRow}>
+                    <strong className={styles.itemTitle}>{n.title}</strong>
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={(e) => deleteNotification(n.notification_id, e)}
+                      aria-label="Delete notification"
+                      title="Delete notification"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <p className={styles.itemMessage}>{n.message}</p>
+                  <div className={styles.itemFooterRow}>
+                    <small className={styles.itemTime}>
+                      {new Date(n.created_at).toLocaleString()}
+                    </small>
+                    {goesSomewhere && (
+                      <small className={styles.itemGoTo}>View →</small>
+                    )}
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       )}

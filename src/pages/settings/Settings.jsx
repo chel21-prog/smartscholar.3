@@ -6,6 +6,8 @@ import { Card, CardHeader, Badge } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { EyeIcon, EyeOffIcon } from "@/components/ui/EyeIcons";
+import { useToast } from "@/context/ToastContext";
+import { getReportSecurity, saveReportSecurity, generateStrongPassword } from "@/lib/reportSecurity";
 import styles from "./Settings.module.css";
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
@@ -25,6 +27,69 @@ export default function Settings() {
   const [pwSuccess, setPwSuccess] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
 const [showCurrent, setShowCurrent] = useState(false);
+
+  // ── report PDF protection (Coordinator only) ────────────
+  const toast = useToast();
+  const [reportSec, setReportSec] = useState(null); // row from DB, or null if unset/unavailable
+  const [reportSecLoading, setReportSecLoading] = useState(true);
+  const [reportSecSaving, setReportSecSaving] = useState(false);
+  const [showReportPassword, setShowReportPassword] = useState(false);
+  const [customPassword, setCustomPassword] = useState("");
+
+  useEffect(() => {
+    getReportSecurity()
+      .then((row) => { setReportSec(row); setCustomPassword(row?.password || ""); })
+      .finally(() => setReportSecLoading(false));
+  }, []);
+
+  const persistReportSecurity = async (patch) => {
+    setReportSecSaving(true);
+    try {
+      const saved = await saveReportSecurity({
+        id: reportSec?.id,
+        enabled: true, // kept for schema compat — actual protect/skip choice now lives in the report modal
+        password: patch.password ?? reportSec?.password ?? "",
+        updatedBy: email,
+      });
+      setReportSec(saved);
+      setCustomPassword(saved.password || "");
+      return saved;
+    } catch (err) {
+      toast.error("Couldn't save report protection settings: " + err.message);
+      return null;
+    } finally {
+      setReportSecSaving(false);
+    }
+  };
+
+  const regeneratePassword = async () => {
+    const pwd = generateStrongPassword();
+    const saved = await persistReportSecurity({ password: pwd });
+    if (saved) {
+      // Deliberately NOT auto-revealed — stays masked until the coordinator
+      // clicks the eye icon themselves, same as any other password field.
+      toast.success("New password generated. Click the eye icon to view it, then share it with report recipients — the old one no longer works.");
+    }
+  };
+
+  const saveCustomPassword = async () => {
+    if (!customPassword.trim() || customPassword.trim().length < 6) {
+      toast.error("Password should be at least 6 characters.");
+      return;
+    }
+    const saved = await persistReportSecurity({ password: customPassword.trim() });
+    if (saved) toast.success("Report PDF password updated.");
+  };
+
+  const copyReportPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(reportSec?.password || "");
+      toast.success("Password copied to clipboard.");
+    } catch {
+      toast.error("Couldn't copy — select and copy it manually.");
+    }
+  };
+
   useEffect(() => {
     getRole();
 
@@ -270,6 +335,87 @@ const [showCurrent, setShowCurrent] = useState(false);
           </Button>
         </div>
       </Card>
+
+      {/* REPORT PDF PASSWORD — Coordinator only */}
+      {role === "Coordinator" && (
+        <Card>
+          <CardHeader
+            title="Report PDF password"
+            subtitle="Set the password used to protect exported PDF reports. When generating a report, there's a toggle to secure that export with this password — it's not applied automatically."
+          />
+
+          {reportSecLoading ? (
+            <p className={styles.logoutHint}>Loading…</p>
+          ) : !reportSec?.password ? (
+            <div className={styles.passwordSection}>
+              <p className={styles.logoutHint}>No password has been set yet.</p>
+              <Button onClick={regeneratePassword} loading={reportSecSaving}>
+                Generate password
+              </Button>
+            </div>
+          ) : (
+            <div className={styles.passwordSection}>
+              <Field label="Current export password">
+                <div className={styles.passwordField}>
+                  <Input
+                    type={showReportPassword ? "text" : "password"}
+                    value={reportSec?.password || ""}
+                    readOnly
+                    className={styles.passwordInput}
+                  />
+                  <button
+                    type="button"
+                    className={styles.eyeBtn}
+                    onClick={() => setShowReportPassword((v) => !v)}
+                    aria-label={showReportPassword ? "Hide password" : "Show password"}
+                  >
+                    {showReportPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
+              </Field>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Button variant="secondary" onClick={copyReportPassword} disabled={reportSecSaving}>
+                  Copy password
+                </Button>
+                <Button variant="secondary" onClick={regeneratePassword} loading={reportSecSaving}>
+                  Generate new password
+                </Button>
+              </div>
+
+              <Field label="Or set a custom password">
+                <div className={styles.passwordField}>
+                  <Input
+                    type={showReportPassword ? "text" : "password"}
+                    placeholder="Type a password to use instead"
+                    value={customPassword}
+                    disabled={reportSecSaving}
+                    className={styles.passwordInput}
+                    onChange={(e) => setCustomPassword(e.target.value)}
+                  />
+                </div>
+              </Field>
+              <Button
+                variant="secondary"
+                onClick={saveCustomPassword}
+                loading={reportSecSaving}
+                disabled={!customPassword.trim() || customPassword.trim() === reportSec?.password}
+              >
+                Save custom password
+              </Button>
+
+              <div className={styles.tipBox}>
+                <strong>How this works:</strong>
+                <ul>
+                  <li>This password isn't applied automatically — check "Secure this report with a password" in the Generate Report modal to use it for a given export.</li>
+                  <li>Regenerating or changing it immediately invalidates the old password — reports already sent out still open with whichever password was active when they were generated.</li>
+                  <li>Share the password separately from the report itself (e.g. a different chat message or channel), not in the same email as the PDF.</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* SESSION */}
       <Card>
