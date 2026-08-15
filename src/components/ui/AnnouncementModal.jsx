@@ -1,126 +1,151 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useConfirm } from "@/hooks/useConfirm";
 
 // ── Target definitions ────────────────────────────────────────────────────
 // Each target has a label, icon, description, and a resolver function that
-// returns the array of user_ids to notify using the actual DB state.
+// returns [{ user_id, first_name }] using the actual DB state — the name
+// is what lets the sent message greet each person individually instead of
+// reading like a mass blast, even though it goes out to many people at once.
 const TARGETS = {
   all_students: {
     label: "All Students",
-    
+    icon:  "🎓",
     desc:  "Every registered student",
     resolve: async () => {
-      const { data } = await supabase.from("users").select("user_id").eq("role", "Student");
-      return (data || []).map(u => u.user_id);
+      const { data } = await supabase.from("users").select("user_id, first_name").eq("role", "Student");
+      return data || [];
     },
   },
   all_grantees: {
     label: "All Active Grantees",
-
+    icon:  "🏅",
     desc:  "Every student currently on an active scholarship grant",
     resolve: async () => {
       const { data } = await supabase
-        .from("grantees").select("students(user_id)").eq("status", "Active");
-      return [...new Set((data || []).map(g => g.students?.user_id).filter(Boolean))];
+        .from("grantees").select("students(user_id, users(first_name))").eq("status", "Active");
+      return dedupeRecipients((data || []).map(g => ({
+        user_id: g.students?.user_id, first_name: g.students?.users?.first_name,
+      })));
     },
   },
   all_users: {
     label: "Everyone",
-   
+    icon:  "👥",
     desc:  "All students, coordinators, and cashiers",
     resolve: async () => {
-      const { data } = await supabase.from("users").select("user_id");
-      return (data || []).map(u => u.user_id);
+      const { data } = await supabase.from("users").select("user_id, first_name");
+      return data || [];
     },
   },
   pending_compliance: {
     label: "Pending/Missing Compliance",
-   
+    icon:  "⚠️",
     desc:  "Grantees who have at least one Pending or Missing compliance record",
     resolve: async () => {
       // compliance_records → grantee_id → grantees → student_id → students → user_id
       const { data } = await supabase
         .from("compliance_records")
-        .select("grantees(students(user_id))")
+        .select("grantees(students(user_id, users(first_name)))")
         .in("status", ["Pending", "Missing"]);
-      const ids = (data || []).map(r => r.grantees?.students?.user_id).filter(Boolean);
-      return [...new Set(ids)];
+      return dedupeRecipients((data || []).map(r => ({
+        user_id: r.grantees?.students?.user_id, first_name: r.grantees?.students?.users?.first_name,
+      })));
     },
   },
   pending_releases: {
     label: "Pending Fund Releases",
-  
+    icon:  "💸",
     desc:  "Grantees who have a fund release that hasn't been disbursed yet",
     resolve: async () => {
       // fund_releases → grantee_id → grantees → student_id → students → user_id
       const { data } = await supabase
         .from("fund_releases")
-        .select("grantees(students(user_id))")
+        .select("grantees(students(user_id, users(first_name)))")
         .eq("status", "Pending");
-      const ids = (data || []).map(r => r.grantees?.students?.user_id).filter(Boolean);
-      return [...new Set(ids)];
+      return dedupeRecipients((data || []).map(r => ({
+        user_id: r.grantees?.students?.user_id, first_name: r.grantees?.students?.users?.first_name,
+      })));
     },
   },
   pending_applications: {
     label: "Pending Applicants",
-    
+    icon:  "⏳",
     desc:  "Students who have submitted an application currently under review",
     resolve: async () => {
       // scholarship_applications → student_id → students → user_id
       const { data } = await supabase
         .from("scholarship_applications")
-        .select("students(user_id)")
+        .select("students(user_id, users(first_name))")
         .eq("status", "Pending");
-      const ids = (data || []).map(r => r.students?.user_id).filter(Boolean);
-      return [...new Set(ids)];
+      return dedupeRecipients((data || []).map(r => ({
+        user_id: r.students?.user_id, first_name: r.students?.users?.first_name,
+      })));
     },
   },
 };
 
+// De-dupes by user_id (a student can show up more than once — e.g. two
+// pending applications) while keeping the first_name attached.
+function dedupeRecipients(list) {
+  const seen = new Map();
+  for (const r of list) {
+    if (r.user_id && !seen.has(r.user_id)) seen.set(r.user_id, r);
+  }
+  return [...seen.values()];
+}
+
+// Swaps {{name}} for the recipient's first name (or a graceful fallback
+// if it's somehow missing) so every recipient's copy reads like it was
+// written to them personally.
+function personalize(text, firstName) {
+  return (text || "").replaceAll("{{name}}", firstName?.trim() || "Scholar");
+}
+
 // ── Type definitions — determines which targets are available ─────────────
 const TYPE_DEFS = {
   General: {
-  
+    icon:          "📢",
     desc:          "General information for a broad audience",
     targets:       ["all_students", "all_grantees", "all_users"],
     defaultTarget: "all_students",
     defaultTitle:  "General Announcement",
-    defaultBody:   "Dear Students,\n\nWe would like to inform you that [details here].\n\nThank you.",
+    defaultBody:   "Dear {{name}},\n\nWe would like to inform you that [details here].\n\nThank you.",
   },
   Reminder: {
-
+    icon:          "⏰",
     desc:          "Deadline or schedule reminders",
     targets:       ["all_students", "all_grantees", "all_users"],
     defaultTarget: "all_students",
     defaultTitle:  "Reminder: Scholarship Deadline",
-    defaultBody:   "Dear Scholars,\n\nThis is a reminder that the deadline for [scholarship name] submission is on [date].\n\nPlease submit your requirements before the deadline to avoid disqualification.\n\nThank you.",
+    defaultBody:   "Dear {{name}},\n\nThis is a reminder that the deadline for [scholarship name] submission is on [date].\n\nPlease submit your requirements before the deadline to avoid disqualification.\n\nThank you.",
   },
   Compliance: {
-
+    icon:          "📋",
     desc:          "Document submission notices — target all grantees or only those with issues",
     targets:       ["all_grantees", "pending_compliance"],
     defaultTarget: "pending_compliance",
     defaultTitle:  "Compliance Requirement Notice",
-    defaultBody:   "Dear Scholar,\n\nPlease be advised that you have pending compliance requirements for your scholarship grant.\n\nKindly submit the required documents at the Scholarship Office on or before [date].\n\nFailure to comply may result in suspension of your scholarship benefits.\n\nThank you.",
+    defaultBody:   "Dear {{name}},\n\nPlease be advised that you have pending compliance requirements for your scholarship grant.\n\nKindly submit the required documents at the Scholarship Office on or before [date].\n\nFailure to comply may result in suspension of your scholarship benefits.\n\nThank you.",
   },
   Approval: {
-
+    icon:          "✅",
     desc:          "Application status notifications",
     targets:       ["all_students", "pending_applications"],
     defaultTarget: "pending_applications",
     defaultTitle:  "Scholarship Application Update",
-    defaultBody:   "Dear Scholar,\n\nWe would like to inform you of an update regarding your scholarship application.\n\nPlease visit the Scholarship Office for further instructions.\n\nThank you.",
+    defaultBody:   "Dear {{name}},\n\nWe would like to inform you of an update regarding your scholarship application.\n\nPlease visit the Scholarship Office for further instructions.\n\nThank you.",
   },
   Finance: {
-   
+    icon:          "💰",
     desc:          "Fund release schedules — target all grantees or only those awaiting release",
     targets:       ["all_grantees", "pending_releases"],
     defaultTarget: "pending_releases",
     defaultTitle:  "Scholarship Fund Release Notice",
-    defaultBody:   "Dear Scholar,\n\nPlease be informed that the scholarship funds for [Academic Year] [Semester] will be released on [date] at [location].\n\nBring a valid school ID and a copy of this notice when claiming.\n\nThank you.",
+    defaultBody:   "Dear {{name}},\n\nPlease be informed that the scholarship funds for [Academic Year] [Semester] will be released on [date] at [location].\n\nBring a valid school ID and a copy of this notice when claiming.\n\nThank you.",
   },
   Other: {
-  
+    icon:          "📝",
     desc:          "Custom announcements",
     targets:       ["all_students", "all_grantees", "all_users"],
     defaultTarget: "all_students",
@@ -143,12 +168,14 @@ const SEED_TEMPLATES = TYPES.filter(t => t !== "Other").map(t => ({
 }));
 
 export default function AnnouncementModal({ open, onClose }) {
+  const { askConfirm, confirmDialog } = useConfirm();
   const [step,        setStep]        = useState("list");
   const [templates,   setTemplates]   = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [sending,     setSending]     = useState(false);
   const [sent,        setSent]        = useState(false);
   const [sentCount,   setSentCount]   = useState(0);
+  const [resetting,   setResetting]   = useState(false);
 
   // compose fields
   const [title,       setTitle]       = useState("");
@@ -217,12 +244,9 @@ export default function AnnouncementModal({ open, onClose }) {
 
   // When user taps a type chip in compose
   const handleTypeChange = (newType) => {
-    const def = TYPE_DEFS[newType];
-    // auto-switch target to the new type's default if current target isn't valid
-    if (!def.targets.includes(target)) setTarget(def.defaultTarget);
-    else setTarget(def.defaultTarget); // always reset to smart default
-
-    // if body has been customised, ask before overwriting
+    // Note: the target itself gets reset inside applyType/keepContent below
+    // (whichever the user picks), not here — it depends on whether they
+    // keep their customized message or accept the new type's defaults.
     const oldDefault = TYPE_DEFS[type]?.defaultBody?.trim() || "";
     if (body.trim() && body.trim() !== oldDefault) {
       setPendingType(newType);
@@ -258,10 +282,31 @@ export default function AnnouncementModal({ open, onClose }) {
     setSavingTpl(false); setTplName(""); setShowSave(false);
   };
 
-  const deleteTemplate = async (id) => {
-    if (!confirm("Delete this template?")) return;
-    await supabase.from("report_templates").delete().eq("template_id", id);
-    setTemplates(prev => prev.filter(t => t.template_id !== id));
+  const deleteTemplate = (id) => {
+    askConfirm("Delete this template?", async () => {
+      await supabase.from("report_templates").delete().eq("template_id", id);
+      setTemplates(prev => prev.filter(t => t.template_id !== id));
+    }, { variant: "danger", confirmLabel: "Delete" });
+  };
+
+  // Self-heals the "undefined General" style names some templates ended
+  // up with under a previous version of this component's icon handling —
+  // wipes whatever's saved and reseeds cleanly from the (now-fixed) defaults.
+  const resetToDefaults = () => {
+    askConfirm(
+      "Delete all saved templates and reseed the default ones? Any custom templates you've made will be lost.",
+      async () => {
+        setResetting(true);
+        await supabase.from("report_templates").delete().neq("template_id", 0);
+        const { data: seeded } = await supabase
+          .from("report_templates")
+          .insert(SEED_TEMPLATES.map(t => ({ name: t.name, layout: t.layout })))
+          .select();
+        setTemplates(seeded || []);
+        setResetting(false);
+      },
+      { confirmLabel: "Reset templates" }
+    );
   };
 
   const send = async () => {
@@ -275,26 +320,30 @@ export default function AnnouncementModal({ open, onClose }) {
       const resolver = TARGETS[target]?.resolve;
       if (!resolver) throw new Error("Unknown target.");
 
-      const userIds = await resolver();
+      const recipients = await resolver();
 
-      if (userIds.length === 0) {
+      if (recipients.length === 0) {
         setError(`No recipients found for "${TARGETS[target]?.label}". Nobody matching this filter exists in the database right now.`);
         setSending(false);
         return;
       }
 
+      // Each row gets its own copy of the title/message with {{name}}
+      // swapped for that recipient's actual first name — so 500 people
+      // getting the same announcement each see something addressed to
+      // them, not a visible mail-merge blast.
       const { error: insertError } = await supabase.from("notifications").insert(
-        userIds.map(uid => ({
-          user_id:           uid,
-          title,
-          message:           body,
+        recipients.map(r => ({
+          user_id:           r.user_id,
+          title:              personalize(title, r.first_name),
+          message:            personalize(body, r.first_name),
           notification_type: type,
           is_read:           false,
         }))
       );
       if (insertError) throw insertError;
 
-      setSentCount(userIds.length);
+      setSentCount(recipients.length);
       setSent(true);
     } catch (err) {
       setError(err.message);
@@ -335,7 +384,12 @@ export default function AnnouncementModal({ open, onClose }) {
             <>
               <button style={s.blankBtn} onClick={composeBlank}> &nbsp;Start from scratch</button>
 
-              <p style={s.sectionLabel}>Saved templates</p>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <p style={s.sectionLabel}>Saved templates</p>
+                <button style={s.resetLink} onClick={resetToDefaults} disabled={resetting}>
+                  {resetting ? "Resetting…" : "Reset to defaults"}
+                </button>
+              </div>
 
               {loading ? (
                 <p style={{color:"var(--text-secondary)",fontSize:13}}>Loading templates…</p>
@@ -475,10 +529,25 @@ export default function AnnouncementModal({ open, onClose }) {
 
                   {/* body */}
                   <div style={s.field}>
-                    <label style={s.label}>Message</label>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <label style={s.label}>Message</label>
+                      <button
+                        type="button"
+                        style={s.insertNameBtn}
+                        onClick={() => setBody(b => b + "{{name}}")}
+                        title="Insert a placeholder that becomes each recipient's first name"
+                      >
+                        + Insert {"{{name}}"}
+                      </button>
+                    </div>
                     <textarea style={{...s.inp, height:190, resize:"vertical", padding:12, lineHeight:1.65}}
                       value={body} placeholder="Type your announcement here…"
                       onChange={e => setBody(e.target.value)} />
+                    <p style={s.hint}>
+                      {body.includes("{{name}}")
+                        ? <>Each recipient sees their own name in place of <code>{"{{name}}"}</code> — e.g. "Dear Maria," instead of a generic greeting.</>
+                        : <>Tip: use <code>{"{{name}}"}</code> anywhere in the title or message and it'll be swapped for each recipient's first name.</>}
+                    </p>
                   </div>
 
                   {/* error */}
@@ -526,6 +595,7 @@ export default function AnnouncementModal({ open, onClose }) {
           </div>
         )}
       </div>
+      {confirmDialog}
     </div>
   );
 }
@@ -544,6 +614,8 @@ const s = {
   foot:        { display:"flex",justifyContent:"flex-end",gap:10,padding:"14px 24px",borderTop:"1px solid var(--border)",flexShrink:0 },
 
   sectionLabel:{ margin:0,fontSize:11,fontWeight:700,color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:".4px" },
+  resetLink:   { background:"none",border:"none",color:"var(--text-secondary)",fontSize:11,fontWeight:600,textDecoration:"underline",cursor:"pointer",padding:0 },
+  insertNameBtn:{ background:"var(--navy-50)",border:"1px solid var(--navy-200)",color:"var(--navy-700)",fontSize:11,fontWeight:700,borderRadius:999,padding:"4px 10px",cursor:"pointer",whiteSpace:"nowrap" },
   hint:        { margin:0,fontSize:12,color:"var(--text-secondary)",lineHeight:1.5 },
 
   blankBtn:    { display:"flex",alignItems:"center",justifyContent:"center",padding:"14px 20px",background:"var(--navy-50)",border:"2px dashed var(--navy-300)",borderRadius:12,color:"var(--navy-700)",fontWeight:700,fontSize:14,cursor:"pointer",width:"100%",boxSizing:"border-box" },

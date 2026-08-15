@@ -4,6 +4,7 @@ import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import { getCached, setCached } from "@/lib/dataCache";
+import { useToast } from "@/context/ToastContext";
 import {
   buildSchedule, periodKey, isEligible, isFullyPaidOut,
   payoutProgressLabel, latestRelease,
@@ -18,6 +19,7 @@ const PAGE_SIZE = 10;
 const CACHE_KEY = "cashier-grantees";
 
 export default function Grantees() {
+  const toast = useToast();
   const cachedRows = getCached(CACHE_KEY);
   const [loading, setLoading] = useState(!cachedRows);
   const [rows, setRows] = useState(cachedRows || []);
@@ -84,7 +86,8 @@ export default function Grantees() {
       .order("grantee_id", { ascending: false });
 
     if (error) {
-      console.log(error);
+      console.error(error);
+      toast.error("Failed to load grantees: " + error.message);
       setRows([]);
     } else {
       setRows(data || []);
@@ -160,11 +163,11 @@ export default function Grantees() {
     const remaining = remainingBudgetFor(selectedGrantee);
 
     if (remaining < amount) {
-      alert("Insufficient scholarship budget for this payout.");
+      toast.error("Insufficient scholarship budget for this payout.");
       return;
     }
     if (isFullyPaidOut(selectedGrantee, scholarship)) {
-      alert("This grantee has already received every payout this scholarship allows.");
+      toast.error("This grantee has already received every payout this scholarship allows.");
       return;
     }
 
@@ -183,7 +186,7 @@ export default function Grantees() {
     // schedule already hides Paid rows, but covers races/stale data).
     const existingKeys = new Set((selectedGrantee.fund_releases || []).map(periodKey));
     if (existingKeys.has(periodKey(payload))) {
-      alert("A payout for this exact period has already been released. Refresh and pick another period.");
+      toast.error("A payout for this exact period has already been released. Refresh and pick another period.");
       return;
     }
 
@@ -192,7 +195,7 @@ export default function Grantees() {
 
     if (error) {
       setSaving(false);
-      alert(error.message);
+      toast.error(error.message);
       return;
     }
 
@@ -211,6 +214,7 @@ export default function Grantees() {
     const updated = updatedRows.find((r) => r.grantee_id === selectedGrantee.grantee_id);
     if (updated) setSelectedGrantee(updated);
 
+    toast.success("Payout released successfully.");
     closeReleaseModal();
   }
 
@@ -230,7 +234,7 @@ export default function Grantees() {
   async function submitSkip() {
     if (!selectedGrantee || !skipPeriodTarget) return;
     if (!skipReason.trim()) {
-      alert("Enter a reason (e.g. leave of absence, did not enroll that term).");
+      toast.error("Enter a reason (e.g. leave of absence, did not enroll that term).");
       return;
     }
 
@@ -250,7 +254,7 @@ export default function Grantees() {
     setSkipping(false);
 
     if (error) {
-      alert(error.message);
+      toast.error(error.message);
       return;
     }
 
