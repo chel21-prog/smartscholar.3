@@ -6,6 +6,7 @@ import Dashboard from "@/pages/student/Dashboard";
 import Profile from "@/pages/student/Profile";
 import Applications from "@/pages/student/Applications";
 import Compliance from "@/pages/student/Compliance";
+import Concerns from "@/pages/student/Concerns";
 import Settings from "@/pages/settings/Settings";
 
 const LINKS = [
@@ -13,6 +14,7 @@ const LINKS = [
   { to: "/student/profile",      label: "Profile"      },
   { to: "/student/applications", label: "Applications" },
   { to: "/student/compliance",   label: "Compliance"   },
+  { to: "/student/concerns",     label: "Concerns"     },
   { to: "/student/settings",     label: "Settings"     },
 ];
 
@@ -28,6 +30,7 @@ export default function StudentRoutes() {
         <Route path="profile"      element={<Profile />} />
         <Route path="applications" element={<ProfileGuard><Applications /></ProfileGuard>} />
         <Route path="compliance"   element={<ProfileGuard><Compliance /></ProfileGuard>} />
+        <Route path="concerns"     element={<ProfileGuard><Concerns /></ProfileGuard>} />
         <Route path="settings"     element={<Settings />} />
       </Route>
     </Routes>

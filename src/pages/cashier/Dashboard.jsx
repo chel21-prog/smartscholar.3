@@ -135,6 +135,7 @@ export default function CashierDashboard() {
       <AnnouncementModal
         open={showAnnouncement}
         onClose={() => setShowAnnouncement(false)}
+        types={["Finance", "General"]}
       />
     </div>
   );

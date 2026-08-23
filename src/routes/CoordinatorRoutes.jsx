@@ -7,6 +7,8 @@ import Students from "@/pages/coordinator/Students";
 import Grantees from "@/pages/coordinator/Grantees";
 import CoordinatorApplications from "@/pages/coordinator/CoordinatorApplications";
 import Requirements from "@/pages/coordinator/Requirements";
+import Payouts from "@/pages/coordinator/Payouts";
+import Concerns from "@/pages/coordinator/Concerns";
 import Settings from "@/pages/settings/Settings";
 
 const LINKS = [
@@ -16,6 +18,8 @@ const LINKS = [
   { to: "/coordinator/grantees",     label: "Grantees"      },
   { to: "/coordinator/applications", label: "Applications"  },
   { to: "/coordinator/requirements", label: "Requirements"  },
+  { to: "/coordinator/payouts",      label: "Payouts"       },
+  { to: "/coordinator/concerns",     label: "Concerns"      },
   { to: "/coordinator/settings",     label: "Settings"      },
 ];
 
@@ -33,6 +37,8 @@ export default function CoordinatorRoutes() {
         <Route path="grantees"     element={<Grantees />} />
         <Route path="applications" element={<CoordinatorApplications />} />
         <Route path="requirements" element={<Requirements />} />
+        <Route path="payouts"      element={<Payouts />} />
+        <Route path="concerns"     element={<Concerns />} />
         <Route path="settings"     element={<Settings />} />
       </Route>
     </Routes>

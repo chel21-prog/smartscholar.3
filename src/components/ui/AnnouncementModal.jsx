@@ -291,7 +291,14 @@ const SCHOLARSHIP_TOKEN_RE = /\{\{(scholarship|sponsor|deadline|amount|period)\}
 
 const SMART_TARGETS = ["pending_compliance", "pending_releases", "pending_applications"];
 
-export default function AnnouncementModal({ open, onClose }) {
+export default function AnnouncementModal({ open, onClose, types }) {
+  // Which announcement types this instance can see/use. Coordinator gets
+  // every type (no `types` prop = everything); Cashier is scoped to just
+  // the ones relevant to their job (see cashier/Dashboard.jsx). Falls back
+  // to the full set if `types` is missing, empty, or has bad values, so a
+  // caller can never end up with zero usable types.
+  const allowedTypes = (types && types.length > 0 ? types.filter(t => TYPE_DEFS[t]) : null) || TYPES;
+
   const { askConfirm, confirmDialog } = useConfirm();
   const [step,        setStep]        = useState("list");
   const [templates,   setTemplates]   = useState([]);
@@ -421,7 +428,9 @@ export default function AnnouncementModal({ open, onClose }) {
   };
 
   const composeBlank = () => {
-    setTitle(""); setBody(""); setType("General"); setTarget("all_students");
+    const t = allowedTypes[0] || "General";
+    const def = TYPE_DEFS[t] || TYPE_DEFS.General;
+    setTitle(""); setBody(""); setType(t); setTarget(def.defaultTarget);
     resetCompose();
     setStep("compose");
   };
@@ -478,15 +487,31 @@ export default function AnnouncementModal({ open, onClose }) {
   // wipes whatever's saved and reseeds cleanly from the (now-fixed) defaults.
   const resetToDefaults = () => {
     askConfirm(
-      "Delete all saved templates and reseed the default ones? Any custom templates you've made will be lost.",
+      "Delete your saved templates and reseed the default ones? Any custom templates you've made will be lost.",
       async () => {
         setResetting(true);
-        await supabase.from("report_templates").delete().neq("template_id", 0);
+
+        // Only touch templates whose type this instance can actually see —
+        // a Cashier resetting shouldn't wipe out a Coordinator's Compliance
+        // or Approval templates, since both roles share one report_templates
+        // table. Delete needs the current rows' ids since Supabase can't
+        // filter a delete by a JSON field with .in() the way we'd filter a
+        // plain column.
+        const toRemove = templates.filter(t => allowedTypes.includes(t.layout?.type || "General"));
+        if (toRemove.length > 0) {
+          await supabase.from("report_templates").delete().in("template_id", toRemove.map(t => t.template_id));
+        }
+
+        const reseedSet = SEED_TEMPLATES.filter(t => allowedTypes.includes(t.layout.type));
         const { data: seeded } = await supabase
           .from("report_templates")
-          .insert(SEED_TEMPLATES.map(t => ({ name: t.name, layout: t.layout })))
+          .insert(reseedSet.map(t => ({ name: t.name, layout: t.layout })))
           .select();
-        setTemplates(seeded || []);
+
+        // keep whatever other roles' templates were already loaded, just
+        // swap out this role's slice for the freshly reseeded rows
+        const kept = templates.filter(t => !allowedTypes.includes(t.layout?.type || "General"));
+        setTemplates([...kept, ...(seeded || [])]);
         setResetting(false);
       },
       { confirmLabel: "Reset templates" }
@@ -541,6 +566,11 @@ export default function AnnouncementModal({ open, onClose }) {
   const activeRecipient = previewRecipients[previewIndex] || null;
   const previewCount    = previewRecipients.length;
   const usesScholarshipTokens = SCHOLARSHIP_TOKEN_RE.test(title) || SCHOLARSHIP_TOKEN_RE.test(body);
+  // Only show templates whose type this instance is actually allowed to
+  // send — a Cashier's gallery shouldn't list a Coordinator's Compliance
+  // template, even though both draw from the same shared report_templates
+  // table.
+  const visibleTemplates = templates.filter(t => allowedTypes.includes(t.layout?.type || "General"));
 
   return (
     <Modal
@@ -586,11 +616,11 @@ export default function AnnouncementModal({ open, onClose }) {
 
           {loading ? (
             <p className={styles.typeHint}>Loading templates…</p>
-          ) : templates.length === 0 ? (
+          ) : visibleTemplates.length === 0 ? (
             <EmptyState title="No templates yet" description="Start from scratch and save it as a template to see it here." />
           ) : (
             <div className={styles.tplGrid}>
-              {templates.map(t => {
+              {visibleTemplates.map(t => {
                 const tgt = TARGETS[t.layout?.target];
                 return (
                   <button key={t.template_id} className={styles.tplCard} onClick={() => useTemplate(t)}>
@@ -640,7 +670,7 @@ export default function AnnouncementModal({ open, onClose }) {
 
               <Field label="Announcement type">
                 <div className={styles.chipGroup}>
-                  {TYPES.map(t => (
+                  {allowedTypes.map(t => (
                     <button key={t} type="button"
                       className={[styles.chip, type === t ? styles.chipActive : ""].join(" ")}
                       onClick={() => handleTypeChange(t)}>
