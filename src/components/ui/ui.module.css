@@ -122,7 +122,7 @@
 /* ---- Modal ---- */
 .overlay {
   position: fixed; inset: 0; background: rgba(10,21,32,.55);
-  backdrop-filter: blur(2px); display: flex; align-items: center;
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); display: flex; align-items: center;
   justify-content: center; padding: var(--space-5); z-index: 1000;
   animation: fadeIn var(--duration-base) var(--ease-out);
 }

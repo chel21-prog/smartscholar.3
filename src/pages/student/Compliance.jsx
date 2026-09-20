@@ -4,11 +4,13 @@ import { Card, Badge, EmptyState } from "@/components/ui/Card";
 import { TableWrap, Table } from "@/components/ui/Table";
 import PageLoader from "@/components/ui/PageLoader";
 import { getCached, setCached } from "@/lib/dataCache";
+import { useToast } from "@/context/ToastContext";
 import styles from "./Compliance.module.css";
 
 const CACHE_KEY = "student-compliance";
 
 export default function Compliance() {
+  const toast = useToast();
   const cachedRows = getCached(CACHE_KEY);
   const [rows, setRows] = useState(cachedRows || []);
   const [loading, setLoading] = useState(!cachedRows);
@@ -102,7 +104,7 @@ export default function Compliance() {
 
   const uploadFile = async (e, row) => {
     if (!row.application_id || !row.requirement_name) {
-      alert("Missing application ID or requirement name.");
+      toast.error("Missing application ID or requirement name.");
       return;
     }
 
@@ -124,7 +126,7 @@ export default function Compliance() {
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
-        alert(uploadError.message);
+        toast.error(uploadError.message);
         return;
       }
 
@@ -141,7 +143,7 @@ export default function Compliance() {
       await load();
     } catch (err) {
       console.error(err);
-      alert("Upload failed. Please try again.");
+      toast.error("Upload failed. Please try again.");
     } finally {
       setUploadingKeys((prev) => {
         const next = new Set(prev);

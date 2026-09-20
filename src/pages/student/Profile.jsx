@@ -8,6 +8,7 @@ import { TableWrap, Table } from "@/components/ui/Table";
 import PageLoader from "@/components/ui/PageLoader";
 import { getMissingProfileFields } from "@/lib/profileCompleteness";
 import { getCached, setCached } from "@/lib/dataCache";
+import { useToast } from "@/context/ToastContext";
 import styles from "./Profile.module.css";
 
 const STATUS_CYCLE = ["Compliant", "Non-Compliant"];
@@ -15,6 +16,7 @@ const CACHE_KEY = "student-profile";
 
 export default function Profile() {
   const location = useLocation();
+  const toast = useToast();
   // Reminder banner: only shown when the person landed here because
   // ProfileGuard (or Login/AuthCallback) redirected them for having an
   // incomplete profile — not shown when they navigate here normally via
@@ -113,7 +115,7 @@ export default function Profile() {
 
   const fetchEligibilityRequirements = async () => {
     if (!student) {
-      alert("Please fill in and save your student profile first.");
+      toast.error("Please fill in and save your student profile first.");
       return;
     }
 
@@ -153,7 +155,7 @@ export default function Profile() {
       await load();
     } catch (err) {
       console.error(err);
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setRefreshing(false);
     }
@@ -259,7 +261,7 @@ export default function Profile() {
         { onConflict: "student_id,eligibility_requirement_id" }
       );
 
-    if (error) return alert(error.message);
+    if (error) return toast.error(error.message);
 
     setRequirements((prev) =>
       prev.map((r) =>

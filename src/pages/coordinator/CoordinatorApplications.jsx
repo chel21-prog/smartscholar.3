@@ -8,11 +8,13 @@ import TableSkeleton from "@/components/ui/TableSkeleton";
 import Modal from "@/components/ui/Modal";
 import { getCached, setCached } from "@/lib/dataCache";
 import { getReportSecurity } from "@/lib/reportSecurity";
+import { useToast } from "@/context/ToastContext";
 import styles from "./CoordinatorApplications.module.css";
 
 const CACHE_KEY = "coordinator-applications";
 
 export default function CoordinatorApplications() {
+  const toast = useToast();
   const navigate = useNavigate();
   const cachedApps = getCached(CACHE_KEY);
   const [applications, setApplications] = useState(cachedApps || []);
@@ -176,7 +178,7 @@ const [sendNotification, setSendNotification] = useState(true);
       .update({ status })
       .eq("application_id", id);
 
-    if (error) return alert(error.message);
+    if (error) return toast.error(error.message);
 
     setApplications((prev) =>
       prev.map((a) =>
@@ -240,7 +242,7 @@ Thank you.`
       .update({ status: "Approved" })
       .eq("application_id", app.application_id);
 
-    if (error) return alert(error.message);
+    if (error) return toast.error(error.message);
 
     await supabase.from("grantees").insert({
       
@@ -300,7 +302,7 @@ await load();
     .eq("application_id", app.application_id);
 
   if (error) {
-    return alert(error.message);
+    return toast.error(error.message);
   }
 
   if (sendNotification) {
@@ -315,7 +317,7 @@ await load();
 
     if (notifError) {
   console.error("Notification insert failed:", notifError);
-  alert(JSON.stringify(notifError));
+  toast.error("The status was updated, but the notification email failed to send: " + (notifError.message || "unknown error"));
   return;
 }
   }

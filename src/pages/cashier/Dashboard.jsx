@@ -5,6 +5,8 @@ import PageLoader from "@/components/ui/PageLoader";
 import StatCard from "@/components/ui/StatCard";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { getCached, setCached } from "@/lib/dataCache";
+import { buildSchedule, isEligible } from "@/lib/payoutSchedule";
+import { formatPeso } from "@/lib/format";
 
 const CACHE_KEY = "cashier-dashboard";
 
@@ -12,6 +14,7 @@ export default function CashierDashboard() {
   const cached = getCached(CACHE_KEY);
   const [grantees,          setGrantees]          = useState(cached?.grantees || []);
   const [releases,          setReleases]          = useState(cached?.releases || []);
+  const [pendingCount,      setPendingCount]      = useState(cached?.pendingCount ?? 0);
   const [loading,           setLoading]           = useState(!cached);
   const [showAnnouncement,  setShowAnnouncement]  = useState(false);
 
@@ -19,13 +22,37 @@ export default function CashierDashboard() {
 
   const load = async () => {
     if (!getCached(CACHE_KEY)) setLoading(true);
-    const [{ data: g }, { data: r }] = await Promise.all([
+
+    // "Pending" needs its own query: fund_releases rows only ever get
+    // written as "Released" or "Skipped" (see cashier/Funds.jsx) — a
+    // scheduled-but-not-yet-paid release has NO row at all, only a
+    // computed "Due" period from buildSchedule(). Counting
+    // fund_releases.status === "Pending" (as this page used to) always
+    // returns 0, regardless of how many payouts are actually due.
+    const [{ data: g }, { data: r }, { data: scheduleData }] = await Promise.all([
       supabase.from("grantees").select("grantee_id,status"),
       supabase.from("fund_releases").select("release_id,amount_released,status,release_date"),
+      supabase
+        .from("grantees")
+        .select(`
+          grantee_id, status, verification_result, academic_year, semester,
+          date_awarded, duration_extension_semesters, scholarship_id,
+          scholarships(amount, payout_frequency, duration_type),
+          fund_releases(status, release_date, academic_year, semester, payout_period)
+        `)
+        .eq("status", "Active"),
     ]);
+
+    const due = (scheduleData || []).filter(gr => {
+      if (!isEligible(gr)) return false;
+      const schedule = buildSchedule(gr, gr.scholarships || {});
+      return schedule.some(p => p.status === "Due");
+    });
+
     setGrantees(g || []);
     setReleases(r || []);
-    setCached(CACHE_KEY, { grantees: g || [], releases: r || [] });
+    setPendingCount(due.length);
+    setCached(CACHE_KEY, { grantees: g || [], releases: r || [], pendingCount: due.length });
     setLoading(false);
   };
 
@@ -33,9 +60,8 @@ export default function CashierDashboard() {
 
   const totalGrantees  = grantees.length;
   const totalReleased  = releases.filter(r => r.status === "Released").reduce((sum, r) => sum + Number(r.amount_released || 0), 0);
-  const pending        = releases.filter(r => r.status === "Pending").length;
   const releasedCount  = releases.filter(r => r.status === "Released").length;
-  const total          = releasedCount + pending || 1;
+  const total          = releasedCount + pendingCount || 1;
 
   const stats = [
     {
@@ -43,18 +69,19 @@ export default function CashierDashboard() {
       explain: "Total number of rows in the grantees table, regardless of status.",
     },
     {
-      label: "Total Released", value: `₱${totalReleased.toLocaleString()}`, color: "var(--success-600)",
+      label: "Total Released", value: formatPeso(totalReleased), color: "var(--success-600)",
       explain: "Sum of amount_released for every fund release whose status is \"Released\".",
     },
     {
-      label: "Pending Releases", value: pending, color: "var(--warning-600)",
-      explain: "Count of fund releases whose status is \"Pending\" — scheduled but not yet paid out.",
+      label: "Pending Releases", value: pendingCount, color: "var(--warning-600)",
+      explain: "Active, verified grantees whose next payout period is due but hasn't been released yet — computed from each grantee's schedule, not a stored status.",
     },
     {
       label: "Completed Releases", value: releasedCount, color: "var(--navy-600)",
       explain: "Count of fund releases whose status is \"Released\".",
     },
   ];
+
 
   return (
     <div style={s.page}>
@@ -85,7 +112,7 @@ export default function CashierDashboard() {
             Bars compare the count of fund releases with status "Released" vs "Pending", each scaled against their combined total.
           </InfoTooltip>
         </div>
-        {[["Released", releasedCount, "var(--success-600)"], ["Pending", pending, "var(--warning-600)"]].map(([label, val, color]) => (
+        {[["Released", releasedCount, "var(--success-600)"], ["Pending", pendingCount, "var(--warning-600)"]].map(([label, val, color]) => (
           <div key={label} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
             <div style={{width:80,fontSize:13,color:"var(--text-secondary)",fontWeight:600}}>{label}</div>
             <div style={{flex:1,height:10,background:"var(--border)",borderRadius:10,overflow:"hidden"}}>
@@ -117,7 +144,7 @@ export default function CashierDashboard() {
               {releases.slice(0, 8).map((r, i) => (
                 <tr key={r.release_id} style={{background:i%2===0?"var(--surface)":"var(--surface-muted)"}}>
                   <td style={{padding:"10px 14px",borderBottom:"1px solid var(--border)",color:"var(--text-primary)"}}>{r.release_date || "—"}</td>
-                  <td style={{padding:"10px 14px",borderBottom:"1px solid var(--border)",color:"var(--text-primary)",fontWeight:600}}>₱{Number(r.amount_released||0).toLocaleString()}</td>
+                  <td style={{padding:"10px 14px",borderBottom:"1px solid var(--border)",color:"var(--text-primary)",fontWeight:600}}>{formatPeso(r.amount_released)}</td>
                   <td style={{padding:"10px 14px",borderBottom:"1px solid var(--border)"}}>
                     <span style={{padding:"4px 12px",borderRadius:999,fontSize:11,fontWeight:700,
                       background:r.status==="Released"?"var(--success-100)":"var(--warning-100)",

@@ -32,6 +32,8 @@ export default function Funds() {
   // ── release form ──────────────────────────────────────────
   const [selectedPeriod, setSelectedPeriod] = useState(null); // period row chosen from the schedule
   const [remarks, setRemarks] = useState("");
+  const [checkNo, setCheckNo] = useState("");
+  const [dvNo,    setDvNo]    = useState("");
   const [saving, setSaving] = useState(false);
 
   // ── skip period ───────────────────────────────────────────
@@ -133,6 +135,8 @@ export default function Funds() {
     setSelectedGrantee(grantee);
     setSelectedPeriod(period);
     setRemarks("");
+    setCheckNo("");
+    setDvNo("");
     setReleaseModal(true);
   }
 
@@ -163,6 +167,8 @@ export default function Funds() {
       release_date: new Date().toISOString().split("T")[0],
       status: "Released",
       remarks,
+      check_no: checkNo.trim() || null,
+      dv_no: dvNo.trim() || null,
       academic_year: selectedPeriod.academic_year,
       semester: selectedPeriod.semester,
       payout_period: selectedPeriod.payout_period,
@@ -559,6 +565,31 @@ export default function Funds() {
                   placeholder="Enter remarks..."
                 />
               </div>
+
+              <div className={s.infoGrid}>
+                <div className={s.field}>
+                  <label>Check No. / ADA / WeAccess No. (Optional)</label>
+                  <input
+                    className={s.textInput}
+                    value={checkNo}
+                    onChange={(e) => setCheckNo(e.target.value)}
+                    placeholder="e.g. 07-2603-007"
+                  />
+                </div>
+                <div className={s.field}>
+                  <label>Payroll # / DV No. (Optional)</label>
+                  <input
+                    className={s.textInput}
+                    value={dvNo}
+                    onChange={(e) => setDvNo(e.target.value)}
+                    placeholder="e.g. DV-2026-0042"
+                  />
+                </div>
+              </div>
+              <p className={s.periodHint}>
+                Both feed the Liquidation Report's disbursement table — worth filling in if you'll
+                be generating one for this batch, but releasing still works fine if left blank.
+              </p>
             </div>
 
             <div className={s.modalFooter}>

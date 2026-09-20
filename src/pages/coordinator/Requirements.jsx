@@ -1,12 +1,22 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/hooks/useConfirm";
+import PageLoader from "@/components/ui/PageLoader";
+import { getCached, setCached } from "@/lib/dataCache";
 import styles from "./Requirements.module.css";
+
+const CACHE_KEY = "coordinator-requirements";
 
 export default function Requirements() {
   const navigate = useNavigate();
-  const [appReq,  setAppReq]  = useState([]);
-  const [eligReq, setEligReq] = useState([]);
+  const toast = useToast();
+  const { askConfirm, confirmDialog } = useConfirm();
+  const cached = getCached(CACHE_KEY);
+  const [loading, setLoading] = useState(!cached);
+  const [appReq,  setAppReq]  = useState(cached?.appReq  || []);
+  const [eligReq, setEligReq] = useState(cached?.eligReq || []);
 
   const [appName, setAppName] = useState("");
   const [eligName,setEligName]= useState("");
@@ -50,12 +60,15 @@ export default function Requirements() {
   useEffect(() => { load(); loadTemplates(); }, []);
 
   const load = async () => {
+    if (!getCached(CACHE_KEY)) setLoading(true);
     const [{ data: app }, { data: elig }] = await Promise.all([
       supabase.from("application_requirements").select("*"),
       supabase.from("eligibility_requirements").select("*"),
     ]);
     setAppReq(app   || []);
     setEligReq(elig || []);
+    setCached(CACHE_KEY, { appReq: app || [], eligReq: elig || [] });
+    setLoading(false);
   };
 
   const loadTemplates = async () => {
@@ -87,9 +100,9 @@ export default function Requirements() {
   };
 
   const saveFormTemplate = async () => {
-    if (!formTplName.trim()) { alert("Enter a name for this form template."); return; }
-    if (!formTitle.trim()) { alert("Give the form a title."); return; }
-    if (formFields.length === 0) { alert("Add at least one field to the form."); return; }
+    if (!formTplName.trim()) { toast.error("Enter a name for this form template."); return; }
+    if (!formTitle.trim()) { toast.error("Give the form a title."); return; }
+    if (formFields.length === 0) { toast.error("Add at least one field to the form."); return; }
 
     setSavingFormTpl(true);
     const layout = { type: "form_template", formTitle, terms: formTerms, fields: formFields };
@@ -98,12 +111,12 @@ export default function Requirements() {
       const { error } = await supabase.from("report_templates")
         .update({ name: formTplName, layout })
         .eq("template_id", editingFormTplId);
-      if (error) { alert(error.message); setSavingFormTpl(false); return; }
+      if (error) { toast.error(error.message); setSavingFormTpl(false); return; }
       setFormTemplates(prev => prev.map(t => t.template_id === editingFormTplId ? { ...t, name: formTplName, layout } : t));
     } else {
       const { data, error } = await supabase.from("report_templates")
         .insert({ name: formTplName, layout }).select().single();
-      if (error) { alert(error.message); setSavingFormTpl(false); return; }
+      if (error) { toast.error(error.message); setSavingFormTpl(false); return; }
       if (data) setFormTemplates(prev => [...prev, data]);
     }
     setSavingFormTpl(false);
@@ -118,11 +131,12 @@ export default function Requirements() {
     setEditingFormTplId(tpl.template_id);
   };
 
-  const deleteFormTemplate = async (id) => {
-    if (!confirm("Delete this form template?")) return;
-    await supabase.from("report_templates").delete().eq("template_id", id);
-    setFormTemplates(prev => prev.filter(t => t.template_id !== id));
-    if (editingFormTplId === id) resetFormBuilder();
+  const deleteFormTemplate = (id) => {
+    askConfirm("Delete this form template?", async () => {
+      await supabase.from("report_templates").delete().eq("template_id", id);
+      setFormTemplates(prev => prev.filter(t => t.template_id !== id));
+      if (editingFormTplId === id) resetFormBuilder();
+    }, { variant: "danger", confirmLabel: "Delete" });
   };
 
   // ── Application requirement CRUD ─────────────────────────
@@ -133,16 +147,17 @@ export default function Requirements() {
       requirement_type: appType,
       description:      appDesc || null,
     });
-    if (error) { alert(error.message); return; }
+    if (error) { toast.error(error.message); return; }
     setAppName(""); setAppDesc("");
     load();
   };
 
-  const deleteApp = async (id) => {
-    if (!confirm("Delete this requirement?")) return;
-    await supabase.from("application_requirements").delete()
-      .eq("application_requirement_id", id);
-    load();
+  const deleteApp = (id) => {
+    askConfirm("Delete this requirement?", async () => {
+      await supabase.from("application_requirements").delete()
+        .eq("application_requirement_id", id);
+      load();
+    }, { variant: "danger", confirmLabel: "Delete" });
   };
 
   // ── Eligibility requirement CRUD ──────────────────────────
@@ -153,23 +168,24 @@ export default function Requirements() {
       requirement_type: eligType,
       description:      eligDesc || null,
     });
-    if (error) { alert(error.message); return; }
+    if (error) { toast.error(error.message); return; }
     setEligName(""); setEligDesc("");
     load();
   };
 
-  const deleteElig = async (id) => {
-    if (!confirm("Delete this requirement?")) return;
-    await supabase.from("eligibility_requirements").delete()
-      .eq("eligibility_requirement_id", id);
-    load();
+  const deleteElig = (id) => {
+    askConfirm("Delete this requirement?", async () => {
+      await supabase.from("eligibility_requirements").delete()
+        .eq("eligibility_requirement_id", id);
+      load();
+    }, { variant: "danger", confirmLabel: "Delete" });
   };
 
   // ── App template actions ──────────────────────────────────
   const saveAppTemplate = async () => {
     if (!appTplName.trim()) return;
     if (checkedApp.length === 0) {
-      alert("Check at least one requirement to include in the template.");
+      toast.error("Check at least one requirement to include in the template.");
       return;
     }
     setSavingAppTpl(true);
@@ -200,27 +216,28 @@ export default function Requirements() {
       const { error } = await supabase.from("application_requirements").insert(
         toInsert.map(r => ({ requirement_name: r.name, requirement_type: r.type, description: r.desc || null }))
       );
-      if (error) { alert(error.message); return; }
+      if (error) { toast.error(error.message); return; }
       await load();
     }
     setShowAppTplPicker(false);
     const msg = toInsert.length > 0
       ? `${toInsert.length} requirement${toInsert.length !== 1 ? "s" : ""} added from template.`
       : "All requirements from this template already exist.";
-    alert(msg);
+    toast.success(msg);
   };
 
-  const deleteAppTemplate = async (id) => {
-    if (!confirm("Delete this template?")) return;
-    await supabase.from("report_templates").delete().eq("template_id", id);
-    setAppTemplates(prev => prev.filter(t => t.template_id !== id));
+  const deleteAppTemplate = (id) => {
+    askConfirm("Delete this template?", async () => {
+      await supabase.from("report_templates").delete().eq("template_id", id);
+      setAppTemplates(prev => prev.filter(t => t.template_id !== id));
+    }, { variant: "danger", confirmLabel: "Delete" });
   };
 
   // ── Elig template actions ─────────────────────────────────
   const saveEligTemplate = async () => {
     if (!eligTplName.trim()) return;
     if (checkedElig.length === 0) {
-      alert("Check at least one requirement to include in the template.");
+      toast.error("Check at least one requirement to include in the template.");
       return;
     }
     setSavingEligTpl(true);
@@ -250,20 +267,21 @@ export default function Requirements() {
       const { error } = await supabase.from("eligibility_requirements").insert(
         toInsert.map(r => ({ requirement_name: r.name, requirement_type: r.type, description: r.desc || null }))
       );
-      if (error) { alert(error.message); return; }
+      if (error) { toast.error(error.message); return; }
       await load();
     }
     setShowEligTplPicker(false);
     const msg = toInsert.length > 0
       ? `${toInsert.length} requirement${toInsert.length !== 1 ? "s" : ""} added from template.`
       : "All requirements from this template already exist.";
-    alert(msg);
+    toast.success(msg);
   };
 
-  const deleteEligTemplate = async (id) => {
-    if (!confirm("Delete this template?")) return;
-    await supabase.from("report_templates").delete().eq("template_id", id);
-    setEligTemplates(prev => prev.filter(t => t.template_id !== id));
+  const deleteEligTemplate = (id) => {
+    askConfirm("Delete this template?", async () => {
+      await supabase.from("report_templates").delete().eq("template_id", id);
+      setEligTemplates(prev => prev.filter(t => t.template_id !== id));
+    }, { variant: "danger", confirmLabel: "Delete" });
   };
 
   // ── toggle checked items ──────────────────────────────────
@@ -272,6 +290,8 @@ export default function Requirements() {
 
   const toggleCheckedElig = (id) =>
     setCheckedElig(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  if (loading) return <PageLoader label="Loading requirements…" />;
 
   return (
     <div className={styles.page}>
@@ -666,6 +686,8 @@ export default function Requirements() {
         </div>
 
       </div>
+
+      {confirmDialog}
     </div>
   );
 }

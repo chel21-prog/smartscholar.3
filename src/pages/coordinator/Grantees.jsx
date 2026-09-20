@@ -6,6 +6,7 @@ import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import { getCached, setCached } from "@/lib/dataCache";
+import { useToast } from "@/context/ToastContext";
 import styles from "./Grantees.module.css";
 
 const CACHE_KEY = "coordinator-grantees";
@@ -16,8 +17,19 @@ const VERIFICATION_LABELS = {
   Ineligible: "Ineligible",
 };
 
+const BLANK_NEW_STUDENT = {
+  first_name: "", middle_name: "", last_name: "",
+  school_id: "", course: "", year_level: "", contact_number: "",
+};
+const BLANK_RELEASE_ROW = () => ({
+  key: Math.random().toString(36).slice(2),
+  academic_year: "", semester: "1st Semester",
+  amount_released: "", release_date: "", status: "Released",
+});
+
 export default function Grantees() {
   const navigate = useNavigate();
+  const toast = useToast();
   const cachedRows = getCached(CACHE_KEY);
   const [rows, setRows] = useState(cachedRows || []);
   const [loading, setLoading] = useState(!cachedRows);
@@ -39,6 +51,31 @@ const [yearFilter, setYearFilter] = useState("All");
   const [terminationReason, setTerminationReason] = useState("");
   const [savingVerification, setSavingVerification] = useState(false);
 
+  // ── add historical grantee modal ───────────────────────────
+  // Lets the coordinator backfill scholars who were already granted
+  // before this system existed — either linking to a student who's
+  // already in the system, or creating a bare-bones student record on
+  // the spot (no login credentials; users.auth_id stays null until that
+  // person eventually signs up for real, if ever). Uses grantees.source
+  // = "Manual" — the schema already has this value defined specifically
+  // for entries that didn't come through the normal application flow.
+  const [showAddGrantee,   setShowAddGrantee]   = useState(false);
+  const [scholarshipsList, setScholarshipsList] = useState([]);
+  const [studentMode,      setStudentMode]      = useState("existing"); // "existing" | "new"
+  const [studentSearch,    setStudentSearch]    = useState("");
+  const [studentResults,   setStudentResults]   = useState([]);
+  const [searchingStudent, setSearchingStudent]  = useState(false);
+  const [selectedStudent,  setSelectedStudent]  = useState(null);
+  const [newStudent,       setNewStudent]       = useState(BLANK_NEW_STUDENT);
+  const [granteeScholarshipId, setGranteeScholarshipId] = useState("");
+  const [granteeAcademicYear,  setGranteeAcademicYear]  = useState("");
+  const [granteeSemester,      setGranteeSemester]      = useState("1st Semester");
+  const [granteeDateAwarded,   setGranteeDateAwarded]   = useState("");
+  const [granteeStatus,        setGranteeStatus]        = useState("Active");
+  const [granteeVerification,  setGranteeVerification]  = useState("Verified");
+  const [releaseRows,          setReleaseRows]          = useState([]);
+  const [savingGrantee,        setSavingGrantee]        = useState(false);
+
   useEffect(() => {
     load();
     loadCurrentUser();
@@ -55,6 +92,195 @@ const [yearFilter, setYearFilter] = useState("All");
       .single();
     setCurrentUserId(userRow?.user_id ?? null);
   };
+
+  // ── add historical grantee: helpers ────────────────────────
+  const openAddGrantee = async () => {
+    setStudentMode("existing");
+    setStudentSearch(""); setStudentResults([]); setSelectedStudent(null);
+    setNewStudent(BLANK_NEW_STUDENT);
+    setGranteeScholarshipId(""); setGranteeAcademicYear("");
+    setGranteeSemester("1st Semester"); setGranteeDateAwarded("");
+    setGranteeStatus("Active"); setGranteeVerification("Verified");
+    setReleaseRows([]);
+    setShowAddGrantee(true);
+
+    if (scholarshipsList.length === 0) {
+      const { data } = await supabase
+        .from("scholarships")
+        .select("scholarship_id, scholarship_name, status")
+        .order("scholarship_name", { ascending: true });
+      setScholarshipsList(data || []);
+    }
+  };
+
+  // Debounced live search against existing students, by name or school ID.
+  useEffect(() => {
+    if (!showAddGrantee || studentMode !== "existing") return;
+    const q = studentSearch.trim();
+    if (q.length < 2) { setStudentResults([]); return; }
+
+    setSearchingStudent(true);
+    const handle = setTimeout(async () => {
+      // Two simple, single-table queries instead of one query trying to
+      // filter across the students→users join in one shot — more moving
+      // parts, but every piece here is a plain .select()/.eq()/.ilike()/
+      // .in(), the same shape already used everywhere else in this app.
+      const [{ data: bySchoolId }, { data: matchingUsers }] = await Promise.all([
+        supabase
+          .from("students")
+          .select("student_id, school_id, course, year_level, users(first_name, last_name)")
+          .ilike("school_id", `%${q}%`)
+          .limit(20),
+        supabase
+          .from("users")
+          .select("user_id, first_name, last_name")
+          .eq("role", "Student")
+          .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%`)
+          .limit(20),
+      ]);
+
+      let byName = [];
+      if (matchingUsers && matchingUsers.length > 0) {
+        const { data } = await supabase
+          .from("students")
+          .select("student_id, school_id, course, year_level, users(first_name, last_name)")
+          .in("user_id", matchingUsers.map(u => u.user_id));
+        byName = data || [];
+      }
+
+      const merged = new Map();
+      [...(bySchoolId || []), ...byName].forEach(s => merged.set(s.student_id, s));
+      setStudentResults([...merged.values()]);
+      setSearchingStudent(false);
+    }, 350);
+
+    return () => clearTimeout(handle);
+  }, [studentSearch, studentMode, showAddGrantee]);
+
+  const addReleaseRow = () => setReleaseRows(prev => [...prev, BLANK_RELEASE_ROW()]);
+  const removeReleaseRow = (key) => setReleaseRows(prev => prev.filter(r => r.key !== key));
+  const updateReleaseRow = (key, field, value) =>
+    setReleaseRows(prev => prev.map(r => r.key === key ? { ...r, [field]: value } : r));
+
+  const submitAddGrantee = async () => {
+    // ── validation ──
+    if (studentMode === "existing" && !selectedStudent) {
+      toast.error("Search for and select the student first.");
+      return;
+    }
+    if (studentMode === "new") {
+      if (!newStudent.first_name.trim() || !newStudent.last_name.trim()) {
+        toast.error("Enter the student's first and last name.");
+        return;
+      }
+      if (!newStudent.school_id.trim()) {
+        toast.error("Enter the student's school ID.");
+        return;
+      }
+    }
+    if (!granteeScholarshipId) { toast.error("Select which scholarship this grantee held."); return; }
+    if (!granteeAcademicYear.trim()) { toast.error("Enter the academic year they were awarded (e.g. 2022-2023)."); return; }
+    if (!granteeDateAwarded) { toast.error("Enter the date they were awarded — this anchors their payout schedule, so it needs to be accurate."); return; }
+    for (const r of releaseRows) {
+      if (!r.academic_year.trim() || !r.amount_released || !r.release_date) {
+        toast.error("Fill in academic year, amount, and date for every past release row, or remove the empty one.");
+        return;
+      }
+    }
+
+    setSavingGrantee(true);
+
+    let studentId = selectedStudent?.student_id;
+
+    // ── create a bare student record if migrating someone not yet in the system ──
+    if (studentMode === "new") {
+      const { data: userRow, error: userError } = await supabase
+        .from("users")
+        .insert({
+          auth_id: null, // no login yet — this is a record-only placeholder
+          email: null,
+          first_name: newStudent.first_name.trim(),
+          middle_name: newStudent.middle_name.trim() || null,
+          last_name: newStudent.last_name.trim(),
+          role: "Student",
+          status: "active",
+        })
+        .select().single();
+
+      if (userError) { toast.error(userError.message); setSavingGrantee(false); return; }
+
+      const { data: studentRow, error: studentError } = await supabase
+        .from("students")
+        .insert({
+          user_id: userRow.user_id,
+          school_id: newStudent.school_id.trim(),
+          course: newStudent.course.trim() || null,
+          year_level: newStudent.year_level ? Number(newStudent.year_level) : null,
+          contact_number: newStudent.contact_number.trim() || null,
+          status: "Enrolled",
+        })
+        .select().single();
+
+      if (studentError) {
+        toast.error(
+          studentError.message.includes("duplicate")
+            ? `School ID "${newStudent.school_id}" is already in the system — search for them under "Existing student" instead.`
+            : studentError.message
+        );
+        setSavingGrantee(false);
+        return;
+      }
+      studentId = studentRow.student_id;
+    }
+
+    // ── the grantee record itself ──
+    const { data: granteeRow, error: granteeError } = await supabase
+      .from("grantees")
+      .insert({
+        student_id: studentId,
+        scholarship_id: granteeScholarshipId,
+        status: granteeStatus,
+        date_awarded: granteeDateAwarded,
+        academic_year: granteeAcademicYear.trim(),
+        semester: granteeSemester,
+        verification_result: granteeVerification,
+        verification_remarks: "Migrated from records predating the system.",
+        last_verified_at: new Date().toISOString(),
+        verified_by: currentUserId,
+        source: "Manual",
+      })
+      .select().single();
+
+    if (granteeError) { toast.error(granteeError.message); setSavingGrantee(false); return; }
+
+    // ── optional past releases, so the payout schedule reflects reality ──
+    if (releaseRows.length > 0) {
+      const { error: releaseError } = await supabase.from("fund_releases").insert(
+        releaseRows.map(r => ({
+          grantee_id: granteeRow.grantee_id,
+          academic_year: r.academic_year.trim(),
+          semester: r.semester,
+          amount_released: Number(r.amount_released),
+          release_date: r.release_date,
+          status: r.status,
+          remarks: "Migrated from records predating the system.",
+        }))
+      );
+      if (releaseError) {
+        toast.error("Grantee saved, but past releases failed to save: " + releaseError.message);
+        setSavingGrantee(false);
+        setShowAddGrantee(false);
+        load();
+        return;
+      }
+    }
+
+    setSavingGrantee(false);
+    setShowAddGrantee(false);
+    toast.success("Historical grantee added.");
+    load();
+  };
+
   useEffect(() => {
   setCurrentPage(1);
 }, [
@@ -163,7 +389,7 @@ const [yearFilter, setYearFilter] = useState("All");
   const submitVerification = async () => {
     if (!verifyTarget || !verifyResult) return;
     if (verifyResult === "Ineligible" && !terminationReason.trim()) {
-      alert("Enter a reason before marking this grantee ineligible.");
+      toast.error("Enter a reason before marking this grantee ineligible.");
       return;
     }
 
@@ -194,7 +420,7 @@ const [yearFilter, setYearFilter] = useState("All");
       .eq("grantee_id", verifyTarget.grantee_id);
 
     if (updateError) {
-      alert(updateError.message);
+      toast.error(updateError.message);
       setSavingVerification(false);
       return;
     }
@@ -211,7 +437,7 @@ const [yearFilter, setYearFilter] = useState("All");
       });
 
     if (historyError) {
-      alert(historyError.message);
+      toast.error(historyError.message);
     }
 
     setSavingVerification(false);
@@ -351,6 +577,12 @@ const endRow =
       style={{ padding:"9px 16px", background:"#16a34a", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
     >
       Generate Report
+    </button>
+    <button
+      onClick={openAddGrantee}
+      style={{ padding:"9px 16px", background:"var(--navy-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13, marginLeft:10 }}
+    >
+      + Add Historical Grantee
     </button>
 </div>
     
@@ -681,6 +913,215 @@ const endRow =
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* ================= ADD HISTORICAL GRANTEE ================= */}
+      <Modal
+        open={showAddGrantee}
+        onClose={() => setShowAddGrantee(false)}
+        title="Add Historical Grantee"
+        size="lg"
+        footer={
+          <>
+            <button className={styles.pageBtn} onClick={() => setShowAddGrantee(false)}>Cancel</button>
+            <button
+              className={styles.documentButton}
+              disabled={savingGrantee}
+              onClick={submitAddGrantee}
+            >
+              {savingGrantee ? "Saving…" : "Add Grantee"}
+            </button>
+          </>
+        }
+      >
+        <div className={styles.verifyForm}>
+          <p className={styles.description}>
+            For scholars who were already granted before this system existed. Link them to their
+            student record if they already have one here, or create a bare record for them —
+            no login is created, so this never sends them anything or requires a password.
+          </p>
+
+          <div className={styles.verifySection}>
+            <h4 className={styles.verifySectionTitle}>Student</h4>
+            <div className={styles.verifyResultRow}>
+              {[["existing", "Existing student"], ["new", "Not in the system yet"]].map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`${styles.select} ${studentMode === mode ? styles.badge : ""}`}
+                  onClick={() => { setStudentMode(mode); setSelectedStudent(null); }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {studentMode === "existing" ? (
+              selectedStudent ? (
+                <div className={styles.verifyGrid} style={{ marginTop: 10 }}>
+                  <div>
+                    <span className={styles.verifyLabel}>Selected</span><br />
+                    {selectedStudent.users?.first_name} {selectedStudent.users?.last_name}
+                    {" "}({selectedStudent.school_id || "no school ID on file"})
+                  </div>
+                  <button type="button" className={styles.pageBtn} onClick={() => setSelectedStudent(null)}>
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <div style={{ marginTop: 10 }}>
+                  <input
+                    className={styles.search}
+                    placeholder="Search by name or school ID…"
+                    value={studentSearch}
+                    onChange={(e) => setStudentSearch(e.target.value)}
+                  />
+                  {searchingStudent && <p className={styles.description}>Searching…</p>}
+                  {!searchingStudent && studentSearch.trim().length >= 2 && studentResults.length === 0 && (
+                    <p className={styles.description}>No matching students. Switch to "Not in the system yet" to create one.</p>
+                  )}
+                  {studentResults.length > 0 && (
+                    <div style={{ marginTop: 8, border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+                      {studentResults.map(s => (
+                        <button
+                          key={s.student_id}
+                          type="button"
+                          onClick={() => { setSelectedStudent(s); setStudentResults([]); }}
+                          style={{
+                            display: "block", width: "100%", textAlign: "left",
+                            padding: "9px 12px", border: "none", borderBottom: "1px solid var(--border)",
+                            background: "var(--surface)", cursor: "pointer", fontSize: 13,
+                          }}
+                        >
+                          {s.users?.first_name} {s.users?.last_name} — {s.school_id || "no school ID"} · {s.course || "—"}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            ) : (
+              <div className={styles.verifyGrid} style={{ marginTop: 10 }}>
+                <input className={styles.search} placeholder="First name *"
+                  value={newStudent.first_name}
+                  onChange={(e) => setNewStudent(s => ({ ...s, first_name: e.target.value }))} />
+                <input className={styles.search} placeholder="Middle name"
+                  value={newStudent.middle_name}
+                  onChange={(e) => setNewStudent(s => ({ ...s, middle_name: e.target.value }))} />
+                <input className={styles.search} placeholder="Last name *"
+                  value={newStudent.last_name}
+                  onChange={(e) => setNewStudent(s => ({ ...s, last_name: e.target.value }))} />
+                <input className={styles.search} placeholder="School ID *"
+                  value={newStudent.school_id}
+                  onChange={(e) => setNewStudent(s => ({ ...s, school_id: e.target.value }))} />
+                <input className={styles.search} placeholder="Course"
+                  value={newStudent.course}
+                  onChange={(e) => setNewStudent(s => ({ ...s, course: e.target.value }))} />
+                <input className={styles.search} type="number" placeholder="Year level"
+                  value={newStudent.year_level}
+                  onChange={(e) => setNewStudent(s => ({ ...s, year_level: e.target.value }))} />
+                <input className={styles.search} placeholder="Contact number"
+                  value={newStudent.contact_number}
+                  onChange={(e) => setNewStudent(s => ({ ...s, contact_number: e.target.value }))} />
+              </div>
+            )}
+          </div>
+
+          <div className={styles.verifySection}>
+            <h4 className={styles.verifySectionTitle}>Scholarship Award</h4>
+            <div className={styles.verifyGrid}>
+              <select className={styles.select} value={granteeScholarshipId}
+                onChange={(e) => setGranteeScholarshipId(e.target.value)}>
+                <option value="">Select scholarship *</option>
+                {scholarshipsList.map(s => (
+                  <option key={s.scholarship_id} value={s.scholarship_id}>
+                    {s.scholarship_name}{s.status !== "Active" ? ` (${s.status})` : ""}
+                  </option>
+                ))}
+              </select>
+              <input className={styles.search} placeholder="Academic year, e.g. 2022-2023 *"
+                value={granteeAcademicYear}
+                onChange={(e) => setGranteeAcademicYear(e.target.value)} />
+              <select className={styles.select} value={granteeSemester}
+                onChange={(e) => setGranteeSemester(e.target.value)}>
+                <option value="1st Semester">1st Semester</option>
+                <option value="2nd Semester">2nd Semester</option>
+              </select>
+              <div>
+                <label className={styles.verifyLabel}>Date awarded *</label><br />
+                <input className={styles.search} type="date" value={granteeDateAwarded}
+                  onChange={(e) => setGranteeDateAwarded(e.target.value)} />
+              </div>
+            </div>
+            <p className={styles.description}>
+              Date awarded anchors their payout schedule — enter their real original award date,
+              not today's date, or the schedule will compute as if they just started.
+            </p>
+
+            <div className={styles.verifyGrid} style={{ marginTop: 10 }}>
+              <div>
+                <span className={styles.verifyLabel}>Current status</span>
+                <div className={styles.verifyResultRow}>
+                  {["Active", "Inactive", "Pending"].map(opt => (
+                    <button key={opt} type="button"
+                      className={`${styles.select} ${granteeStatus === opt ? styles.badge : ""}`}
+                      onClick={() => setGranteeStatus(opt)}>
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span className={styles.verifyLabel}>Verification</span>
+                <div className={styles.verifyResultRow}>
+                  {["Verified", "Pending Review", "Ineligible"].map(opt => (
+                    <button key={opt} type="button"
+                      className={`${styles.select} ${granteeVerification === opt ? styles.badge : ""}`}
+                      onClick={() => setGranteeVerification(opt)}>
+                      {VERIFICATION_LABELS[opt]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.verifySection}>
+            <h4 className={styles.verifySectionTitle}>Past Fund Releases (optional)</h4>
+            <p className={styles.description}>
+              Record any payouts already released before migration, so their schedule and totals
+              reflect what's actually happened — otherwise every period will show as still due.
+            </p>
+            {releaseRows.map(r => (
+              <div key={r.key} className={styles.verifyGrid} style={{ marginTop: 8, alignItems: "center" }}>
+                <input className={styles.search} placeholder="Academic year"
+                  value={r.academic_year}
+                  onChange={(e) => updateReleaseRow(r.key, "academic_year", e.target.value)} />
+                <select className={styles.select} value={r.semester}
+                  onChange={(e) => updateReleaseRow(r.key, "semester", e.target.value)}>
+                  <option value="1st Semester">1st Semester</option>
+                  <option value="2nd Semester">2nd Semester</option>
+                </select>
+                <input className={styles.search} type="number" placeholder="Amount released"
+                  value={r.amount_released}
+                  onChange={(e) => updateReleaseRow(r.key, "amount_released", e.target.value)} />
+                <input className={styles.search} type="date" value={r.release_date}
+                  onChange={(e) => updateReleaseRow(r.key, "release_date", e.target.value)} />
+                <select className={styles.select} value={r.status}
+                  onChange={(e) => updateReleaseRow(r.key, "status", e.target.value)}>
+                  <option value="Released">Released</option>
+                  <option value="Skipped">Skipped</option>
+                </select>
+                <button type="button" className={styles.pageBtn} onClick={() => removeReleaseRow(r.key)}>
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button type="button" className={styles.pageBtn} style={{ marginTop: 10 }} onClick={addReleaseRow}>
+              + Add a past release
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
