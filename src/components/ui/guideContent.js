@@ -45,7 +45,7 @@ const GUIDES = {
 
   Coordinator: {
     overview:
-      "This is the Coordinator Portal. Create and manage scholarships, review applications, verify grantees each term, and build reusable requirement/form templates.",
+      "This is the Scholarship Coordinator Portal. Create and manage scholarships, review applications, verify grantees each term, and build reusable requirement/form templates.",
     pages: {
       "/coordinator/dashboard": {
         title: "Dashboard",

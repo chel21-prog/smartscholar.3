@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Modal from "@/components/ui/Modal";
+import Papa from "papaparse";
 import { useNavigate } from "react-router-dom";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import InfoTooltip from "@/components/ui/InfoTooltip";
@@ -26,6 +27,32 @@ const BLANK_RELEASE_ROW = () => ({
   academic_year: "", semester: "1st Semester",
   amount_released: "", release_date: "", status: "Released",
 });
+
+// ── bulk file import ────────────────────────────────────────
+const CSV_COLUMNS = [
+  "first_name", "middle_name", "last_name", "school_id", "course", "year_level",
+  "contact_number", "scholarship_name", "academic_year", "semester",
+  "date_awarded", "status", "verification_result",
+];
+const CSV_TEMPLATE_EXAMPLE = [
+  "Juan", "Reyes", "Dela Cruz", "2018-0099", "BS Computer Science", "4",
+  "09171234567", "CHED-TDP", "2021-2022", "1st Semester",
+  "2021-08-01", "Active", "Verified",
+];
+const VALID_SEMESTERS = ["1st Semester", "2nd Semester"];
+const VALID_STATUSES = ["Active", "Inactive", "Pending"];
+const VALID_VERIFICATIONS = ["Verified", "Pending Review", "Ineligible"];
+const AY_PATTERN = /^\d{4}\s*-\s*\d{4}$/;
+
+// Case/whitespace-tolerant match against a fixed set of allowed values —
+// used so "active", " Active ", "ACTIVE" in a spreadsheet all resolve to
+// the exact string the grantees table's CHECK constraint expects, instead
+// of failing the whole row (or worse, the whole batch insert) over
+// formatting the coordinator can't be expected to get byte-perfect.
+function normalizeAgainst(value, allowed) {
+  const found = allowed.find(a => a.toLowerCase() === String(value || "").trim().toLowerCase());
+  return found || null;
+}
 
 export default function Grantees() {
   const navigate = useNavigate();
@@ -75,6 +102,15 @@ const [yearFilter, setYearFilter] = useState("All");
   const [granteeVerification,  setGranteeVerification]  = useState("Verified");
   const [releaseRows,          setReleaseRows]          = useState([]);
   const [savingGrantee,        setSavingGrantee]        = useState(false);
+
+  // ── bulk file import ──
+  const [showImport,     setShowImport]     = useState(false);
+  const [importStep,     setImportStep]     = useState("upload"); // "upload" | "preview" | "results"
+  const [importFileName, setImportFileName] = useState("");
+  const [importRows,     setImportRows]     = useState([]); // parsed + validated
+  const [parsingFile,    setParsingFile]    = useState(false);
+  const [importing,      setImporting]      = useState(false);
+  const [importResults,  setImportResults]  = useState({ succeeded: 0, failed: [] });
 
   useEffect(() => {
     load();
@@ -278,6 +314,229 @@ const [yearFilter, setYearFilter] = useState("All");
     setSavingGrantee(false);
     setShowAddGrantee(false);
     toast.success("Historical grantee added.");
+    load();
+  };
+
+  // ── bulk file import: template, parse+validate, commit ─────
+  const downloadCsvTemplate = () => {
+    const csv = Papa.unparse([CSV_COLUMNS, CSV_TEMPLATE_EXAMPLE]);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "historical_grantees_template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const openImport = () => {
+    setImportStep("upload");
+    setImportFileName("");
+    setImportRows([]);
+    setImportResults({ succeeded: 0, failed: [] });
+    setShowImport(true);
+  };
+
+  // Parses the file, then cross-checks every row against real DB state in
+  // a small number of batch queries (not one query per row) so nothing
+  // gets written until the coordinator has reviewed exactly what will
+  // happen — new student vs. linking to an existing one, which scholarship
+  // it resolved to, and anything that looks like a duplicate.
+  const handleFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+
+    setImportFileName(file.name);
+    setParsingFile(true);
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (h) => h.trim().toLowerCase().replace(/\s+/g, "_"),
+      complete: async (results) => {
+        const raw = results.data;
+        if (raw.length === 0) {
+          toast.error("That file has no data rows.");
+          setParsingFile(false);
+          return;
+        }
+        await validateImportRows(raw);
+        setParsingFile(false);
+        setImportStep("preview");
+      },
+      error: (err) => {
+        toast.error("Couldn't read that file: " + err.message);
+        setParsingFile(false);
+      },
+    });
+  };
+
+  const validateImportRows = async (raw) => {
+    // batch lookups instead of one query per row
+    const { data: allScholarships } = await supabase
+      .from("scholarships").select("scholarship_id, scholarship_name");
+    const scholarshipByName = new Map(
+      (allScholarships || []).map(s => [s.scholarship_name.trim().toLowerCase(), s])
+    );
+
+    const schoolIds = [...new Set(raw.map(r => (r.school_id || "").trim()).filter(Boolean))];
+    const { data: existingStudents } = schoolIds.length > 0
+      ? await supabase
+          .from("students")
+          .select("student_id, school_id, existingGrantees:grantees(scholarship_id, academic_year, semester), users(first_name, last_name)")
+          .in("school_id", schoolIds)
+      : { data: [] };
+    const studentBySchoolId = new Map((existingStudents || []).map(s => [s.school_id, s]));
+
+    const seenInFile = new Map(); // school_id -> first row index that used it
+
+    const validated = raw.map((r, i) => {
+      const errors = [];
+      const warnings = [];
+      const school_id = (r.school_id || "").trim();
+      const first_name = (r.first_name || "").trim();
+      const last_name = (r.last_name || "").trim();
+      const scholarship_name = (r.scholarship_name || "").trim();
+      const academic_year = (r.academic_year || "").trim();
+      const date_awarded = (r.date_awarded || "").trim();
+
+      if (!first_name) errors.push("Missing first_name");
+      if (!last_name) errors.push("Missing last_name");
+      if (!school_id) errors.push("Missing school_id");
+      if (!scholarship_name) errors.push("Missing scholarship_name");
+      if (!academic_year) errors.push("Missing academic_year");
+      else if (!AY_PATTERN.test(academic_year)) errors.push(`academic_year "${academic_year}" doesn't look like "2022-2023"`);
+      if (!date_awarded) errors.push("Missing date_awarded");
+      else if (isNaN(new Date(date_awarded))) errors.push(`date_awarded "${date_awarded}" isn't a valid date`);
+
+      const semester = normalizeAgainst(r.semester, VALID_SEMESTERS);
+      if (!r.semester?.trim()) errors.push("Missing semester");
+      else if (!semester) errors.push(`semester "${r.semester}" must be "1st Semester" or "2nd Semester"`);
+
+      const status = r.status?.trim() ? normalizeAgainst(r.status, VALID_STATUSES) : "Active";
+      if (r.status?.trim() && !status) errors.push(`status "${r.status}" must be Active, Inactive, or Pending`);
+
+      const verification_result = r.verification_result?.trim()
+        ? normalizeAgainst(r.verification_result, VALID_VERIFICATIONS) : "Verified";
+      if (r.verification_result?.trim() && !verification_result) {
+        errors.push(`verification_result "${r.verification_result}" must be Verified, Pending Review, or Ineligible`);
+      }
+
+      let year_level = null;
+      if (r.year_level?.trim()) {
+        const n = Number(r.year_level);
+        if (isNaN(n)) errors.push(`year_level "${r.year_level}" isn't a number`);
+        else year_level = n;
+      }
+
+      const scholarshipMatch = scholarship_name ? scholarshipByName.get(scholarship_name.toLowerCase()) : null;
+      if (scholarship_name && !scholarshipMatch) errors.push(`No scholarship named "${scholarship_name}" — check spelling, or add it under Scholarships first`);
+
+      const studentMatch = school_id ? studentBySchoolId.get(school_id) : null;
+      if (studentMatch) {
+        warnings.push(`School ID already in the system — will link to ${studentMatch.users?.first_name} ${studentMatch.users?.last_name} instead of creating a new student`);
+        const dupeGrant = (studentMatch.existingGrantees || []).some(g =>
+          scholarshipMatch && g.scholarship_id === scholarshipMatch.scholarship_id &&
+          g.academic_year === academic_year && g.semester === semester
+        );
+        if (dupeGrant) warnings.push("This student already has a grantee record for this exact scholarship, academic year, and semester — likely a duplicate import");
+      }
+
+      if (school_id) {
+        if (seenInFile.has(school_id)) {
+          errors.push(`Duplicate school_id within this file (also on row ${seenInFile.get(school_id) + 2})`);
+        } else {
+          seenInFile.set(school_id, i);
+        }
+      }
+
+      return {
+        rowNumber: i + 2, // +1 for header row, +1 for 1-indexing
+        first_name, middle_name: (r.middle_name || "").trim(), last_name,
+        school_id, course: (r.course || "").trim(), year_level,
+        contact_number: (r.contact_number || "").trim(),
+        scholarship_name, scholarship_id: scholarshipMatch?.scholarship_id || null,
+        academic_year, semester: semester || r.semester?.trim() || "",
+        date_awarded, status: status || "Active", verification_result: verification_result || "Verified",
+        studentMatch,
+        errors, warnings,
+      };
+    });
+
+    setImportRows(validated);
+  };
+
+  const importReadyRows = importRows.filter(r => r.errors.length === 0);
+
+  const commitImport = async () => {
+    if (importReadyRows.length === 0) return;
+    setImporting(true);
+
+    const succeeded = [];
+    const failed = [];
+
+    for (const row of importReadyRows) {
+      let studentId = row.studentMatch?.student_id;
+
+      if (!studentId) {
+        const { data: userRow, error: userError } = await supabase
+          .from("users")
+          .insert({
+            auth_id: null, email: null,
+            first_name: row.first_name, middle_name: row.middle_name || null, last_name: row.last_name,
+            role: "Student", status: "active",
+          })
+          .select().single();
+
+        if (userError) { failed.push({ row: row.rowNumber, name: `${row.first_name} ${row.last_name}`, reason: userError.message }); continue; }
+
+        const { data: studentRow, error: studentError } = await supabase
+          .from("students")
+          .insert({
+            user_id: userRow.user_id, school_id: row.school_id,
+            course: row.course || null, year_level: row.year_level,
+            contact_number: row.contact_number || null, status: "Enrolled",
+          })
+          .select().single();
+
+        if (studentError) {
+          failed.push({
+            row: row.rowNumber, name: `${row.first_name} ${row.last_name}`,
+            reason: studentError.message.includes("duplicate")
+              ? `School ID "${row.school_id}" collided with an existing record (added after this import started)`
+              : studentError.message,
+          });
+          continue;
+        }
+        studentId = studentRow.student_id;
+      }
+
+      const { error: granteeError } = await supabase.from("grantees").insert({
+        student_id: studentId,
+        scholarship_id: row.scholarship_id,
+        status: row.status,
+        date_awarded: row.date_awarded,
+        academic_year: row.academic_year,
+        semester: row.semester,
+        verification_result: row.verification_result,
+        verification_remarks: "Imported from file — migrated from records predating the system.",
+        last_verified_at: new Date().toISOString(),
+        verified_by: currentUserId,
+        source: "Imported",
+      });
+
+      if (granteeError) {
+        failed.push({ row: row.rowNumber, name: `${row.first_name} ${row.last_name}`, reason: granteeError.message });
+        continue;
+      }
+
+      succeeded.push(row.rowNumber);
+    }
+
+    setImporting(false);
+    setImportResults({ succeeded: succeeded.length, failed });
+    setImportStep("results");
     load();
   };
 
@@ -583,6 +842,12 @@ const endRow =
       style={{ padding:"9px 16px", background:"var(--navy-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13, marginLeft:10 }}
     >
       + Add Historical Grantee
+    </button>
+    <button
+      onClick={openImport}
+      style={{ padding:"9px 16px", background:"var(--surface)", color:"var(--navy-700)", border:"1px solid var(--navy-300)", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13, marginLeft:10 }}
+    >
+      Import from File
     </button>
 </div>
     
@@ -1122,6 +1387,130 @@ const endRow =
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* ================= IMPORT FROM FILE ================= */}
+      <Modal
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        title="Import Historical Grantees from File"
+        size="lg"
+        footer={
+          importStep === "preview" ? (
+            <>
+              <button className={styles.pageBtn} onClick={() => setImportStep("upload")}>Back</button>
+              <button
+                className={styles.documentButton}
+                disabled={importing || importReadyRows.length === 0}
+                onClick={commitImport}
+              >
+                {importing ? "Importing…" : `Import ${importReadyRows.length} Ready Row${importReadyRows.length !== 1 ? "s" : ""}`}
+              </button>
+            </>
+          ) : importStep === "results" ? (
+            <button className={styles.documentButton} onClick={() => setShowImport(false)}>Done</button>
+          ) : (
+            <button className={styles.pageBtn} onClick={() => setShowImport(false)}>Cancel</button>
+          )
+        }
+      >
+        {importStep === "upload" && (
+          <div className={styles.verifyForm}>
+            <p className={styles.description}>
+              For migrating many historical scholars at once instead of one at a time. Download the
+              template, fill it in, and upload it — nothing gets saved until you've reviewed exactly
+              what will happen on the next screen.
+            </p>
+            <div className={styles.verifySection}>
+              <button type="button" className={styles.pageBtn} onClick={downloadCsvTemplate}>
+                Download CSV Template
+              </button>
+              <p className={styles.description} style={{ marginTop: 10 }}>
+                Required columns: first_name, last_name, school_id, scholarship_name, academic_year
+                (e.g. 2022-2023), semester, date_awarded. scholarship_name must exactly match an
+                existing scholarship's name. Optional: middle_name, course, year_level, contact_number,
+                status (defaults Active), verification_result (defaults Verified).
+              </p>
+              <p className={styles.description}>
+                If a school_id already exists in the system, that row links to the existing student
+                instead of creating a new one — it never creates duplicate people.
+              </p>
+            </div>
+            <div className={styles.verifySection}>
+              <input type="file" accept=".csv" onChange={handleFileSelected} disabled={parsingFile} />
+              {parsingFile && <p className={styles.description}>Reading and checking your file against current records…</p>}
+            </div>
+          </div>
+        )}
+
+        {importStep === "preview" && (
+          <div className={styles.verifyForm}>
+            <p className={styles.description}>
+              <strong>{importFileName}</strong> — {importRows.length} row{importRows.length !== 1 ? "s" : ""} found.
+              {" "}{importReadyRows.length} ready to import, {importRows.filter(r => r.errors.length > 0).length} will be skipped
+              (fix and re-upload if needed), {importRows.filter(r => r.errors.length === 0 && r.warnings.length > 0).length} have warnings but will still import.
+            </p>
+            <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
+              <table className={styles.table}>
+                <thead className={styles.thead}>
+                  <tr>
+                    <th className={styles.th}>Row</th>
+                    <th className={styles.th}>Name</th>
+                    <th className={styles.th}>School ID</th>
+                    <th className={styles.th}>Scholarship</th>
+                    <th className={styles.th}>AY / Semester</th>
+                    <th className={styles.th}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importRows.map(r => (
+                    <tr key={r.rowNumber}>
+                      <td className={styles.td}>{r.rowNumber}</td>
+                      <td className={styles.td}>{r.first_name} {r.last_name}</td>
+                      <td className={styles.td}>{r.school_id || "—"}</td>
+                      <td className={styles.td}>{r.scholarship_name || "—"}</td>
+                      <td className={styles.td}>{r.academic_year} {r.semester}</td>
+                      <td className={styles.td}>
+                        {r.errors.length > 0 ? (
+                          <span style={{ color: "var(--danger-700)", fontWeight: 600 }}>
+                            ✕ {r.errors.join("; ")}
+                          </span>
+                        ) : r.warnings.length > 0 ? (
+                          <span style={{ color: "var(--warning-700)", fontWeight: 600 }}>
+                            ⚠ {r.warnings.join("; ")}
+                          </span>
+                        ) : (
+                          <span style={{ color: "var(--success-700)", fontWeight: 600 }}>✓ Ready</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {importStep === "results" && (
+          <div className={styles.verifyForm}>
+            <p className={styles.description}>
+              <strong style={{ color: "var(--success-700)" }}>{importResults.succeeded}</strong> imported successfully.
+              {importResults.failed.length > 0 && (
+                <> <strong style={{ color: "var(--danger-700)" }}>{importResults.failed.length}</strong> failed during import.</>
+              )}
+            </p>
+            {importResults.failed.length > 0 && (
+              <div className={styles.verifySection}>
+                <h4 className={styles.verifySectionTitle}>Failed rows</h4>
+                {importResults.failed.map(f => (
+                  <p key={f.row} className={styles.description}>
+                    Row {f.row} ({f.name}): {f.reason}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
     </div>
   );

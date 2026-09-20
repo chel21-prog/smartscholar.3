@@ -129,7 +129,7 @@ export default function Concerns() {
               <p className={styles.preview}>{c.message}</p>
               <p className={styles.date}>Sent {new Date(c.created_at).toLocaleDateString()}</p>
               {c.coordinator_response && (
-                <p className={styles.replyPill}>Coordinator replied</p>
+                <p className={styles.replyPill}>Scholarship Coordinator replied</p>
               )}
             </Card>
           ))}
@@ -197,7 +197,7 @@ export default function Concerns() {
 
             {selected.coordinator_response ? (
               <div className={`${styles.bubble} ${styles.bubbleReply}`}>
-                <strong className={styles.bubbleLabel}>Coordinator</strong>
+                <strong className={styles.bubbleLabel}>Scholarship Coordinator</strong>
                 <p>{selected.coordinator_response}</p>
                 {selected.responded_at && (
                   <span className={styles.date}>{new Date(selected.responded_at).toLocaleString()}</span>

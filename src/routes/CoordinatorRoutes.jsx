@@ -28,7 +28,7 @@ export default function CoordinatorRoutes() {
     <Routes>
       <Route element={
         <RoleGuard role="Coordinator">
-          <PortalLayout role="Coordinator" roleLabel="Coordinator Portal" links={LINKS} />
+          <PortalLayout role="Coordinator" roleLabel="Scholarship Coordinator Portal" links={LINKS} />
         </RoleGuard>
       }>
         <Route path="dashboard"    element={<Dashboard />} />

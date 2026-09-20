@@ -1,0 +1,47 @@
+/* Companion stylesheet for Dashboard.jsx, which is otherwise styled via
+   inline `st.*` objects (kept as-is to avoid touching business logic).
+   These rules target plain element selectors scoped under .dash so
+   hover/animation states — impossible to express as inline styles —
+   layer on top without needing a className on every single element. */
+
+.dash {
+  animation: fadeInUp var(--duration-slow) var(--ease-out) both;
+}
+
+.dash button:not(:disabled) {
+  transition: transform var(--duration-fast) var(--ease-spring),
+    box-shadow var(--duration-base) var(--ease-out),
+    filter var(--duration-base) var(--ease-out);
+}
+.dash button:not(:disabled):hover {
+  transform: translateY(-2px);
+  filter: brightness(1.04);
+}
+.dash button:not(:disabled):active {
+  transform: translateY(0) scale(.96);
+}
+
+/* Stat + info cards: any direct div using the inline `st.card` /
+   `st.infoCard` styles gets a data attribute we add in the JSX so this
+   selector can target just those, not every layout div. */
+.dash [data-anim-card] {
+  transition: transform var(--duration-base) var(--ease-spring),
+    box-shadow var(--duration-base) var(--ease-out);
+  animation: fadeInUp var(--duration-slow) var(--ease-out) both;
+}
+.dash [data-anim-card]:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+.dash input:focus, .dash select:focus {
+  border-color: var(--navy-600) !important;
+  box-shadow: 0 0 0 3px var(--navy-100);
+}
+
+.dash [data-modal-overlay] {
+  animation: fadeIn var(--duration-base) var(--ease-out) both;
+}
+.dash [data-modal] {
+  animation: scaleIn var(--duration-base) var(--ease-spring) both;
+}

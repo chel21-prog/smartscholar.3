@@ -1,0 +1,96 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  animation: fadeInUp var(--duration-slow) var(--ease-out) both;
+}
+
+.announceBtn {
+  position: relative;
+  padding: 10px 20px;
+  background: var(--grad-brand);
+  color: #fff;
+  border: none;
+  border-radius: 11px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--duration-base) var(--ease-out), transform var(--duration-fast) var(--ease-spring);
+}
+.announceBtn:hover { box-shadow: var(--shadow-glow-navy); transform: translateY(-2px); }
+.announceBtn:active { transform: translateY(0) scale(.96); }
+
+.panel {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-spring);
+}
+.panel:hover { box-shadow: var(--shadow-md); }
+.panel::before {
+  content: "";
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--grad-gold);
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+.panel:hover::before { opacity: 1; }
+
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.barTrack {
+  flex: 1;
+  height: 11px;
+  background: var(--surface-muted);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.barFill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width .7s var(--ease-spring);
+  animation: fadeIn var(--duration-slow) var(--ease-out) both;
+}
+
+.tableWrap { overflow-x: auto; }
+.releaseTable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.releaseTable th {
+  text-align: left;
+  padding: 10px 14px;
+  background: var(--navy-900);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+.releaseTable th:first-child { border-radius: 8px 0 0 8px; }
+.releaseTable th:last-child { border-radius: 0 8px 8px 0; }
+.releaseTable td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+.releaseTable tr { transition: background-color var(--duration-fast) var(--ease-out); }
+.releaseTable tbody tr:hover { background: var(--navy-50); }
+
+.statusPill {
+  display: inline-flex;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  animation: scaleIn var(--duration-base) var(--ease-spring) both;
+}
