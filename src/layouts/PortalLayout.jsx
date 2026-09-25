@@ -31,6 +31,11 @@ export default function PortalLayout({ role, roleLabel, links, showNotifications
       ☰
     </button>
 
+    <span className={styles.onlineBadge}>
+      <span className={styles.onlineDot} aria-hidden="true" />
+      <span className={styles.onlineLabel}>Online</span>
+    </span>
+
   </div>
           <div className={styles.topBarRight}>
             {showNotifications && <NotificationBell />}

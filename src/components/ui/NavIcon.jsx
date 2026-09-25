@@ -44,6 +44,19 @@ const ICONS = {
       <path d="M12 7v10M9 9.5c0-1.4 1.3-2.5 3-2.5s3 .9 3 2c0 3-6 1.5-6 4.5 0 1.1 1.3 2 3 2s3-1.1 3-2.5" />
     </>
   ),
+  payout: (
+    <>
+      <rect x="3" y="6" width="18" height="13" rx="2" />
+      <path d="M3 10h18" />
+      <path d="M7 15h4" />
+    </>
+  ),
+  concern: (
+    <>
+      <path d="M4 5h16v11H8l-4 4V5z" />
+      <path d="M12 9v3M12 15h.01" />
+    </>
+  ),
   profile: (
     <>
       <circle cx="12" cy="8" r="3.5" />
@@ -72,7 +85,8 @@ function matchIcon(label) {
   if (key.includes("grantee")) return ICONS.grantee;
   if (key.includes("application")) return ICONS.application;
   if (key.includes("requirement")) return ICONS.requirement;
-  if (key.includes("fund")) return ICONS.fund;
+  if (key.includes("fund") || key.includes("payout")) return ICONS.payout;
+  if (key.includes("concern")) return ICONS.concern;
   if (key.includes("profile")) return ICONS.profile;
   if (key.includes("complian")) return ICONS.compliance;
   if (key.includes("setting")) return ICONS.settings;

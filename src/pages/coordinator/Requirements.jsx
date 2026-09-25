@@ -304,7 +304,7 @@ export default function Requirements() {
         </div>
         <button
           onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "requirements", returnTo: "/coordinator/requirements" } } })}
-          style={{ padding:"9px 16px", background:"#16a34a", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
+          style={{ padding:"9px 16px", background:"var(--teal-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
         >
           Generate Report
         </button>

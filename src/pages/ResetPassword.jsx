@@ -90,18 +90,18 @@ export default function ResetPassword() {
 }
 
 const styles = {
-  wrapper: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f1f5f9", padding: 20, fontFamily: "Arial, sans-serif" },
-  card: { width: "100%", maxWidth: 400, background: "#fff", borderRadius: 16, padding: 32, boxShadow: "0 20px 50px rgba(0,0,0,0.12)", display: "flex", flexDirection: "column", gap: 16 },
+  wrapper: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--page-bg)", padding: 20, fontFamily: "var(--font-sans)" },
+  card: { width: "100%", maxWidth: 400, background: "var(--surface)", borderRadius: "var(--radius-xl)", padding: 32, boxShadow: "var(--shadow-lg)", display: "flex", flexDirection: "column", gap: 16, border: "1px solid var(--border)" },
   logo: { width: 80, alignSelf: "center" },
-  title: { margin: 0, fontSize: 22, fontWeight: 700, textAlign: "center", color: "#0f1b26" },
+  title: { margin: 0, fontSize: 22, fontWeight: 700, textAlign: "center", color: "var(--text-primary)" },
   form: { display: "flex", flexDirection: "column", gap: 14 },
   fieldWrap: { display: "flex", flexDirection: "column", gap: 6 },
-  label: { fontSize: 13, fontWeight: 600, color: "#44525e" },
+  label: { fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" },
   pwRow: { display: "flex", gap: 8 },
-  input: { flex: 1, height: 44, padding: "0 12px", border: "1px solid #c7cfd6", borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box", background: "#fff", color: "#0f1b26" },
-  eyeBtn: { padding: "0 14px", border: "1px solid #c7cfd6", borderRadius: 10, background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", color: "#44525e", whiteSpace: "nowrap" },
-  hint: { margin: 0, fontSize: 12, color: "#6b7785" },
-  errorBox: { background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 10, padding: "10px 14px", color: "#991b1b", fontSize: 13, fontWeight: 600 },
-  successBox: { background: "#dcfce7", border: "1px solid #86efac", borderRadius: 10, padding: "12px 16px", color: "#166534", fontSize: 14, fontWeight: 600, textAlign: "center" },
-  btn: { height: 44, background: "#1d5f99", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 15, cursor: "pointer" },
+  input: { flex: 1, height: 44, padding: "0 12px", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-md)", fontSize: 14, outline: "none", boxSizing: "border-box", background: "var(--surface)", color: "var(--text-primary)" },
+  eyeBtn: { padding: "0 14px", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-md)", background: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer", color: "var(--text-secondary)", whiteSpace: "nowrap" },
+  hint: { margin: 0, fontSize: 12, color: "var(--text-secondary)" },
+  errorBox: { background: "var(--danger-100)", border: "1px solid var(--danger-600)", borderRadius: "var(--radius-md)", padding: "10px 14px", color: "var(--danger-700)", fontSize: 13, fontWeight: 600 },
+  successBox: { background: "var(--success-100)", border: "1px solid var(--teal-500)", borderRadius: "var(--radius-md)", padding: "12px 16px", color: "var(--success-700)", fontSize: 14, fontWeight: 600, textAlign: "center" },
+  btn: { height: 44, background: "var(--navy-700)", color: "#fff", border: "none", borderRadius: "var(--radius-md)", fontWeight: 700, fontSize: 15, cursor: "pointer" },
 };

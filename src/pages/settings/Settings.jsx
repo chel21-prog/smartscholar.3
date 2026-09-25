@@ -1,16 +1,44 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { signOutCurrentAccount } from "@/lib/authSync";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, Badge } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import Modal from "@/components/ui/Modal";
 import { EyeIcon, EyeOffIcon } from "@/components/ui/EyeIcons";
 import { useToast } from "@/context/ToastContext";
 import { getReportSecurity, saveReportSecurity, generateStrongPassword } from "@/lib/reportSecurity";
 import styles from "./Settings.module.css";
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+
+const TILE_ICONS = {
+  security: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="10" width="16" height="10" rx="2" /><path d="M8 10V7a4 4 0 018 0v3" />
+    </svg>
+  ),
+  report: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l8 3.5v5c0 5-3.4 8.5-8 9.5-4.6-1-8-4.5-8-9.5v-5L12 3z" />
+    </svg>
+  ),
+};
+
+function SettingsTile({ tone, icon, title, description, onClick }) {
+  return (
+    <button type="button" className={`${styles.tile} ${styles["tone-" + tone]}`} onClick={onClick}>
+      <span className={styles.tileIcon}>{icon}</span>
+      <span className={styles.tileText}>
+        <span className={styles.tileTitle}>{title}</span>
+        <span className={styles.tileDesc}>{description}</span>
+      </span>
+      <svg className={styles.tileChevron} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 6l6 6-6 6" />
+      </svg>
+    </button>
+  );
+}
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -21,12 +49,15 @@ export default function Settings() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
   // Inline error/success messages instead of alert() dialogs
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
 const [showCurrent, setShowCurrent] = useState(false);
+
+  // Which settings feature's popup is open — null, "security", or "report"
+  const [openModal, setOpenModal] = useState(null);
+  const closeModal = () => setOpenModal(null);
 
   // ── report PDF protection (Coordinator only) ────────────
   const toast = useToast();
@@ -128,12 +159,6 @@ const [showCurrent, setShowCurrent] = useState(false);
     setRole(data?.role);
   };
 
-  const logout = async () => {
-    setLoggingOut(true);
-    await signOutCurrentAccount();
-    navigate("/Login");
-  };
-
   const changePassword = async () => {
   setPwError("");
   setPwSuccess(false);
@@ -203,14 +228,13 @@ const [showCurrent, setShowCurrent] = useState(false);
       <div className={styles.header}>
         <h1>Settings</h1>
         <p className={styles.subtitle}>
-          Manage your account, security, and session.
+          Manage your account and security.
         </p>
       </div>
 
-      {/* ACCOUNT INFO */}
+      {/* ACCOUNT INFO — always visible, not a popup */}
       <Card>
         <CardHeader title="Account information" />
-
         <div className={styles.infoRow}>
           <span className={styles.infoLabel}>Email</span>
           <span className={styles.infoValue}>{email || "—"}</span>
@@ -222,9 +246,28 @@ const [showCurrent, setShowCurrent] = useState(false);
         </div>
       </Card>
 
+      <div className={styles.tileGrid}>
+        <SettingsTile
+          tone="teal"
+          icon={TILE_ICONS.security}
+          title="Security"
+          description="Change your password"
+          onClick={() => setOpenModal("security")}
+        />
+        {role === "Coordinator" && (
+          <SettingsTile
+            tone="gold"
+            icon={TILE_ICONS.report}
+            title="Report PDF password"
+            description="Protect exported reports"
+            onClick={() => setOpenModal("report")}
+          />
+        )}
+      </div>
+
       {/* SECURITY */}
-      <Card>
-        <CardHeader title="Security" subtitle="Change your password." />
+      <Modal open={openModal === "security"} onClose={closeModal} title="Security" size="md">
+        <p className={styles.modalSubtitle}>Change your password.</p>
 
         <div className={styles.passwordSection}>
           <Field label="Current password">
@@ -334,15 +377,14 @@ const [showCurrent, setShowCurrent] = useState(false);
             Update password
           </Button>
         </div>
-      </Card>
+      </Modal>
 
       {/* REPORT PDF PASSWORD — Coordinator only */}
       {role === "Coordinator" && (
-        <Card>
-          <CardHeader
-            title="Report PDF password"
-            subtitle="Set the password used to protect exported PDF reports. When generating a report, there's a toggle to secure that export with this password — it's not applied automatically."
-          />
+        <Modal open={openModal === "report"} onClose={closeModal} title="Report PDF password" size="md">
+          <p className={styles.modalSubtitle}>
+            Set the password used to protect exported PDF reports. When generating a report, there's a toggle to secure that export with this password — it's not applied automatically.
+          </p>
 
           {reportSecLoading ? (
             <p className={styles.logoutHint}>Loading…</p>
@@ -414,22 +456,8 @@ const [showCurrent, setShowCurrent] = useState(false);
               </div>
             </div>
           )}
-        </Card>
+        </Modal>
       )}
-
-      {/* SESSION */}
-      <Card>
-        <CardHeader title="Session" />
-
-        <p className={styles.logoutHint}>
-          Sign out of your current session. You'll need to log in again to
-          access your account.
-        </p>
-
-        <Button variant="danger" onClick={logout} loading={loggingOut}>
-          Sign out
-        </Button>
-      </Card>
     </div>
   );
 }

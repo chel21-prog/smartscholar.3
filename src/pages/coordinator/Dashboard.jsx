@@ -38,7 +38,7 @@ const st = {
   modalBody:   { flex:1, overflowY:"auto", padding:"18px 22px", display:"flex", flexDirection:"column", gap:14 },
   modalFoot:   { display:"flex", justifyContent:"flex-end", gap:8, padding:"14px 22px", borderTop:"1px solid var(--border)", flexShrink:0 },
   closeBtn:    { width:30, height:30, border:"none", borderRadius:8, background:"var(--surface-muted)", color:"var(--text-secondary)", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" },
-  btnGreen:    { padding:"9px 16px", background:"#16a34a", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 },
+  btnGreen:    { padding:"9px 16px", background:"var(--teal-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 },
   btnRed:      { padding:"9px 16px", background:"var(--surface)", color:"var(--text-primary)", border:"1px solid var(--border-strong)", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 },
   btnBlue:     { padding:"9px 16px", background:"var(--navy-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 },
   btnSm:       { padding:"5px 10px", background:"var(--navy-600)", color:"#fff", border:"none", borderRadius:6, fontWeight:600, cursor:"pointer", fontSize:11 },
@@ -1016,7 +1016,7 @@ export default function CoordinatorDashboard() {
             {scholarStats.map(s=>(
               <div key={s.scholarship_id} style={st.infoRow}>
                 <span style={{fontSize:13,color:"var(--text-primary)"}}>{s.scholarship_name}</span>
-                <span style={{...st.countBadge, background:s.occupied>=s.slots?"#dc2626":s.occupied>=s.slots*.8?"#d97706":"#16a34a"}}>
+                <span style={{...st.countBadge, background:s.occupied>=s.slots?"var(--danger-600)":s.occupied>=s.slots*.8?"var(--gold-600)":"var(--teal-600)"}}>
                   {s.occupied}/{s.slots}
                 </span>
               </div>

@@ -19,13 +19,13 @@ export default function StatCard({ label, value, explain, color, tone }) {
 
   return (
     <div className={st.card}>
+      <h2 className={`${st.value} ${toneClass}`} style={color ? { color } : undefined}>
+        {value}
+      </h2>
       <div className={st.top}>
         <p className={st.label}>{label}</p>
         {explain && <InfoTooltip label={label}>{explain}</InfoTooltip>}
       </div>
-      <h2 className={`${st.value} ${toneClass}`} style={color ? { color } : undefined}>
-        {value}
-      </h2>
     </div>
   );
 }

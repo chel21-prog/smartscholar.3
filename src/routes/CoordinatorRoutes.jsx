@@ -12,15 +12,23 @@ import Concerns from "@/pages/coordinator/Concerns";
 import Settings from "@/pages/settings/Settings";
 
 const LINKS = [
-  { to: "/coordinator/dashboard",    label: "Dashboard"     },
-  { to: "/coordinator/scholarships", label: "Scholarships"  },
-  { to: "/coordinator/students",     label: "Students"      },
-  { to: "/coordinator/grantees",     label: "Grantees"      },
-  { to: "/coordinator/applications", label: "Applications"  },
-  { to: "/coordinator/requirements", label: "Requirements"  },
-  { to: "/coordinator/payouts",      label: "Payouts"       },
-  { to: "/coordinator/concerns",     label: "Concerns"      },
-  { to: "/coordinator/settings",     label: "Settings"      },
+  { label: null, items: [
+    { to: "/coordinator/dashboard", label: "Dashboard" },
+  ]},
+  { label: "Scholarships", items: [
+    { to: "/coordinator/scholarships", label: "Scholarships" },
+    { to: "/coordinator/students",     label: "Students"     },
+    { to: "/coordinator/grantees",     label: "Grantees"     },
+    { to: "/coordinator/applications", label: "Applications" },
+    { to: "/coordinator/requirements", label: "Requirements" },
+  ]},
+  { label: "Finance & Support", items: [
+    { to: "/coordinator/payouts",  label: "Payouts"  },
+    { to: "/coordinator/concerns", label: "Concerns" },
+  ]},
+  { label: "Account", items: [
+    { to: "/coordinator/settings", label: "Settings" },
+  ]},
 ];
 
 export default function CoordinatorRoutes() {

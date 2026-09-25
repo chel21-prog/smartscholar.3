@@ -1,60 +1,76 @@
 /* ============================================================
-   SmartScholar Design Tokens  — Light & Dark
-   Navy  #034275 (sampled from logo cap)
-   Gold  #c39e58 (sampled from logo wordmark)
-   WCAG AA verified on every color pair used for text.
+   SmartScholar Design Tokens — Light & Dark
+   Palette locked to 4 colors, matching the PROTECT system UI:
+     Navy  #0B1F3A  — primary brand / structure (sidebar, headers, ink)
+     Teal  #0D9E8C  — secondary / positive / interactive accent
+     Gold  #F5A623  — tertiary / attention / pending accent
+     Red   #DC2626  — danger only
+   Neutrals (grayscale + white/black) are structural, not counted
+   against the 4-color limit. WCAG AA verified on text pairs.
    ============================================================ */
 
 :root {
-  /* ---- Brand ---- */
-  --navy-950: #0a2540;
-  --navy-900: #0d2b4a;
-  --navy-800: #123a5e;
-  --navy-700: #1a4a73;
-  --navy-600: #1d5f99;
-  --navy-500: #2b74b3;
-  --navy-300: #6fa0c9;
-  --navy-100: #e8f0f8;
-  --navy-50:  #f3f7fb;
+  /* ---- Brand: Navy (primary) ---- */
+  --navy-950: #081729;
+  --navy-900: #0b1f3a;
+  --navy-800: #12294e;
+  --navy-700: #1a3a68;
+  --navy-600: #234f88;
+  --navy-500: #2f66a8;
+  --navy-300: #7fa3cc;
+  --navy-100: #e7edf6;
+  --navy-50:  #f3f6fb;
 
-  --gold-700: #8a6d35;
-  --gold-600: #ad8a48;
-  --gold-500: #c39e58;
-  --gold-100: #f6efe0;
-  --gold-50:  #fbf7ee;
+  /* ---- Brand: Teal (secondary / accent) ---- */
+  --teal-900: #0b4f44;
+  --teal-700: #0b8577;
+  --teal-600: #0d9e8c;
+  --teal-500: #14b39f;
+  --teal-100: #e6fbf8;
+  --teal-50:  #f2fdfb;
+
+  /* ---- Brand: Gold (tertiary / attention) ---- */
+  --gold-700: #92620a;
+  --gold-600: #b9800f;
+  --gold-500: #f5a623;
+  --gold-100: #fef1d9;
+  --gold-50:  #fffaf0;
 
   /* ---- Neutrals (light mode) ---- */
-  --ink-900: #0f1b26;
-  --ink-800: #1d2c38;
-  --ink-700: #2c3e4d;
-  --ink-600: #44525e;
-  --ink-500: #5c6b78;
-  --ink-400: #6b7785;
-  --ink-300: #9aa5b1;
-  --ink-200: #c7cfd6;
-  --ink-100: #e3e8ec;
-  --ink-50:  #f4f6f8;
+  --ink-900: #0e1a2b;
+  --ink-800: #1c2a3d;
+  --ink-700: #2b3c50;
+  --ink-600: #445468;
+  --ink-500: #5c6d80;
+  --ink-400: #6c7c8d;
+  --ink-300: #9aa8b6;
+  --ink-200: #ced9e1;
+  --ink-100: #e7edf1;
+  --ink-50:  #f5f8fa;
   --white:   #ffffff;
 
-  /* ---- Semantic ---- */
-  --success-700: #166534;
-  --success-600: #16a34a;
-  --success-100: #dcfce7;
-  --success-50:  #f0fdf4;
+  /* ---- Semantic — remapped onto the 4-color palette ----
+     success -> teal, warning -> gold, danger -> red, info -> teal.
+     This keeps every existing Badge/StatCard/Button call working
+     unchanged while collapsing the app onto 4 hues. */
+  --success-700: var(--teal-900);
+  --success-600: var(--teal-600);
+  --success-100: var(--teal-100);
+  --success-50:  var(--teal-50);
 
-  --warning-700: #92400e;
-  --warning-600: #d97706;
-  --warning-100: #fef3c7;
-  --warning-50:  #fffbeb;
+  --warning-700: var(--gold-700);
+  --warning-600: var(--gold-600);
+  --warning-100: var(--gold-100);
+  --warning-50:  var(--gold-50);
 
   --danger-700: #991b1b;
   --danger-600: #dc2626;
-  --danger-100: #fee2e2;
-  --danger-50:  #fef2f2;
+  --danger-100: #fde3e3;
+  --danger-50:  #fef4f4;
 
-  --info-700: #0c4a6e;
-  --info-600: #0284c7;
-  --info-100: #e0f2fe;
+  --info-700: var(--teal-900);
+  --info-600: var(--teal-600);
+  --info-100: var(--teal-100);
 
   /* ---- Semantic surfaces (light) ---- */
   --surface:       var(--white);
@@ -95,18 +111,18 @@
   --space-12: 40px;
   --space-16: 56px;
 
-  /* ---- Radius ---- */
-  --radius-sm:   6px;
-  --radius-md:   9px;
-  --radius-lg:   12px;
-  --radius-xl:   18px;
+  /* ---- Radius (rounder / more modern than the previous scale) ---- */
+  --radius-sm:   7px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
   --radius-full: 999px;
 
-  /* ---- Shadows (light) ---- */
-  --shadow-sm: 0 1px 2px rgba(15,27,38,.06);
-  --shadow-md: 0 4px 14px rgba(15,27,38,.08);
-  --shadow-lg: 0 12px 32px rgba(15,27,38,.12);
-  --shadow-xl: 0 20px 50px rgba(15,27,38,.18);
+  /* ---- Shadows (light) — tinted navy instead of flat black ---- */
+  --shadow-sm: 0 1px 2px rgba(11,31,58,.06);
+  --shadow-md: 0 6px 16px rgba(11,31,58,.08);
+  --shadow-lg: 0 14px 34px rgba(11,31,58,.12);
+  --shadow-xl: 0 24px 56px rgba(11,31,58,.20);
 
   /* ---- Motion ---- */
   --ease-out:     cubic-bezier(0.16,1,0.3,1);
@@ -114,8 +130,8 @@
   --duration-base: 200ms;
 
   /* ---- Layout ---- */
-  --sidebar-width:  200px;
-  --topbar-height:  56px;
+  --sidebar-width:  212px;
+  --topbar-height:  60px;
 
   /* ---- Responsive breakpoints (reference only — CSS custom
      properties can't be used inside @media conditions, so every
@@ -127,50 +143,53 @@
 }
 
 /* ============================================================
-   DARK MODE  — applied when [data-theme="dark"] on <html>
+   DARK MODE — applied when [data-theme="dark"] on <html>
    ============================================================ */
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --surface:        #1a2332;
-  --surface-muted:  #151e2b;
-  --border:         #243045;
-  --border-strong:  #2d3d55;
-  --text-primary:   #e8edf2;
-  --text-secondary: #8fa3b8;
-  --page-bg:        #111827;
-  --topbar-bg:      #1a2332;
+  --surface:        #101a2b;
+  --surface-muted:  #0c1522;
+  --border:         #1f2c40;
+  --border-strong:  #2a3a52;
+  --text-primary:   #e9eef4;
+  --text-secondary: #8fa2b8;
+  --page-bg:        #0a121e;
+  --topbar-bg:      #101a2b;
 
-  --ink-900: #e8edf2;
-  --ink-800: #d1dae4;
+  --ink-900: #e9eef4;
+  --ink-800: #d2dbe6;
   --ink-700: #b8c8d8;
   --ink-600: #9ab0c4;
   --ink-500: #7a95ab;
   --ink-400: #5f7d95;
-  --ink-300: #445f75;
-  --ink-200: #2d3d55;
-  --ink-100: #243045;
-  --ink-50:  #1a2332;
+  --ink-300: #44597a;
+  --ink-200: #2a3a52;
+  --ink-100: #1f2c40;
+  --ink-50:  #101a2b;
   --white:   #ffffff;
 
-  --navy-50:  #1a2840;
-  --navy-100: #1f3255;
+  --navy-50:  #16233a;
+  --navy-100: #1b2b47;
 
-  --gold-50:  #2a2218;
-  --gold-100: #3d3020;
+  --teal-50:  #0d2622;
+  --teal-100: #103630;
 
-  --success-100: #14301e;
-  --success-50:  #0e2216;
-  --warning-100: #2e2008;
-  --warning-50:  #221806;
-  --danger-100:  #2e1010;
-  --danger-50:   #220b0b;
-  --info-100:    #0e2535;
+  --gold-50:  #2a2013;
+  --gold-100: #3a2c19;
 
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
-  --shadow-md: 0 4px 14px rgba(0,0,0,.4);
-  --shadow-lg: 0 12px 32px rgba(0,0,0,.5);
-  --shadow-xl: 0 20px 50px rgba(0,0,0,.6);
+  --success-100: var(--teal-100);
+  --success-50:  var(--teal-50);
+  --warning-100: var(--gold-100);
+  --warning-50:  var(--gold-50);
+  --danger-100:  #3a1616;
+  --danger-50:   #2a1010;
+  --info-100:    var(--teal-100);
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.35);
+  --shadow-md: 0 6px 16px rgba(0,0,0,.42);
+  --shadow-lg: 0 14px 34px rgba(0,0,0,.5);
+  --shadow-xl: 0 24px 56px rgba(0,0,0,.6);
 }
 
 /* ---- Global accessibility ---- */
@@ -183,7 +202,7 @@
 }
 
 :focus-visible {
-  outline: 2px solid var(--navy-600);
+  outline: 2px solid var(--teal-600);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }

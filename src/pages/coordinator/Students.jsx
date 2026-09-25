@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/context/ToastContext";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
+import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import { getCached, setCached } from "@/lib/dataCache";
 import s from "./Students.module.css";
@@ -260,11 +261,30 @@ const paginatedStudents = filteredStudents.slice(
   </div>
   <button
     onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "students", returnTo: "/coordinator/students" } } })}
-    style={{ padding:"9px 16px", background:"#16a34a", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
+    style={{ padding:"9px 16px", background:"var(--teal-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
   >
     Generate Report
   </button>
 </div>
+
+<div className={s.statsRow}>
+  <StatCard
+    label="Total Students"
+    value={students.length}
+    explain="Total number of student records in the roster."
+  />
+  <StatCard
+    label="Enrolled"
+    value={students.filter((st) => st.status === "Enrolled").length}
+    explain='Count of students whose status is exactly "Enrolled".'
+  />
+  <StatCard
+    label="Graduated"
+    value={students.filter((st) => st.status === "Graduated").length}
+    explain='Count of students whose status is exactly "Graduated".'
+  />
+</div>
+
 <SearchFilterBar
   search={search}
   onSearchChange={(v) => { setSearch(v); setCurrentPage(1); }}
@@ -470,7 +490,7 @@ const paginatedStudents = filteredStudents.slice(
                       padding: "6px 10px",
                       border: "none",
                       borderRadius: 6,
-                      background: "#475c6c",
+                      background: "var(--navy-700)",
                       fontWeight: 600,
 transition: ".2s",
                       color: "white",

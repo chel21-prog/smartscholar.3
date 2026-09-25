@@ -26,7 +26,7 @@
 .btn-sm { font-size: var(--text-sm);  padding: 7px 12px; border-radius: var(--radius-sm); }
 
 .btn-primary   { background: var(--navy-600); color: #fff; box-shadow: var(--shadow-sm); }
-.btn-primary:hover:not(:disabled) { background: var(--navy-700); }
+.btn-primary:hover:not(:disabled) { background: var(--navy-700); transform: translateY(-1px); box-shadow: var(--shadow-md); }
 
 .btn-secondary { background: var(--surface); color: var(--navy-700); border-color: var(--border-strong); }
 .btn-secondary:hover:not(:disabled) { background: var(--navy-50); border-color: var(--navy-300); }
@@ -38,7 +38,7 @@
 .btn-danger:hover:not(:disabled) { background: var(--danger-50); border-color: var(--danger-600); }
 
 .btn-success { background: var(--success-600); color: #fff; }
-.btn-success:hover:not(:disabled) { background: var(--success-700); }
+.btn-success:hover:not(:disabled) { background: var(--success-700); transform: translateY(-1px); box-shadow: var(--shadow-md); }
 
 .btnLabel { display: inline-flex; align-items: center; }
 .spinner {
@@ -66,7 +66,7 @@
 }
 .input::placeholder { color: var(--ink-300); }
 .input:hover  { border-color: var(--ink-300); }
-.input:focus  { border-color: var(--navy-600); box-shadow: 0 0 0 3px var(--navy-100); }
+.input:focus  { border-color: var(--teal-600); box-shadow: 0 0 0 3px var(--teal-100); }
 .input:disabled { background: var(--surface-muted); color: var(--text-secondary); cursor: not-allowed; }
 .inputInvalid { border-color: var(--danger-600); }
 .inputInvalid:focus { box-shadow: 0 0 0 3px var(--danger-100); }
@@ -111,8 +111,8 @@
   text-align: center; padding: var(--space-12) var(--space-6); color: var(--text-secondary);
 }
 .emptyIcon {
-  width: 56px; height: 56px; border-radius: 50%; background: var(--navy-50);
-  color: var(--navy-600); display: flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; border-radius: 50%; background: var(--teal-50);
+  color: var(--teal-700); display: flex; align-items: center; justify-content: center;
   font-size: 24px; margin-bottom: var(--space-4);
 }
 .emptyTitle { margin: 0 0 var(--space-2); font-size: var(--text-md); font-weight: 700; color: var(--text-primary); }
@@ -168,10 +168,15 @@
   .modal { max-width: 100% !important; max-height: 92vh; border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
 }
 
-/* ---- Table ---- */
+/* ---- Table ----
+   Sticky navy header (keeps the brand's dominant color, per the
+   design system), roomier rows, a single teal accent line under the
+   header so the boundary reads clearly without a hard visual break,
+   and a quiet row hover — only the table itself scrolls horizontally
+   on narrow screens, never the surrounding page layout. */
 .tableWrap {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); overflow: auto; box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-lg); overflow: auto; box-shadow: var(--shadow-md);
   -webkit-overflow-scrolling: touch;
   flex: 1; min-height: 0;
 }
@@ -179,8 +184,9 @@
 .table thead th {
   position: sticky; top: 0; background: var(--navy-900); color: #fff;
   text-align: left; font-weight: 600; font-size: var(--text-xs);
-  letter-spacing: .3px; text-transform: uppercase;
-  padding: var(--space-3) var(--space-4); white-space: nowrap;
+  letter-spacing: .4px; text-transform: uppercase;
+  padding: var(--space-4); white-space: nowrap;
+  border-bottom: 2px solid var(--teal-600);
 }
 .table tbody td {
   padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border);
@@ -188,7 +194,7 @@
 }
 .table tbody tr:last-child td { border-bottom: none; }
 .table tbody tr:nth-child(even) { background: var(--surface-muted); }
-.table tbody tr:hover { background: var(--navy-50); }
+.table tbody tr:hover td { background: var(--teal-50); }
 
 /* Columns marked optional/low-priority hide on small screens instead of
    forcing the whole table to scroll further than necessary — a real
@@ -230,7 +236,7 @@
 }
 .pageLoaderSpinner::after {
   inset: 7px;
-  border-top-color: var(--gold-500);
+  border-top-color: var(--teal-600);
   animation: spin 1.3s cubic-bezier(.55,0,.45,1) infinite reverse;
 }
 
