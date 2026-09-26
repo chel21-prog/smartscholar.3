@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useSession } from "@/context/SessionContext";
 import PageLoader from "@/components/ui/PageLoader";
+import SiteNotice from "@/components/ui/SiteNotice";
 
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
@@ -28,6 +29,8 @@ function SmartRedirect() {
 
 function App() {
   return (
+    <>
+    <SiteNotice />
     <Routes>
       <Route path="/" element={<SmartRedirect />} />
 
@@ -42,6 +45,7 @@ function App() {
       <Route path="/coordinator/*" element={<CoordinatorRoutes />} />
       <Route path="/cashier/*" element={<CashierRoutes />} />
     </Routes>
+    </>
   );
 }
 

@@ -36,6 +36,29 @@
   color: var(--success-600);
 }
 
+.saveStatus[data-state="error"] {
+  color: var(--danger-600);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.retryBtn {
+  border: 1px solid var(--danger-600);
+  background: var(--surface);
+  color: var(--danger-700);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.retryBtn:hover {
+  background: var(--danger-50);
+}
+
 .noRequirements {
   color: var(--ink-400);
   font-size: var(--text-sm);

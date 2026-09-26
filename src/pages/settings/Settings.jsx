@@ -5,6 +5,7 @@ import { Card, CardHeader, Badge } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
+import LegalNotice from "@/components/ui/LegalNotice";
 import { EyeIcon, EyeOffIcon } from "@/components/ui/EyeIcons";
 import { useToast } from "@/context/ToastContext";
 import { getReportSecurity, saveReportSecurity, generateStrongPassword } from "@/lib/reportSecurity";
@@ -21,6 +22,11 @@ const TILE_ICONS = {
   report: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 3l8 3.5v5c0 5-3.4 8.5-8 9.5-4.6-1-8-4.5-8-9.5v-5L12 3z" />
+    </svg>
+  ),
+  legal: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 3h6l4 4v14H5V3z" /><path d="M9 9h6M9 13h6M9 17h3" />
     </svg>
   ),
 };
@@ -263,6 +269,13 @@ const [showCurrent, setShowCurrent] = useState(false);
             onClick={() => setOpenModal("report")}
           />
         )}
+        <SettingsTile
+          tone="navy"
+          icon={TILE_ICONS.legal}
+          title="Legal"
+          description="Terms, data privacy & cookies"
+          onClick={() => setOpenModal("legal")}
+        />
       </div>
 
       {/* SECURITY */}
@@ -458,6 +471,11 @@ const [showCurrent, setShowCurrent] = useState(false);
           )}
         </Modal>
       )}
+
+      {/* LEGAL — Terms, Data Privacy Policy & cookie/local storage notice */}
+      <Modal open={openModal === "legal"} onClose={closeModal} title="Legal" size="md">
+        <LegalNotice />
+      </Modal>
     </div>
   );
 }

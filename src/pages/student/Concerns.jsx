@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/context/SessionContext";
 import { Card, Badge, EmptyState } from "@/components/ui/Card";
+import StatCard from "@/components/ui/StatCard";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
@@ -118,7 +119,33 @@ export default function Concerns() {
           />
         </Card>
       ) : (
-        <div className={styles.grid}>
+        <>
+          <div className={styles.statsRow}>
+            <StatCard
+              label="Open"
+              value={concerns.filter((c) => c.status === "Open").length}
+              tone="warning"
+              explain="Concerns you've sent that haven't been responded to yet."
+            />
+            <StatCard
+              label="In Progress"
+              value={concerns.filter((c) => c.status === "In Progress").length}
+              explain="Concerns your coordinator has replied to but marked as still ongoing."
+            />
+            <StatCard
+              label="Resolved"
+              value={concerns.filter((c) => c.status === "Resolved").length}
+              tone="success"
+              explain='Concerns marked "Resolved".'
+            />
+            <StatCard
+              label="Total"
+              value={concerns.length}
+              explain="All concerns you've ever sent."
+            />
+          </div>
+
+          <div className={styles.grid}>
           {concerns.map((c) => (
             <Card key={c.concern_id} className={styles.concernCard} onClick={() => setSelected(c)}>
               <div className={styles.cardTop}>
@@ -134,6 +161,7 @@ export default function Concerns() {
             </Card>
           ))}
         </div>
+        </>
       )}
 
       {/* NEW CONCERN MODAL */}

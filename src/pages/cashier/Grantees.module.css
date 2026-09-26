@@ -255,9 +255,15 @@
 
 }
 
-.table tbody tr:hover{
+.table tbody tr:nth-child(even){
 
     background:var(--surface-muted);
+
+}
+
+.table tbody tr:hover{
+
+    background:var(--navy-50);
 
 }
 

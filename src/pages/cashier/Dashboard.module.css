@@ -84,6 +84,7 @@
   color: var(--text-primary);
 }
 .releaseTable tr { transition: background-color var(--duration-fast) var(--ease-out); }
+.releaseTable tbody tr:nth-child(even) { background: var(--surface-muted); }
 .releaseTable tbody tr:hover { background: var(--navy-50); }
 
 .statusPill {

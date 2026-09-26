@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
+import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import Modal from "@/components/ui/Modal";
 import { getCached, setCached } from "@/lib/dataCache";
@@ -534,6 +535,32 @@ const paginated = filtered.slice(
   >
     Generate Report
   </button>
+</div>
+
+<div className={styles.statsRow}>
+  <StatCard
+    label="Pending"
+    value={applications.filter((a) => a.status === "Pending").length}
+    tone="warning"
+    explain='Applications not yet approved or rejected.'
+  />
+  <StatCard
+    label="Approved"
+    value={applications.filter((a) => a.status === "Approved").length}
+    tone="success"
+    explain='Applications marked "Approved".'
+  />
+  <StatCard
+    label="Rejected"
+    value={applications.filter((a) => a.status === "Rejected").length}
+    tone="danger"
+    explain='Applications marked "Rejected".'
+  />
+  <StatCard
+    label="Total"
+    value={applications.length}
+    explain="All applications ever submitted."
+  />
 </div>
 
 <SearchFilterBar

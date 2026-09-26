@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, Badge, EmptyState } from "@/components/ui/Card";
+import StatCard from "@/components/ui/StatCard";
 import { TableWrap, Table } from "@/components/ui/Table";
 import PageLoader from "@/components/ui/PageLoader";
 import { getCached, setCached } from "@/lib/dataCache";
@@ -173,7 +174,28 @@ export default function Compliance() {
           />
         </Card>
       ) : (
-        rows.map((r) => (
+        <>
+          <div className={styles.statsRow}>
+            <StatCard
+              label="Active Grants"
+              value={rows.length}
+              explain="Scholarship grants with compliance requirements to track."
+            />
+            <StatCard
+              label="Submitted"
+              value={rows.reduce((n, r) => n + Object.values(r.requirements).filter((req) => req.file_url).length, 0)}
+              tone="success"
+              explain="Requirements you've already uploaded a file for."
+            />
+            <StatCard
+              label="Missing"
+              value={rows.reduce((n, r) => n + Object.values(r.requirements).filter((req) => !req.file_url).length, 0)}
+              tone="warning"
+              explain="Requirements still waiting on a file from you."
+            />
+          </div>
+
+          {rows.map((r) => (
           <Card key={r.application_id} className={styles.scholarshipCard}>
             <div className={styles.scholarshipLabel}>
               <span className={styles.pin}>📌</span>
@@ -260,7 +282,8 @@ export default function Compliance() {
               </TableWrap>
             )}
           </Card>
-        ))
+        ))}
+        </>
       )}
     </div>
   );

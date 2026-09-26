@@ -110,6 +110,7 @@
   color: var(--text-primary);
 }
 
+.table tbody tr:nth-child(even) { background: var(--surface-muted); }
 .table tbody tr:hover { background: var(--navy-50); }
 
 .money { font-weight: 700; color: var(--text-primary); }

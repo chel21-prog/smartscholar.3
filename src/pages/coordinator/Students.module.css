@@ -126,6 +126,10 @@
     background:var(--surface);
 }
 
+.table tbody tr:hover{
+    background:var(--navy-50);
+}
+
 .rowOdd{
     background:var(--surface-muted);
 }

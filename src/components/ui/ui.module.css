@@ -194,7 +194,7 @@
 }
 .table tbody tr:last-child td { border-bottom: none; }
 .table tbody tr:nth-child(even) { background: var(--surface-muted); }
-.table tbody tr:hover td { background: var(--teal-50); }
+.table tbody tr:hover td { background: var(--navy-50); }
 
 /* Columns marked optional/low-priority hide on small screens instead of
    forcing the whole table to scroll further than necessary — a real

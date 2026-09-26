@@ -21,6 +21,13 @@
   gap: var(--space-4);
 }
 
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
 .appCard {
   display: flex;
   flex-direction: column;

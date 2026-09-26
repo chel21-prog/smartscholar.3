@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useSession } from "@/context/SessionContext";
 import { signOutCurrentAccount } from "@/lib/authSync";
+import { useConfirm } from "@/hooks/useConfirm";
 import NavIcon from "./NavIcon";
 import styles from "./Sidebar.module.css";
 
@@ -17,6 +18,7 @@ import styles from "./Sidebar.module.css";
 export default function Sidebar({ roleLabel, links, open, setOpen }) {
   const navigate = useNavigate();
   const { profile } = useSession();
+  const { askConfirm, confirmDialog } = useConfirm();
   const close = () => setOpen(false);
 
   const grouped = Array.isArray(links) && links.length > 0 && Array.isArray(links[0]?.items);
@@ -36,6 +38,13 @@ export default function Sidebar({ roleLabel, links, open, setOpen }) {
     await signOutCurrentAccount();
     navigate("/Login");
   };
+
+  const confirmLogout = () =>
+    askConfirm(
+      "You'll need to log in again to access your account.",
+      handleLogout,
+      { title: "Sign out?", confirmLabel: "Sign out", variant: "danger" }
+    );
 
   return (
     <>
@@ -101,7 +110,7 @@ export default function Sidebar({ roleLabel, links, open, setOpen }) {
           <button
             type="button"
             className={styles.logoutBtn}
-            onClick={handleLogout}
+            onClick={confirmLogout}
             aria-label="Sign out"
             title="Sign out"
           >
@@ -116,6 +125,8 @@ export default function Sidebar({ roleLabel, links, open, setOpen }) {
       </aside>
 
       {open && <div className={styles.backdrop} onClick={close} />}
+
+      {confirmDialog}
     </>
   );
 }

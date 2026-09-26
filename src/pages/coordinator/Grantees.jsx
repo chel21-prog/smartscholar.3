@@ -831,24 +831,20 @@ const endRow =
             View all approved scholarship recipients and their submitted requirements.
         </p>
     </div>
-    <button
-      onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "grantees", returnTo: "/coordinator/grantees" } } })}
-      style={{ padding:"9px 16px", background:"var(--teal-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
-    >
-      Generate Report
-    </button>
-    <button
-      onClick={openAddGrantee}
-      style={{ padding:"9px 16px", background:"var(--navy-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13, marginLeft:10 }}
-    >
-      + Add Historical Grantee
-    </button>
-    <button
-      onClick={openImport}
-      style={{ padding:"9px 16px", background:"var(--surface)", color:"var(--navy-700)", border:"1px solid var(--navy-300)", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13, marginLeft:10 }}
-    >
-      Import from File
-    </button>
+    <div className={styles.headerActions}>
+      <button
+        onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "grantees", returnTo: "/coordinator/grantees" } } })}
+        className={styles.btnReport}
+      >
+        Generate Report
+      </button>
+      <button onClick={openAddGrantee} className={styles.btnPrimary}>
+        + Add Historical Grantee
+      </button>
+      <button onClick={openImport} className={styles.btnSecondary}>
+        Import from File
+      </button>
+    </div>
 </div>
     
     <div className={styles.statsRow}>

@@ -1,0 +1,25 @@
+.legal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.section + .section {
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.heading {
+  margin: 0 0 var(--space-3) 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.text {
+  margin: 0 0 var(--space-3) 0;
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  font-size: var(--text-sm);
+}
+.text:last-child { margin-bottom: 0; }

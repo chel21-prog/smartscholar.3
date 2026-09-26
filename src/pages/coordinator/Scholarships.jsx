@@ -4,6 +4,7 @@ import { useConfirm } from "@/hooks/useConfirm";
 import { useToast } from "@/context/ToastContext";
 import { useNavigate } from "react-router-dom";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
+import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import { getCached, setCached } from "@/lib/dataCache";
 import s from "./Scholarships.module.css";
@@ -457,6 +458,25 @@ export default function Scholarships() {
             Generate Report
           </button>
         </div>
+      </div>
+
+      <div className={s.statsRow}>
+        <StatCard
+          label="Total Scholarships"
+          value={list.length}
+          explain="Total number of scholarship programs currently loaded."
+        />
+        <StatCard
+          label="Active"
+          value={list.filter((sch) => sch.status === "Active").length}
+          tone="success"
+          explain='Scholarships whose status is exactly "Active".'
+        />
+        <StatCard
+          label="Total Slots"
+          value={list.reduce((sum, sch) => sum + (Number(sch.slots) || 0), 0)}
+          explain="Sum of the slot counts across every scholarship."
+        />
       </div>
 
       {/* filters */}

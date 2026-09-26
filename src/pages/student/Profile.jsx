@@ -161,65 +161,115 @@ export default function Profile() {
     }
   };
 
+  const performSave = async (updatedForm) => {
+    setSaveState("saving");
+
+    try {
+      const { data } = await supabase.auth.getUser();
+      const user = data?.user;
+      if (!user) {
+        setSaveState("error");
+        toast.error("Your session expired — please log in again to save.");
+        return;
+      }
+
+      const { data: userRow, error: userLookupErr } = await supabase
+        .from("users")
+        .select("user_id")
+        .eq("auth_id", user.id)
+        .maybeSingle();
+
+      if (userLookupErr) throw userLookupErr;
+      if (!userRow) throw new Error("Couldn't find your account record.");
+
+      const { error: userUpdateErr } = await supabase
+        .from("users")
+        .update({
+          first_name: updatedForm.first_name,
+          middle_name: updatedForm.middle_name,
+          last_name: updatedForm.last_name,
+        })
+        .eq("user_id", userRow.user_id);
+
+      // Supabase does NOT throw on a failed update (e.g. a row-level
+      // security policy silently blocking the write, or the filter
+      // matching zero rows) — it just returns { error }. Not checking
+      // this was exactly why the badge could say "✓ Saved" while
+      // nothing had actually changed in the database.
+      if (userUpdateErr) throw userUpdateErr;
+
+      const payload = {
+        user_id: userRow.user_id,
+        school_id: updatedForm.school_id,
+        course: updatedForm.course,
+        year_level: updatedForm.year_level,
+        gender: updatedForm.gender,
+        ethnicity: updatedForm.ethnicity,
+        contact_number: updatedForm.contact_number,
+      };
+
+      if (student) {
+        // .select().maybeSingle() forces Supabase to hand back the row
+        // it actually touched, so a silently-blocked or no-op update
+        // (0 rows matched) comes back as null instead of looking like
+        // a success.
+        const { data: updated, error: updateErr } = await supabase
+          .from("students")
+          .update(payload)
+          .eq("student_id", student.student_id)
+          .select()
+          .maybeSingle();
+
+        if (updateErr) throw updateErr;
+        if (!updated) throw new Error("The save didn't go through — no student record was updated.");
+        setStudent(updated);
+      } else {
+        const { data: inserted, error: insertErr } = await supabase
+          .from("students")
+          .insert(payload)
+          .select()
+          .maybeSingle();
+
+        if (insertErr) throw insertErr;
+        if (!inserted) throw new Error("The save didn't go through — no student record was created.");
+        setStudent(inserted);
+      }
+
+      setSaveState("saved");
+    } catch (err) {
+      console.error("Auto-save error:", err);
+      setSaveState("error");
+      toast.error(`Couldn't save your profile: ${err.message}`);
+    }
+  };
+
   const autoSaveStudent = (updatedForm) => {
     clearTimeout(saveTimeout.current);
     setSaveState("saving");
-
-    saveTimeout.current = setTimeout(async () => {
-      try {
-        const { data } = await supabase.auth.getUser();
-        const user = data?.user;
-        if (!user) return;
-
-        const { data: userRow } = await supabase
-          .from("users")
-          .select("user_id")
-          .eq("auth_id", user.id)
-          .maybeSingle();
-
-        if (!userRow) return;
-
-        await supabase
-          .from("users")
-          .update({
-            first_name: updatedForm.first_name,
-            middle_name: updatedForm.middle_name,
-            last_name: updatedForm.last_name,
-          })
-          .eq("user_id", userRow.user_id);
-
-        const payload = {
-          user_id: userRow.user_id,
-          school_id: updatedForm.school_id,
-          course: updatedForm.course,
-          year_level: updatedForm.year_level,
-          gender: updatedForm.gender,
-          ethnicity: updatedForm.ethnicity,
-          contact_number: updatedForm.contact_number,
-        };
-
-        if (student) {
-          await supabase
-            .from("students")
-            .update(payload)
-            .eq("student_id", student.student_id);
-        } else {
-          const { data: inserted } = await supabase
-            .from("students")
-            .insert(payload)
-            .select()
-            .maybeSingle();
-
-          if (inserted) setStudent(inserted);
-        }
-
-        setSaveState("saved");
-      } catch (err) {
-        console.error("Auto-save error:", err);
-        setSaveState("idle");
-      }
-    }, 500);
+    saveTimeout.current = setTimeout(() => performSave(updatedForm), 500);
   };
+
+  // Manual retry for when the debounced auto-save failed and the person
+  // hasn't typed anything since (so nothing would otherwise trigger
+  // another attempt) — fires immediately, no debounce.
+  const retrySave = () => {
+    clearTimeout(saveTimeout.current);
+    performSave(form);
+  };
+
+  // If a save is mid-flight or has failed, warn before the person closes
+  // the tab or navigates away — otherwise a failed edit just vanishes
+  // with nothing telling them it never made it to the database.
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (saveState === "saving" || saveState === "error") {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [saveState]);
 
   const updateField = (key, value) => {
     const updated = { ...form, [key]: value };
@@ -319,6 +369,14 @@ export default function Profile() {
             <span className={styles.saveStatus} data-state={saveState}>
               {saveState === "saving" && "Saving…"}
               {saveState === "saved" && "✓ Saved"}
+              {saveState === "error" && (
+                <>
+                  ⚠ Couldn't save
+                  <button type="button" className={styles.retryBtn} onClick={retrySave}>
+                    Retry
+                  </button>
+                </>
+              )}
               {saveState === "idle" && "Auto-saves as you type"}
             </span>
           }

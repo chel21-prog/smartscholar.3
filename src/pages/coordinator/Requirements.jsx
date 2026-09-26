@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/hooks/useConfirm";
 import PageLoader from "@/components/ui/PageLoader";
+import StatCard from "@/components/ui/StatCard";
 import { getCached, setCached } from "@/lib/dataCache";
 import styles from "./Requirements.module.css";
 
@@ -308,6 +309,24 @@ export default function Requirements() {
         >
           Generate Report
         </button>
+      </div>
+
+      <div className={styles.statsRow}>
+        <StatCard
+          label="Application Requirements"
+          value={appReq.length}
+          explain="Requirements attached to the application stage."
+        />
+        <StatCard
+          label="Eligibility Requirements"
+          value={eligReq.length}
+          explain="Requirements used to check a student's eligibility."
+        />
+        <StatCard
+          label="Form Templates"
+          value={formTemplates.length}
+          explain="Saved application form templates available for reuse."
+        />
       </div>
 
       <div className={styles.grid}>

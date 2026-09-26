@@ -77,12 +77,26 @@
   color: var(--teal-900);
   font-size: var(--text-xs);
   font-weight: 600;
+  transition: background-color var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out);
+}
+
+.onlineBadge[data-state="offline"] {
+  background: var(--danger-100);
+  color: var(--danger-700);
 }
 
 .onlineDot {
   width: 6px; height: 6px; border-radius: 50%;
   background: var(--teal-600);
   box-shadow: 0 0 0 3px var(--teal-100);
+  transition: background-color var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out);
+}
+
+.onlineBadge[data-state="offline"] .onlineDot {
+  background: var(--danger-600);
+  box-shadow: 0 0 0 3px var(--danger-100);
 }
 
 @media (max-width: 480px) {
