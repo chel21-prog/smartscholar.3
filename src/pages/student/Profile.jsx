@@ -33,6 +33,16 @@ export default function Profile() {
   // student had typed anything.
   const [saveState, setSaveState] = useState("idle");
   const saveTimeout = useRef(null);
+  // Cached from load() so every autosave doesn't have to re-hit
+  // supabase.auth.getUser() + a "users" lookup just to get an id it
+  // already knows.
+  const userIdRef = useRef(null);
+  // Snapshot of what's actually been saved to the DB, so a save only
+  // writes to the "users" table (name fields) or the "students" table
+  // (everything else) when that table's own fields actually changed —
+  // editing "course" for the tenth time in a row shouldn't also re-write
+  // first/middle/last name on every keystroke.
+  const lastSavedRef = useRef(null);
 
   const [form, setForm] = useState(getCached(CACHE_KEY)?.form || {
     first_name: "",
@@ -64,6 +74,8 @@ export default function Profile() {
         .eq("auth_id", user.id)
         .maybeSingle();
 
+      userIdRef.current = userRow?.user_id || null;
+
       const { data: studentData } = await supabase
         .from("students")
         .select("*")
@@ -87,6 +99,11 @@ export default function Profile() {
         };
         setForm(nextForm);
       }
+
+      // Baseline for the dirty-check in performSave — whatever's true in
+      // the DB right now (or the existing cached/default form, if this is
+      // a brand-new profile) counts as "already saved".
+      lastSavedRef.current = nextForm || form;
 
       const { data: req } = await supabase
         .from("eligibility_requirements")
@@ -165,76 +182,118 @@ export default function Profile() {
     setSaveState("saving");
 
     try {
-      const { data } = await supabase.auth.getUser();
-      const user = data?.user;
-      if (!user) {
-        setSaveState("error");
-        toast.error("Your session expired — please log in again to save.");
+      let userId = userIdRef.current;
+
+      // Cold path: only hit if a save somehow fires before load() finished
+      // resolving the user id (e.g. a very fast first edit).
+      if (!userId) {
+        const { data } = await supabase.auth.getUser();
+        const user = data?.user;
+        if (!user) {
+          setSaveState("error");
+          toast.error("Your session expired — please log in again to save.");
+          return;
+        }
+
+        const { data: userRow, error: userLookupErr } = await supabase
+          .from("users")
+          .select("user_id")
+          .eq("auth_id", user.id)
+          .maybeSingle();
+
+        if (userLookupErr) throw userLookupErr;
+        if (!userRow) throw new Error("Couldn't find your account record.");
+        userId = userRow.user_id;
+        userIdRef.current = userId;
+      }
+
+      // Only write to a table when one of ITS fields actually changed
+      // since the last successful save — editing "course" repeatedly
+      // shouldn't also re-write the name fields (and vice versa) on
+      // every debounced tick.
+      const last = lastSavedRef.current || {};
+      const nameChanged =
+        updatedForm.first_name !== last.first_name ||
+        updatedForm.middle_name !== last.middle_name ||
+        updatedForm.last_name !== last.last_name;
+
+      const studentFieldKeys = [
+        "school_id",
+        "course",
+        "year_level",
+        "gender",
+        "ethnicity",
+        "contact_number",
+      ];
+      const studentChanged = studentFieldKeys.some(
+        (key) => updatedForm[key] !== last[key]
+      );
+
+      if (!nameChanged && !studentChanged) {
+        // Nothing actually changed since the last save (e.g. a field was
+        // focused and blurred without editing) — skip the round trip.
+        setSaveState("saved");
         return;
       }
 
-      const { data: userRow, error: userLookupErr } = await supabase
-        .from("users")
-        .select("user_id")
-        .eq("auth_id", user.id)
-        .maybeSingle();
+      if (nameChanged) {
+        // Supabase does NOT throw on a failed update (e.g. a row-level
+        // security policy silently blocking the write, or the filter
+        // matching zero rows) — it just returns { error }. Not checking
+        // this was exactly why the badge could say "✓ Saved" while
+        // nothing had actually changed in the database.
+        const { error: userUpdateErr } = await supabase
+          .from("users")
+          .update({
+            first_name: updatedForm.first_name,
+            middle_name: updatedForm.middle_name,
+            last_name: updatedForm.last_name,
+          })
+          .eq("user_id", userId);
 
-      if (userLookupErr) throw userLookupErr;
-      if (!userRow) throw new Error("Couldn't find your account record.");
-
-      const { error: userUpdateErr } = await supabase
-        .from("users")
-        .update({
-          first_name: updatedForm.first_name,
-          middle_name: updatedForm.middle_name,
-          last_name: updatedForm.last_name,
-        })
-        .eq("user_id", userRow.user_id);
-
-      // Supabase does NOT throw on a failed update (e.g. a row-level
-      // security policy silently blocking the write, or the filter
-      // matching zero rows) — it just returns { error }. Not checking
-      // this was exactly why the badge could say "✓ Saved" while
-      // nothing had actually changed in the database.
-      if (userUpdateErr) throw userUpdateErr;
-
-      const payload = {
-        user_id: userRow.user_id,
-        school_id: updatedForm.school_id,
-        course: updatedForm.course,
-        year_level: updatedForm.year_level,
-        gender: updatedForm.gender,
-        ethnicity: updatedForm.ethnicity,
-        contact_number: updatedForm.contact_number,
-      };
-
-      if (student) {
-        // .select().maybeSingle() forces Supabase to hand back the row
-        // it actually touched, so a silently-blocked or no-op update
-        // (0 rows matched) comes back as null instead of looking like
-        // a success.
-        const { data: updated, error: updateErr } = await supabase
-          .from("students")
-          .update(payload)
-          .eq("student_id", student.student_id)
-          .select()
-          .maybeSingle();
-
-        if (updateErr) throw updateErr;
-        if (!updated) throw new Error("The save didn't go through — no student record was updated.");
-        setStudent(updated);
-      } else {
-        const { data: inserted, error: insertErr } = await supabase
-          .from("students")
-          .insert(payload)
-          .select()
-          .maybeSingle();
-
-        if (insertErr) throw insertErr;
-        if (!inserted) throw new Error("The save didn't go through — no student record was created.");
-        setStudent(inserted);
+        if (userUpdateErr) throw userUpdateErr;
       }
 
+      if (studentChanged || !student) {
+        const payload = {
+          user_id: userId,
+          school_id: updatedForm.school_id,
+          course: updatedForm.course,
+          year_level: updatedForm.year_level,
+          gender: updatedForm.gender,
+          ethnicity: updatedForm.ethnicity,
+          contact_number: updatedForm.contact_number,
+        };
+
+        if (student) {
+          // .select().maybeSingle() forces Supabase to hand back the row
+          // it actually touched, so a silently-blocked or no-op update
+          // (0 rows matched) comes back as null instead of looking like
+          // a success.
+          const { data: updated, error: updateErr } = await supabase
+            .from("students")
+            .update(payload)
+            .eq("student_id", student.student_id)
+            .select()
+            .maybeSingle();
+
+          if (updateErr) throw updateErr;
+          if (!updated) throw new Error("The save didn't go through — no student record was updated.");
+          setStudent(updated);
+        } else {
+          const { data: inserted, error: insertErr } = await supabase
+            .from("students")
+            .insert(payload)
+            .select()
+            .maybeSingle();
+
+          if (insertErr) throw insertErr;
+          if (!inserted) throw new Error("The save didn't go through — no student record was created.");
+          setStudent(inserted);
+        }
+      }
+
+      lastSavedRef.current = updatedForm;
       setSaveState("saved");
     } catch (err) {
       console.error("Auto-save error:", err);

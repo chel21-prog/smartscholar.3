@@ -77,6 +77,7 @@
 .tone-navy .tileIcon { background: var(--navy-50);  color: var(--navy-700); }
 .tone-teal .tileIcon { background: var(--teal-50);  color: var(--teal-700); }
 .tone-gold .tileIcon { background: var(--gold-50);  color: var(--gold-700); }
+.tone-danger .tileIcon { background: var(--danger-50); color: var(--danger-700); }
 
 .tileText {
   display: flex;

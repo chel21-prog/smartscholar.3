@@ -1364,7 +1364,7 @@ export default function CoordinatorDashboard() {
                 </div>
                 <button onClick={()=>setSignatories([...signatories,{label:"",name:"",position:""}])}
                   style={{padding:"7px 14px",background:"var(--gold-50)",color:"var(--gold-700)",border:"1px solid var(--gold-100)",borderRadius:8,cursor:"pointer",fontWeight:600,fontSize:13}}>
-                  + Add Signatory
+                  Add Signatory
                 </button>
               </div>
 

@@ -685,6 +685,17 @@
     margin: 0;
 }
 
+.warningHint {
+    font-size: 12px;
+    color: var(--warning-700);
+    background: var(--warning-50);
+    border: 1px solid var(--warning-100);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 0;
+    font-weight: 600;
+}
+
 .modalFooter {
     display: flex;
     justify-content: flex-end;

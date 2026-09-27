@@ -450,7 +450,7 @@ export default function Scholarships() {
           <p className={s.pageSubtitle}>Manage scholarships, requirements, and application forms</p>
         </div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-          <button className={s.btnPrimary} onClick={() => setOpen(true)}>+ Create Scholarship</button>
+          <button className={s.btnPrimary} onClick={() => setOpen(true)}>Add Scholarship</button>
           <button
             onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "scholarships", returnTo: "/coordinator/scholarships" } } })}
             style={{ padding:"9px 16px", background:"var(--teal-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
@@ -636,7 +636,7 @@ export default function Scholarships() {
         <div className={s.overlay} onMouseDown={e => e.target === e.currentTarget && closeModal()}>
           <div className={s.modal}>
             <div className={s.modalHeader}>
-              <h2 className={s.modalTitle}>{editMode ? "Edit Scholarship" : "Create Scholarship"}</h2>
+              <h2 className={s.modalTitle}>{editMode ? "Edit Scholarship" : "Add Scholarship"}</h2>
               <button className={s.closeBtn} onClick={closeModal}>✕</button>
             </div>
 

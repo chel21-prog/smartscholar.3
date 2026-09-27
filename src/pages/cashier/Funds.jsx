@@ -7,7 +7,7 @@ import { getCached, setCached } from "@/lib/dataCache";
 import { useToast } from "@/context/ToastContext";
 import {
   totalPayoutsAllowed, periodKey, buildSchedule,
-  isEligible, isFullyPaidOut, payoutProgressLabel, latestRelease,
+  isFullyPaidOut, payoutProgressLabel, latestRelease,
 } from "@/lib/payoutSchedule";
 import s from "./Funds.module.css";
 
@@ -466,7 +466,13 @@ export default function Funds() {
                     ) : (
                       selectedScholarship.grantees.map((grantee) => {
                         const latest = latestRelease(grantee);
-                        const eligible = isEligible(grantee);
+                        // Recording a release only requires the grantee to
+                        // still be Active — verification is surfaced as a
+                        // warning (see the badge below and the release
+                        // modal), not a hard block, since payouts are often
+                        // already handed over in person and just need to be
+                        // logged here after the fact.
+                        const canRelease = grantee.status === "Active";
                         const fullyPaid = isFullyPaidOut(grantee, selectedScholarship);
                         const amount = Number(selectedScholarship.amount || 0);
 
@@ -490,8 +496,8 @@ export default function Funds() {
                             <td className={`${s.money} ${s.colOptional}`}>₱{amount.toLocaleString()}</td>
                             <td className={s.actionCell}>
                               <div className={s.actionRow}>
-                                {!eligible ? (
-                                  <button className={s.btnReleased} disabled>Not Verified</button>
+                                {!canRelease ? (
+                                  <button className={s.btnReleased} disabled>Inactive</button>
                                 ) : (
                                   <button
                                     className={fullyPaid ? s.viewBtn : s.btnPrimary}
@@ -554,6 +560,15 @@ export default function Funds() {
                 Releasing for: <strong>{selectedPeriod.label}</strong> — picked from the payout schedule, so it's
                 locked to that exact period. Go back to the schedule if this is the wrong one.
               </p>
+
+              {selectedGrantee.verification_result !== "Verified" && (
+                <p className={s.warningHint}>
+                  This grantee isn't marked Verified for the current cycle
+                  ({selectedGrantee.verification_result || "Pending Review"}). You can still record
+                  the release — useful if it was already handed over in person — but it's worth
+                  flagging to the coordinator for re-verification.
+                </p>
+              )}
 
               <div className={s.field}>
                 <label>Remarks (Optional)</label>
@@ -649,7 +664,7 @@ export default function Funds() {
                   <tbody>
                     {buildSchedule(selectedGrantee, selectedScholarship).map((period, idx) => {
                       const noBudget = remainingBudget(selectedScholarship) < Number(selectedScholarship.amount || 0);
-                      const actionable = (period.status === "Due" || period.status === "Upcoming") && isEligible(selectedGrantee);
+                      const actionable = (period.status === "Due" || period.status === "Upcoming") && selectedGrantee.status === "Active";
                       return (
                         <tr key={idx}>
                           <td className={s.td}>{period.label}</td>

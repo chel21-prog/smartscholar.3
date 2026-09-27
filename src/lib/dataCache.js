@@ -18,3 +18,7 @@ export function setCached(key, value) {
 export function clearCached(key) {
   store.delete(key);
 }
+
+export function clearAllCached() {
+  store.clear();
+}

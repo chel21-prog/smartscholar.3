@@ -9,6 +9,7 @@ import LegalNotice from "@/components/ui/LegalNotice";
 import { EyeIcon, EyeOffIcon } from "@/components/ui/EyeIcons";
 import { useToast } from "@/context/ToastContext";
 import { getReportSecurity, saveReportSecurity, generateStrongPassword } from "@/lib/reportSecurity";
+import { clearAllCached } from "@/lib/dataCache";
 import styles from "./Settings.module.css";
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
@@ -27,6 +28,12 @@ const TILE_ICONS = {
   legal: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 3h6l4 4v14H5V3z" /><path d="M9 9h6M9 13h6M9 17h3" />
+    </svg>
+  ),
+  cache: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 0115-6.7M21 12a9 9 0 01-15 6.7" />
+      <path d="M21 3v5h-5M3 21v-5h5" />
     </svg>
   ),
 };
@@ -61,9 +68,10 @@ export default function Settings() {
   const [currentPassword, setCurrentPassword] = useState("");
 const [showCurrent, setShowCurrent] = useState(false);
 
-  // Which settings feature's popup is open — null, "security", or "report"
+  // Which settings feature's popup is open — null, "security", "report", or "legal"
   const [openModal, setOpenModal] = useState(null);
   const closeModal = () => setOpenModal(null);
+  const [clearingCache, setClearingCache] = useState(false);
 
   // ── report PDF protection (Coordinator only) ────────────
   const toast = useToast();
@@ -125,6 +133,14 @@ const [showCurrent, setShowCurrent] = useState(false);
     } catch {
       toast.error("Couldn't copy — select and copy it manually.");
     }
+  };
+
+  const clearCache = () => {
+    setClearingCache(true);
+    clearAllCached();
+    toast.success("Cache cleared. Reloading…");
+    // Give the toast a moment to render before the reload wipes the page.
+    setTimeout(() => window.location.reload(), 600);
   };
 
   useEffect(() => {
@@ -275,6 +291,13 @@ const [showCurrent, setShowCurrent] = useState(false);
           title="Legal"
           description="Terms, data privacy & cookies"
           onClick={() => setOpenModal("legal")}
+        />
+        <SettingsTile
+          tone="danger"
+          icon={TILE_ICONS.cache}
+          title="Clear cache"
+          description="Fix stale or outdated data"
+          onClick={() => setOpenModal("cache")}
         />
       </div>
 
@@ -475,6 +498,18 @@ const [showCurrent, setShowCurrent] = useState(false);
       {/* LEGAL — Terms, Data Privacy Policy & cookie/local storage notice */}
       <Modal open={openModal === "legal"} onClose={closeModal} title="Legal" size="md">
         <LegalNotice />
+      </Modal>
+
+      {/* CLEAR CACHE — flushes the in-memory, per-tab list/dashboard cache */}
+      <Modal open={openModal === "cache"} onClose={closeModal} title="Clear cache" size="md">
+        <p className={styles.modalSubtitle}>
+          SmartScholar keeps a temporary copy of lists and dashboards you've
+          visited so pages load instantly. If something looks out of date,
+          clearing it forces a fresh reload from the server.
+        </p>
+        <Button variant="danger" onClick={clearCache} loading={clearingCache}>
+          Clear cache now
+        </Button>
       </Modal>
     </div>
   );
