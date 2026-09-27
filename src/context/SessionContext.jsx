@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, hydrateRememberedSession } from "@/lib/supabase";
 import { onRemoteSignOut } from "@/lib/authSync";
 
 const SessionContext = createContext(null);
@@ -48,7 +48,12 @@ export function SessionProvider({ children }) {
   }, [state.authUser]);
 
   useEffect(() => {
-    refresh();
+    // If this tab is opening fresh (no session of its own yet) and the
+    // person checked "Remember me" within the last 30 days, this restores
+    // their session before the very first fetch below — otherwise a new
+    // tab or a reopened browser would show them logged out even though
+    // they asked to be remembered. See src/lib/supabase.js for details.
+    hydrateRememberedSession().then(refresh);
 
     // supabase fires onAuthStateChange for a lot more than just
     // sign-in/out — most notably TOKEN_REFRESHED, which happens

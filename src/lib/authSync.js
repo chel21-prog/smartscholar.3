@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase, clearRememberMe } from "./supabase";
 
 const CHANNEL_NAME = "smartscholar-auth-sync";
 
@@ -23,6 +23,7 @@ export async function signOutCurrentAccount() {
   const authUserId = user?.id || null;
 
   await supabase.auth.signOut();
+  clearRememberMe();
 
   if (channel && authUserId) {
     channel.postMessage({ type: "SIGNED_OUT", authUserId });

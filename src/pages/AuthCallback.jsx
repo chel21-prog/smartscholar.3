@@ -28,12 +28,21 @@ export default function AuthCallback() {
       // with no explanation and no account ever created. Now: create one.
       let { data: profile, error: profileError } = await supabase
         .from("users")
-        .select("user_id, role, first_name, middle_name, last_name")
+        .select("user_id, role, status, first_name, middle_name, last_name")
         .eq("auth_id", authUser.id)
         .maybeSingle();
 
       if (profileError) {
         toast.error("Couldn't sign you in: " + profileError.message);
+        navigate("/Login");
+        return;
+      }
+
+      // Deleted account (see Settings > Delete account) — same guard as
+      // the email/password flow in Login.jsx.
+      if (profile && profile.status && profile.status !== "active") {
+        await supabase.auth.signOut();
+        toast.error("This account has been deleted. Contact support if you believe this is a mistake.");
         navigate("/Login");
         return;
       }

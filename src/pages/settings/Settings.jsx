@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, clearRememberMe } from "@/lib/supabase";
+import { signOutCurrentAccount } from "@/lib/authSync";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, Badge } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Input";
@@ -34,6 +35,13 @@ const TILE_ICONS = {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 12a9 9 0 0115-6.7M21 12a9 9 0 01-15 6.7" />
       <path d="M21 3v5h-5M3 21v-5h5" />
+    </svg>
+  ),
+  delete: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18" /><path d="M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2" />
+      <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
     </svg>
   ),
 };
@@ -236,6 +244,69 @@ const [showCurrent, setShowCurrent] = useState(false);
   setSaving(false);
 };
 
+  // ── Delete account ──────────────────────────────────────────────────
+  const [deletePassword, setDeletePassword] = useState("");
+  const [showDeletePw, setShowDeletePw] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  const handleDeleteAccount = async () => {
+    setDeleteError("");
+
+    if (deleteConfirmText.trim().toUpperCase() !== "DELETE") {
+      setDeleteError('Please type "DELETE" to confirm.');
+      return;
+    }
+    if (!deletePassword.trim()) {
+      setDeleteError("Please enter your password to confirm it's really you.");
+      return;
+    }
+
+    setDeleting(true);
+
+    // Re-authenticate first, same pattern as changePassword above — this
+    // confirms whoever is at the keyboard actually knows the account
+    // password before we do anything irreversible.
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password: deletePassword,
+    });
+
+    if (signInError) {
+      setDeleteError("Password is incorrect.");
+      setDeleting(false);
+      return;
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // Soft-delete: flip the account to inactive rather than removing the
+    // `users` row outright. Scholarship applications, grantee records,
+    // compliance submissions and payout/liquidation history all reference
+    // this row by user_id — deleting it would either be rejected by the
+    // database or, worse, silently orphan or cascade-delete records that
+    // the institution has to keep regardless of what happens to the login.
+    // RoleGuard already treats any non-"active" status as logged out, so
+    // this one flag is enough to fully and immediately block the account.
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ status: "deleted" })
+      .eq("auth_id", user.id);
+
+    if (updateError) {
+      setDeleteError("Couldn't delete account: " + updateError.message);
+      setDeleting(false);
+      return;
+    }
+
+    clearRememberMe();
+    await signOutCurrentAccount();
+    window.location.href = "/Login";
+  };
+
   const passwordValid = PASSWORD_REGEX.test(newPassword);
   const formValid =
   currentPassword &&
@@ -298,6 +369,13 @@ const [showCurrent, setShowCurrent] = useState(false);
           title="Clear cache"
           description="Fix stale or outdated data"
           onClick={() => setOpenModal("cache")}
+        />
+        <SettingsTile
+          tone="danger"
+          icon={TILE_ICONS.delete}
+          title="Delete account"
+          description="Remove your login access"
+          onClick={() => setOpenModal("delete")}
         />
       </div>
 
@@ -510,6 +588,95 @@ const [showCurrent, setShowCurrent] = useState(false);
         <Button variant="danger" onClick={clearCache} loading={clearingCache}>
           Clear cache now
         </Button>
+      </Modal>
+
+      {/* DELETE ACCOUNT */}
+      <Modal
+        open={openModal === "delete"}
+        onClose={() => {
+          closeModal();
+          setDeletePassword("");
+          setDeleteConfirmText("");
+          setDeleteError("");
+        }}
+        title="Delete account"
+        size="md"
+      >
+        <p className={styles.modalSubtitle}>
+          This removes your SmartScholar login. It does not erase your history.
+        </p>
+
+        <div className={styles.tipBox}>
+          <strong>What happens:</strong>
+          <ul>
+            <li>You'll be signed out immediately and won't be able to log back in with this account.</li>
+            <li>Your profile is deactivated — it won't be usable or visible to you again.</li>
+            <li>
+              Your scholarship applications, grantee records, compliance submissions,
+              and payout/liquidation history are <strong>kept</strong>, since they're
+              part of the institution's scholarship and financial records and can't
+              be removed just because the account is deleted.
+            </li>
+          </ul>
+        </div>
+
+        {deleteError && (
+          <p className={styles.pwError} role="alert">
+            {deleteError}
+          </p>
+        )}
+
+        <div className={styles.passwordSection}>
+          <Field label="Confirm your password">
+            <div className={styles.passwordField}>
+              <Input
+                type={showDeletePw ? "text" : "password"}
+                placeholder="Enter your current password"
+                value={deletePassword}
+                disabled={deleting}
+                className={styles.passwordInput}
+                onChange={(e) => {
+                  setDeletePassword(e.target.value);
+                  setDeleteError("");
+                }}
+              />
+              <button
+                type="button"
+                className={styles.eyeBtn}
+                disabled={deleting}
+                onClick={() => setShowDeletePw((v) => !v)}
+                aria-label={showDeletePw ? "Hide password" : "Show password"}
+              >
+                {showDeletePw ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
+          </Field>
+
+          <Field label='Type "DELETE" to confirm'>
+            <Input
+              placeholder="DELETE"
+              value={deleteConfirmText}
+              disabled={deleting}
+              onChange={(e) => {
+                setDeleteConfirmText(e.target.value);
+                setDeleteError("");
+              }}
+            />
+          </Field>
+
+          <Button
+            variant="danger"
+            onClick={handleDeleteAccount}
+            loading={deleting}
+            disabled={
+              deleting ||
+              !deletePassword.trim() ||
+              deleteConfirmText.trim().toUpperCase() !== "DELETE"
+            }
+          >
+            Permanently delete my account
+          </Button>
+        </div>
       </Modal>
     </div>
   );

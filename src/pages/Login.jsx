@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "../lib/supabase";
+import { supabase, persistRememberMe, clearRememberMe } from "../lib/supabase";
 import { useNavigate, Link } from "react-router-dom";
 import styles from "@/styles/Auth.module.css";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -14,6 +14,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [showTerms, setShowTerms] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  const [remember, setRemember] = useState(false);
   const [showForgot,   setShowForgot]   = useState(false);
 const [resetEmail,   setResetEmail]   = useState("");
 const [resetSending, setResetSending] = useState(false);
@@ -56,7 +57,7 @@ const [resetError,   setResetError]   = useState("");
 
     const { data: profile, error: profileError } = await supabase
       .from("users")
-      .select("role")
+      .select("role, status")
       .eq("auth_id", authUser.id)
       .single();
 
@@ -65,6 +66,22 @@ const [resetError,   setResetError]   = useState("");
       setLoading(false);
       return;
     }
+
+    // Account was deleted (see Settings > Delete account): the auth login
+    // itself still technically works, but the account is no longer active,
+    // so bounce them out here rather than letting them into the app only
+    // to be redirected again by RoleGuard.
+    if (profile.status && profile.status !== "active") {
+      await supabase.auth.signOut();
+      clearRememberMe();
+      setError("This account has been deleted. Contact support if you believe this is a mistake.");
+      setLoading(false);
+      return;
+    }
+
+    // "Remember me" persists this session (up to 30 days) so a new tab or
+    // a reopened browser can restore it automatically — see src/lib/supabase.js.
+    persistRememberMe(remember, data.session);
 
     const role = profile.role;
 
@@ -215,7 +232,15 @@ const sendReset = async (e) => {
     {showPassword ? <FaEyeSlash /> : <FaEye />}
   </button>
 </div>
-<div style={{ textAlign: "right", marginTop: -4 }}>
+<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: -4 }}>
+  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
+    <input
+      type="checkbox"
+      checked={remember}
+      onChange={(e) => setRemember(e.target.checked)}
+    />
+    Remember me for 30 days
+  </label>
   <button
     type="button"
     style={{ background: "none", border: "none", color: "var(--teal-600)", fontSize: 12, cursor: "pointer", padding: 0, textDecoration: "underline" }}
