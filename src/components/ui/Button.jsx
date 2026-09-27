@@ -3,7 +3,9 @@ import styles from "./ui.module.css";
 /**
  * Shared button primitive.
  *
- * variant: "primary" | "secondary" | "ghost" | "danger" | "success"
+ * variant: "primary" | "secondary" | "ghost" | "danger" — exactly four,
+ * each with a solid background (see ui.module.css). Don't add a new one;
+ * reuse the closest of these four instead.
  * size: "sm" | "md"
  */
 export default function Button({

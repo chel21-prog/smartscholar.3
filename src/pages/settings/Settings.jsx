@@ -76,6 +76,29 @@ export default function Settings() {
   const [currentPassword, setCurrentPassword] = useState("");
 const [showCurrent, setShowCurrent] = useState(false);
 
+  // ── Forgot current password, from inside Settings itself ────────────
+  const [resetRequesting, setResetRequesting] = useState(false);
+  const [resetRequested, setResetRequested] = useState(false);
+  const [resetReqError, setResetReqError] = useState("");
+
+  const sendPasswordReset = async () => {
+    setResetReqError("");
+    setResetRequesting(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    setResetRequesting(false);
+
+    if (error) {
+      setResetReqError(error.message);
+      return;
+    }
+
+    setResetRequested(true);
+  };
+
   // Which settings feature's popup is open — null, "security", "report", or "legal"
   const [openModal, setOpenModal] = useState(null);
   const closeModal = () => setOpenModal(null);
@@ -380,7 +403,16 @@ const [showCurrent, setShowCurrent] = useState(false);
       </div>
 
       {/* SECURITY */}
-      <Modal open={openModal === "security"} onClose={closeModal} title="Security" size="md">
+      <Modal
+        open={openModal === "security"}
+        onClose={() => {
+          closeModal();
+          setResetRequested(false);
+          setResetReqError("");
+        }}
+        title="Security"
+        size="md"
+      >
         <p className={styles.modalSubtitle}>Change your password.</p>
 
         <div className={styles.passwordSection}>
@@ -408,6 +440,26 @@ const [showCurrent, setShowCurrent] = useState(false);
       {showCurrent ? <EyeOffIcon /> : <EyeIcon />}
     </button>
   </div>
+
+  {resetRequested ? (
+    <p className={styles.pwSuccess} role="status">
+      ✓ Check your email — we sent a reset link to <strong>{email}</strong>.
+    </p>
+  ) : (
+    <button
+      type="button"
+      onClick={sendPasswordReset}
+      disabled={resetRequesting || !email}
+      style={{ background: "none", border: "none", color: "var(--teal-600)", fontSize: 12, cursor: "pointer", padding: 0, marginTop: 6, textDecoration: "underline", alignSelf: "flex-start" }}
+    >
+      {resetRequesting ? "Sending…" : "Forgot your current password? Send a reset link"}
+    </button>
+  )}
+  {resetReqError && (
+    <p className={styles.pwError} role="alert">
+      {resetReqError}
+    </p>
+  )}
 </Field>
           <Field label="New password">
             <div className={styles.passwordField}>

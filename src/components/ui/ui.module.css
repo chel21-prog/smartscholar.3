@@ -25,20 +25,25 @@
 .btn-md { font-size: var(--text-base); padding: 9px 16px; }
 .btn-sm { font-size: var(--text-sm);  padding: 7px 12px; border-radius: var(--radius-sm); }
 
+/* ---- Button colors: exactly 4 across the whole system ----
+   primary   — the main action on a screen (solid navy)
+   secondary — a real but lower-emphasis action (solid navy tint)
+   ghost     — de-emphasized/neutral action, e.g. Cancel/Close (solid gray tint)
+   danger    — destructive action (solid red)
+   Every one of these has a real, visible background — nothing here
+   renders as bare/invisible text. Don't add a 5th variant; reuse one
+   of these four. */
 .btn-primary   { background: var(--navy-600); color: #fff; box-shadow: var(--shadow-sm); }
 .btn-primary:hover:not(:disabled) { background: var(--navy-700); transform: translateY(-1px); box-shadow: var(--shadow-md); }
 
-.btn-secondary { background: var(--surface); color: var(--navy-700); border-color: var(--border-strong); }
-.btn-secondary:hover:not(:disabled) { background: var(--navy-50); border-color: var(--navy-300); }
+.btn-secondary { background: var(--navy-100); color: var(--text-primary); border-color: var(--navy-100); }
+.btn-secondary:hover:not(:disabled) { background: var(--border-strong); border-color: var(--border-strong); }
 
-.btn-ghost { background: transparent; color: var(--text-secondary); }
-.btn-ghost:hover:not(:disabled) { background: var(--surface-muted); color: var(--text-primary); }
+.btn-ghost { background: var(--surface-muted); color: var(--text-secondary); border-color: var(--surface-muted); }
+.btn-ghost:hover:not(:disabled) { background: var(--border-strong); color: var(--text-primary); }
 
-.btn-danger { background: var(--surface); color: var(--danger-700); border-color: var(--danger-100); }
-.btn-danger:hover:not(:disabled) { background: var(--danger-50); border-color: var(--danger-600); }
-
-.btn-success { background: var(--success-600); color: #fff; }
-.btn-success:hover:not(:disabled) { background: var(--success-700); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-danger { background: var(--danger-600); color: #fff; box-shadow: var(--shadow-sm); }
+.btn-danger:hover:not(:disabled) { background: var(--danger-700); transform: translateY(-1px); box-shadow: var(--shadow-md); }
 
 .btnLabel { display: inline-flex; align-items: center; }
 .spinner {
