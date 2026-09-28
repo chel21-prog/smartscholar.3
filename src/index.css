@@ -95,8 +95,8 @@ a  { color: var(--navy-600); }
 input[type="checkbox"] {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
   margin: 0;
   display: inline-grid;

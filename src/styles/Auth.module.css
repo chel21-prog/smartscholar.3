@@ -165,7 +165,9 @@
     font-size:14px;
     color:var(--text-secondary);
 }
-
+.checkbox input[type="checkbox"]{
+    margin-top:4px;
+}
 .link{
     color:var(--navy-600);
     cursor:pointer;
