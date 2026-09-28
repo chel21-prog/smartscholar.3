@@ -645,7 +645,7 @@ const [showCurrent, setShowCurrent] = useState(false);
             <li>Your profile is deactivated — it won't be usable or visible to you again.</li>
             <li>
               Your scholarship applications, grantee records, compliance submissions,
-              and payout/liquidation history are <strong>kept</strong>, since they're
+              and payout/liquidation history are KEPT, since they're
               part of the institution's scholarship and financial records and can't
               be removed just because the account is deleted.
             </li>
