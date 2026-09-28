@@ -1,23 +1,5 @@
-.page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-  gap: var(--space-4);
-  margin: 0;
-}
+    flex-shrink:0;}
 
 
 
@@ -26,14 +8,8 @@
     align-items:center;
     gap:10px;
     flex-wrap:wrap;
-}
-
-.statsRow{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:20px;
-    flex-shrink:0;
-}
+}.statsRow {
+    flex-shrink:0;}
 
 .statCard{
     background:var(--surface);
@@ -260,9 +236,7 @@
 /* ===========================
    RESPONSIVE
 =========================== */
-@media (max-width: 768px) {
-  .page { }
-  .verifyGrid { grid-template-columns: 1fr; }
+@media (max-width: 768px) {  .verifyGrid { grid-template-columns: 1fr; }
 }
 
 /* ===========================

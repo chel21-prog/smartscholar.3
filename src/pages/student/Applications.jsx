@@ -215,8 +215,8 @@ export default function Applications() {
   if (loading) return <PageLoader label="Loading your applications…" />;
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
+    <div className={`page-shell ${styles.page}`}>
+      <div className={`page-header ${styles.header}`}>
         <h1 className="page-title">My Applications</h1>
         <p className="page-subtitle">
           Track the status of every scholarship you've applied to.
@@ -233,7 +233,7 @@ export default function Applications() {
         </Card>
       ) : (
         <>
-          <div className={styles.statsRow}>
+          <div className={`stats-grid ${styles.statsRow}`}>
             <StatCard
               label="Pending"
               value={applications.filter((a) => a.status === "Pending").length}

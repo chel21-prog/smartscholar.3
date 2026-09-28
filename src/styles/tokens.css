@@ -82,7 +82,7 @@
 
   /* ---- Table row states (zebra + hover) ---- */
   --table-zebra: var(--ink-50);
-  --table-hover: var(--navy-100);
+  --table-hover: var(--ink-50);
 
   /* ---- Semantic surfaces (light) ---- */
   --surface:       var(--white);

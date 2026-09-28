@@ -296,8 +296,8 @@ export default function Requirements() {
   if (loading) return <PageLoader label="Loading requirements…" />;
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
+    <div className={`page-shell ${styles.page}`}>
+      <div className={`page-header ${styles.header}`}>
         <div>
           <h1 className="page-title">Requirement Library</h1>
           <p className="page-subtitle">
@@ -312,7 +312,7 @@ export default function Requirements() {
         </Button>
       </div>
 
-      <div className={styles.statsRow}>
+      <div className={`stats-grid ${styles.statsRow}`}>
         <StatCard
           label="Application Requirements"
           value={appReq.length}

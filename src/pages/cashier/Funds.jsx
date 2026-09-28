@@ -281,9 +281,9 @@ export default function Funds() {
   const totalRemaining = totalBudget - totalReleased;
 
   return (
-    <div className={s.page}>
+    <div className={`page-shell ${s.page}`}>
       {/* ================= HEADER ================= */}
-      <div className={s.pageHeader}>
+      <div className={`page-header ${s.pageHeader}`}>
         <div>
           <h1 className="page-title">Funds Management</h1>
           <p className="page-subtitle">
@@ -293,7 +293,7 @@ export default function Funds() {
       </div>
 
       {/* ================= SUMMARY ================= */}
-      <div className={s.statsGrid}>
+      <div className={`stats-grid ${s.statsGrid}`}>
         <StatCard
           label="Total Budget"
           value={`₱${totalBudget.toLocaleString()}`}

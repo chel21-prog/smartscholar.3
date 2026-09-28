@@ -821,8 +821,8 @@ const endRow =
       );
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
+    <div className={`page-shell ${styles.page}`}>
+      <div className={`page-header ${styles.header}`}>
     <div>
         <h1 className="page-title">
             Scholarship Grantees
@@ -848,7 +848,7 @@ const endRow =
     </div>
 </div>
     
-    <div className={styles.statsRow}>
+    <div className={`stats-grid ${styles.statsRow}`}>
   <div className={styles.statCard}>
     <div className={styles.statNumber}>{rows.length}</div>
     <div className={styles.statLabelRow}>

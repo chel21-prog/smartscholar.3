@@ -522,9 +522,9 @@ const paginated = filtered.slice(
     currentPage * rowsPerPage
 );
   return (
-    <div className={styles.page}>
+    <div className={`page-shell ${styles.page}`}>
 
-      <div className={styles.pageHeader}>
+      <div className={`page-header ${styles.header}`}>
   <div>
     <h1 className="page-title">Applications</h1>
     <p className="page-subtitle">
@@ -539,7 +539,7 @@ const paginated = filtered.slice(
   </Button>
 </div>
 
-<div className={styles.statsRow}>
+<div className={`stats-grid ${styles.statsRow}`}>
   <StatCard
     label="Pending"
     value={applications.filter((a) => a.status === "Pending").length}

@@ -452,14 +452,14 @@ export default function Dashboard() {
   if (loading) return <PageLoader label="Loading your scholarships…" />;
 
   return (
-    <div className={s.page}>
-      <div className={s.header}>
+    <div className={`page-shell ${s.page}`}>
+      <div className={`page-header ${s.header}`}>
         <h1 className="page-title">Scholarship Dashboard</h1>
         <p className="page-subtitle">Browse open scholarships and track which ones you qualify for.</p>
       </div>
 
       {/* stats */}
-      <div className={s.statsRow}>
+      <div className={`stats-grid ${s.statsRow}`}>
         <div className={`${s.statCard} ${s.statClickable}`}>
           <span role="link" tabIndex={0} className={s.statLink} aria-label="Total scholarships — jump to list"
             onClick={() => goToSection("eligible-scholarships")} onKeyDown={cardKey("eligible-scholarships")} />

@@ -443,9 +443,9 @@ export default function Scholarships() {
 
   // ── render ───────────────────────────────────────────────
   return (
-    <div className={s.page}>
+    <div className={`page-shell ${s.page}`}>
       {/* header */}
-      <div className={s.pageHeader}>
+      <div className={`page-header ${s.pageHeader}`}>
         <div>
           <h1 className="page-title">Scholarships</h1>
           <p className="page-subtitle">Manage scholarships, requirements, and application forms</p>
@@ -461,7 +461,7 @@ export default function Scholarships() {
         </div>
       </div>
 
-      <div className={s.statsRow}>
+      <div className={`stats-grid ${s.statsRow}`}>
         <StatCard
           label="Total Scholarships"
           value={list.length}

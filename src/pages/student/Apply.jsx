@@ -28,14 +28,14 @@ export default function Apply() {
 };
 
   return (
-    <div>
+    <div className="page-shell">
       <div style={{ background: "#eef2ff", padding: 15, marginBottom: 20 }}>
   <h3>Current Academic Period</h3>
 
   <p><b>Academic Year:</b> {academic?.academic_year}</p>
   <p><b>Semester:</b> {academic?.semester}</p>
 </div>
-      <div style={{ marginBottom: 20 }}>
+      <div>
         <h1 className="page-title">Apply for Scholarships</h1>
         <p className="page-subtitle">Choose a scholarship to apply for in the current academic period.</p>
       </div>

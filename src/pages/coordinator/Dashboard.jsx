@@ -14,17 +14,13 @@ import Button from "@/components/ui/Button";
 
 // ─── stable style objects defined outside the component ──────────────────────
 const st = {
-  container:   { padding: 0 },
-  header:      { display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:18, flexWrap:"wrap", gap:14 },
   headerRight: { display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" },
   title:       { margin:0, fontSize:21, fontWeight:700, color:"var(--text-primary)" },
   periodItem:  { display:"flex", alignItems:"center", gap:6 },
   periodInput: { padding:"5px 9px", border:"1px solid var(--border-strong)", borderRadius:6, fontSize:13, minWidth:130, background:"var(--surface)", color:"var(--text-primary)" },
-  cardGrid:    { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:14, marginBottom:18 },
   card:        { background:"var(--surface)", borderRadius:10, padding:16, boxShadow:"var(--shadow-sm)", border:"1px solid var(--border)" },
   cardLabel:   { fontSize:12, color:"var(--text-secondary)", marginBottom:8 },
   cardValue:   { fontSize:24, fontWeight:700, color:"var(--text-primary)" },
-  infoGrid:    { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:14, marginBottom:18 },
   infoCard:    { background:"var(--surface)", borderRadius:10, padding:10, boxShadow:"var(--shadow-sm)", border:"1px solid var(--border)", minHeight:220, maxHeight:260, display:"flex", flexDirection:"column" },
   infoTitle:   { marginBottom:12, fontSize:15, fontWeight:600, color:"var(--text-primary)", padding:"0 6px" },
   infoTitleRow:{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12, padding:"0 6px" },
@@ -946,9 +942,9 @@ export default function CoordinatorDashboard() {
   if (loading) return <PageLoader label="Loading dashboard…" />;
 
   return (
-    <div style={st.container}>
+    <div className="page-shell">
       {/* ── header ── */}
-      <div style={st.header}>
+      <div className="page-header">
         <div>
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">Overview of scholarship applications, grantees, and the current academic period.</p>
@@ -977,7 +973,7 @@ export default function CoordinatorDashboard() {
       </div>
 
       {/* ── stat cards ── */}
-      <div style={st.cardGrid}>
+      <div className="stats-grid">
         {[
           {
             label: "Applications This Month", to: "/coordinator/applications", hint: "Applications",
@@ -1005,7 +1001,7 @@ export default function CoordinatorDashboard() {
       </div>
 
       {/* ── info grid ── */}
-      <div style={st.infoGrid}>
+      <div className="card-grid">
         <div data-glow style={st.infoCard}>
           <div style={st.infoTitleRow}>
             <h3 style={st.infoTitleTxt}>Scholarship Slots</h3>

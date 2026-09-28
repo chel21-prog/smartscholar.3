@@ -98,8 +98,8 @@ export default function Concerns() {
   if (loading) return <PageLoader label="Loading your concerns…" />;
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
+    <div className={`page-shell ${styles.page}`}>
+      <div className={`page-header ${styles.header}`}>
         <div>
           <h1 className="page-title">Concerns</h1>
           <p className="page-subtitle">
@@ -120,7 +120,7 @@ export default function Concerns() {
         </Card>
       ) : (
         <>
-          <div className={styles.statsRow}>
+          <div className={`stats-grid ${styles.statsRow}`}>
             <StatCard
               label="Open"
               value={concerns.filter((c) => c.status === "Open").length}

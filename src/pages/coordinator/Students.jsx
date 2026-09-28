@@ -250,8 +250,8 @@ const paginatedStudents = filteredStudents.slice(
   currentPage * ITEMS_PER_PAGE
 );
   return (
-    <div className={s.page}>
-      <div className={s.header}>
+    <div className={`page-shell ${s.page}`}>
+      <div className={`page-header ${s.header}`}>
   <div>
     <h1 className="page-title">Students</h1>
     <p className="page-subtitle">
@@ -266,7 +266,7 @@ const paginatedStudents = filteredStudents.slice(
   </Button>
 </div>
 
-<div className={s.statsRow}>
+<div className={`stats-grid ${s.statsRow}`}>
   <StatCard
     label="Total Students"
     value={students.length}
@@ -473,14 +473,17 @@ const paginatedStudents = filteredStudents.slice(
 
                   {/* AUTO-SAVE REMARKS */}
                   <td className={s.td}>
-                    <textarea
-  value={student.remarks || ""}
-  onChange={(e) =>
-    updateRemarks(student.student_id, e.target.value)
-  }
-  placeholder="None"
-   className={s.remarkInput}
-/>
+                    <div className={s.remarkWrap}>
+                      <textarea
+                        value={student.remarks || ""}
+                        onChange={(e) =>
+                          updateRemarks(student.student_id, e.target.value)
+                        }
+                        placeholder="None"
+                        rows={1}
+                        className={s.remarkInput}
+                      />
+                    </div>
                   </td>
                   <td className={s.td}>
                     <Button size="sm" variant="primary" onClick={() => { setSelectedStudent(student); setOpenGrant(true); }}>Grant Scholarship</Button>

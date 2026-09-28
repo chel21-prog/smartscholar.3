@@ -1,23 +1,9 @@
-/* ===========================
-   PAGE
-=========================== */
-
 .page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  width: 100%;
-  box-sizing: border-box;
-}
+    color:var(--text-primary);
+    font-family:var(--font-sans);}
 
-.header, .toolbar, .pagination { flex-shrink:0; }
-
-.statsRow{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:20px;
-    flex-shrink:0;
-}
+.header, .toolbar, .pagination { flex-shrink:0; }.statsRow {
+    flex-shrink:0;}
 .pagination {
   display: flex; justify-content: space-between; align-items: center;
   flex-wrap: wrap; gap: var(--space-3);
@@ -32,17 +18,8 @@
   font-size: var(--text-sm); cursor: pointer; transition: background-color var(--duration-fast);
 }
 .pageBtn:hover:not(:disabled) { background: var(--navy-50); }
-.pageBtn:disabled { opacity: .45; cursor: not-allowed; }
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-  gap: var(--space-4);
-  margin: 0;
-}
+.pageBtn:disabled { opacity: .45; cursor: not-allowed; }.header {
+    flex-shrink:0;}
 
 
 
@@ -146,16 +123,26 @@
   cursor: not-allowed;
 }
 
-.remarkInput {
+/* Remarks: one line by default, grows to show everything on hover / focus.
+   The textarea floats over the rows below (wrapper keeps the row height). */
+.remarkWrap {
+  position: relative;
   width: 180px;
-  min-width: 160px;
-  max-width: 180px;
+  height: 30px;
+}
 
-  min-height: 72px;
-  max-height: 72px;
+.remarkInput {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 180px;
+  height: 30px;
+  min-height: 30px;
+  max-height: 30px;
 
-  padding: var(--space-3);
+  padding: 5px 10px;
   box-sizing: border-box;
+  line-height: 18px;
 
   background: var(--surface);
   color: var(--text-primary);
@@ -163,22 +150,37 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
 
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-family: var(--font-sans);
 
   outline: none;
   resize: none;
 
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* collapsed = a single clipped line */
+  white-space: nowrap;
+  overflow: hidden;
 
   scrollbar-width: thin;
   scrollbar-color: var(--ink-300) transparent;
-  -ms-overflow-style: auto;
 
   transition:
+    height var(--duration-fast) var(--ease-out),
+    max-height var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast),
     box-shadow var(--duration-fast);
+}
+
+/* expanded = full text, wrapped, scrolls if it is really long */
+.remarkWrap:hover .remarkInput,
+.remarkInput:focus {
+  height: 96px;
+  max-height: 96px;
+  white-space: pre-wrap;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 6;
+  border-color: var(--navy-600);
+  box-shadow: var(--shadow-lg);
 }
 
 .remarkInput::-webkit-scrollbar {
@@ -514,10 +516,8 @@
 /* ===========================
    RESPONSIVE
 =========================== */
-@media (max-width: 768px) {
-  .page { }
-  .card { padding: 8px; }
-  .remarkInput { width: 140px; min-width: 120px; max-width: 140px; }
+@media (max-width: 768px) {  .card { padding: 8px; }
+  .remarkWrap, .remarkInput { width: 140px; }
   .colOptional { display: none; }
   .table { min-width: 620px; font-size: 12px; }
   .th, .td { padding: 8px 10px; }

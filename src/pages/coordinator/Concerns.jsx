@@ -137,15 +137,15 @@ export default function Concerns() {
   const resolvedCount = rows.filter(c => c.status === "Resolved").length;
 
   return (
-    <div className={s.page}>
-      <div className={s.header}>
+    <div className={`page-shell ${s.page}`}>
+      <div className={`page-header ${s.header}`}>
         <div>
           <h1 className="page-title">Concerns</h1>
           <p className="page-subtitle">Problems and concerns students have sent in, with your replies.</p>
         </div>
       </div>
 
-      <div className={s.summaryGrid}>
+      <div className={`stats-grid ${s.summaryGrid}`}>
         <StatCard label="Open" value={openCount} explain="Concerns not yet responded to." />
         <StatCard label="In Progress" value={inProgressCount} explain="Concerns you've replied to but marked as still ongoing." />
         <StatCard label="Resolved" value={resolvedCount} explain="Concerns marked Resolved." />

@@ -384,8 +384,8 @@ export default function Profile() {
   if (loading) return <PageLoader label="Loading your profile…" />;
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
+    <div className={`page-shell ${styles.page}`}>
+      <div className={`page-header ${styles.header}`}>
         <h1 className="page-title">Student Profile</h1>
         <p className="page-subtitle">
           Keep your details current — scholarship eligibility is checked against this information.

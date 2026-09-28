@@ -123,15 +123,15 @@ export default function Payouts() {
   const activeScholarshipCount = new Set(rows.map(g => g.scholarships?.scholarship_name).filter(Boolean)).size;
 
   return (
-    <div className={s.page}>
-      <div className={s.header}>
+    <div className={`page-shell ${s.page}`}>
+      <div className={`page-header ${s.header}`}>
         <div>
           <h1 className="page-title">Payouts</h1>
           <p className="page-subtitle">View-only — payout schedules for every grantee and the full release history. To release or skip a payout, use the Cashier portal.</p>
         </div>
       </div>
 
-      <div className={s.summaryGrid}>
+      <div className={`stats-grid ${s.summaryGrid}`}>
         <StatCard
           label="Total Released"
           value={`₱${totalReleased.toLocaleString()}`}

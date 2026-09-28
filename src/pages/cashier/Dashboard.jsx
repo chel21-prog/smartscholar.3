@@ -83,8 +83,8 @@ export default function CashierDashboard() {
 
 
   return (
-    <div style={s.page}>
-      <div style={s.header}>
+    <div className="page-shell">
+      <div className="page-header">
         <div>
           <h1 className="page-title">Cashier Dashboard</h1>
           <p className="page-subtitle">
@@ -97,7 +97,7 @@ export default function CashierDashboard() {
       </div>
 
       {/* KPI cards */}
-      <div style={s.grid}>
+      <div className="stats-grid">
         {stats.map(({label, value, explain, to, hint}) => (
           <StatCard key={label} label={label} value={value} explain={explain} to={to} hint={hint} />
         ))}
@@ -145,10 +145,7 @@ export default function CashierDashboard() {
 }
 
 const s = {
-  page:        { display:"flex",flexDirection:"column",gap:"var(--space-5)" },
-  header:      { display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:14 },
   announceBtn: { padding:"10px 18px",background:"var(--navy-700)",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",whiteSpace:"nowrap" },
-  grid:        { display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:14 },
   card:        { background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:"var(--space-5)",boxShadow:"var(--shadow-sm)" },
   tableBox:    { background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:"var(--space-5)",boxShadow:"var(--shadow-sm)" },
 };

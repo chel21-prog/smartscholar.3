@@ -322,8 +322,8 @@ const [showCurrent, setShowCurrent] = useState(false);
   currentPassword !== newPassword;
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
+    <div className={`page-shell ${styles.page}`}>
+      <div className={`page-header ${styles.header}`}>
         <h1 className="page-title">Settings</h1>
         <p className="page-subtitle">
           Manage your account and security.

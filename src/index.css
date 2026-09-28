@@ -292,3 +292,99 @@ input[type="password"]::-ms-clear { display: none; }
   line-height: 1.5;
   color: var(--text-secondary);
 }
+
+/* ---- Shared page layout (every page uses these — do not restyle per page) ----
+   The portal shell (.content in PortalLayout) already provides the outer
+   padding, so pages add NONE of their own. Vertical rhythm between the
+   header, stat cards, toolbars and tables comes only from the gap below —
+   pages must not add their own margins between those blocks. */
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+  min-width: 0;
+}
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  flex-shrink: 0;
+}
+.stats-grid,
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-5);
+  flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  .page-shell { gap: var(--space-4); }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
+  .card-grid  { grid-template-columns: 1fr; gap: var(--space-3); }
+}
+
+/* ---- Expand-on-hover popover (lib/expandOnHover.js) ----
+   Shown when the pointer rests on text the UI has clipped (ellipsis /
+   line-clamp). Matches the "How this is calculated" info bubble. */
+.expand-pop {
+  position: fixed;
+  display: none;
+  z-index: 3000;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 9px 13px 10px;
+  background: var(--navy-900);
+  color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .28), 0 0 0 1px rgba(255, 255, 255, .06);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: normal;
+  text-transform: none;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity .14s ease, transform .14s ease;
+}
+.expand-pop--in { opacity: 1; transform: translateY(0); }
+.expand-pop--above { transform: translateY(4px); }
+.expand-pop--above.expand-pop--in { transform: translateY(0); }
+
+.expand-pop__label {
+  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--gold-500);
+}
+.expand-pop__text {
+  display: block;
+  max-height: 220px;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* little arrow pointing at the text it belongs to */
+.expand-pop::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: var(--arrow-left, 14px);
+  border: 6px solid transparent;
+  border-bottom-color: var(--navy-900);
+}
+.expand-pop--above::after {
+  bottom: auto;
+  top: 100%;
+  border-bottom-color: transparent;
+  border-top-color: var(--navy-900);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expand-pop { transition: none; transform: none; }
+}

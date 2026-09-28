@@ -157,8 +157,8 @@ export default function Compliance() {
   if (loading) return <PageLoader label="Loading your compliance requirements…" />;
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
+    <div className={`page-shell ${styles.page}`}>
+      <div className={`page-header ${styles.header}`}>
         <h1 className="page-title">Compliance Requirements</h1>
         <p className="page-subtitle">
           Upload the required documents for each active scholarship grant.
@@ -175,7 +175,7 @@ export default function Compliance() {
         </Card>
       ) : (
         <>
-          <div className={styles.statsRow}>
+          <div className={`stats-grid ${styles.statsRow}`}>
             <StatCard
               label="Active Grants"
               value={rows.length}

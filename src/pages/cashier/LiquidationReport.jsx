@@ -241,8 +241,8 @@ export default function LiquidationReport() {
   };
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
+    <div className={`page-shell ${styles.page}`}>
+      <div className={`page-header ${styles.header}`}>
         <div>
           <h1 className="page-title">Liquidation Report</h1>
           <p className="page-subtitle">Generate a sponsor liquidation report — release, disbursement, and remaining balance for a scholarship batch.</p>

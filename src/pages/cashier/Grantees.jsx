@@ -270,15 +270,15 @@ export default function Grantees() {
   const pendingCount = rows.length - releasedCount;
 
   return (
-    <div className={s.page}>
-      <div className={s.header}>
+    <div className={`page-shell ${s.page}`}>
+      <div className={`page-header ${s.header}`}>
         <div>
           <h1 className="page-title">Grantees</h1>
           <p className="page-subtitle">Manage scholarship payouts and monitor released funds.</p>
         </div>
       </div>
 
-      <div className={s.summaryGrid}>
+      <div className={`stats-grid ${s.summaryGrid}`}>
         <StatCard
           label="Total Grantees"
           value={rows.length}
