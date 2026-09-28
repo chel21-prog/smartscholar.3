@@ -11,7 +11,7 @@
 // `studentData` is a row from `students` (school_id, course, year_level,
 // gender, ethnicity, contact_number).
 
-export const REQUIRED_STUDENT_FIELDS = [
+const REQUIRED_STUDENT_FIELDS = [
   { key: "first_name",     label: "First name",     source: "user" },
   { key: "last_name",      label: "Last name",      source: "user" },
   { key: "school_id",      label: "School ID",      source: "student" },
@@ -28,8 +28,4 @@ export function getMissingProfileFields(userData, studentData) {
     const value = source === "user" ? userData?.[key] : studentData?.[key];
     return !value;
   });
-}
-
-export function isStudentProfileComplete(userData, studentData) {
-  return getMissingProfileFields(userData, studentData).length === 0;
 }

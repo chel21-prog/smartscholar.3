@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/context/SessionContext";
@@ -112,7 +113,7 @@ export default function Concerns() {
       {concerns.length === 0 ? (
         <Card>
           <EmptyState
-            icon="💬"
+            icon={<Icon name="chat" size={26} />}
             title="No concerns yet"
             description="Have a problem with your application, compliance, or anything else? Send it to your coordinator and check back here for their reply."
             action={<Button onClick={openForm}>New Concern</Button>}

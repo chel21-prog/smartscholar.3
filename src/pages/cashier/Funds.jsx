@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
@@ -7,7 +8,7 @@ import Button from "@/components/ui/Button";
 import { getCached, setCached } from "@/lib/dataCache";
 import { useToast } from "@/context/ToastContext";
 import {
-  totalPayoutsAllowed, periodKey, buildSchedule,
+  periodKey, buildSchedule,
   isFullyPaidOut, payoutProgressLabel, latestRelease,
 } from "@/lib/payoutSchedule";
 import s from "./Funds.module.css";
@@ -125,9 +126,6 @@ export default function Funds() {
   // ── payout status helpers ────────────────────────────────
   // isEligible / isFullyPaidOut / payoutProgressLabel / latestRelease now
   // live in @/lib/payoutSchedule (shared with cashier/Grantees.jsx).
-  function releasedCount(grantee) {
-    return grantee.fund_releases?.length || 0;
-  }
 
   // ── release flow ─────────────────────────────────────────
   // Always opened with a concrete period the cashier picked from the
@@ -411,7 +409,7 @@ export default function Funds() {
                   {" "}{selectedScholarship.duration_type || "—"}
                 </p>
               </div>
-              <button className={s.closeBtn} onClick={() => setSelectedScholarship(null)} aria-label="Close">✕</button>
+              <button className={s.closeBtn} onClick={() => setSelectedScholarship(null)} aria-label="Close"><Icon name="close" size={14} /></button>
             </div>
 
             <div className={s.modalBody}>
@@ -523,7 +521,7 @@ export default function Funds() {
                 <h2 className={s.modalTitle}>Record Payout</h2>
                 <p className={s.modalSubtitle}>{payoutProgressLabel(selectedGrantee, selectedScholarship)}</p>
               </div>
-              <button className={s.closeBtn} onClick={closeReleaseModal} aria-label="Close">✕</button>
+              <button className={s.closeBtn} onClick={closeReleaseModal} aria-label="Close"><Icon name="close" size={14} /></button>
             </div>
 
             <div className={s.modalBody}>
@@ -628,7 +626,7 @@ export default function Funds() {
                   {" "}· {payoutProgressLabel(selectedGrantee, selectedScholarship)}
                 </p>
               </div>
-              <button className={s.closeBtn} onClick={() => { setScheduleModal(false); setSelectedGrantee(null); }} aria-label="Close">✕</button>
+              <button className={s.closeBtn} onClick={() => { setScheduleModal(false); setSelectedGrantee(null); }} aria-label="Close"><Icon name="close" size={14} /></button>
             </div>
 
             <div className={s.modalBody}>
@@ -722,7 +720,7 @@ export default function Funds() {
                 <h2 className={s.modalTitle}>Skip Period</h2>
                 <p className={s.modalSubtitle}>{skipPeriodTarget.label}</p>
               </div>
-              <button className={s.closeBtn} onClick={closeSkipModal} aria-label="Close">✕</button>
+              <button className={s.closeBtn} onClick={closeSkipModal} aria-label="Close"><Icon name="close" size={14} /></button>
             </div>
 
             <div className={s.modalBody}>

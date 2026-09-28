@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
@@ -366,7 +367,6 @@ export default function Grantees() {
             ) : currentRows.map((grantee) => {
               const scholarship = grantee.scholarships || {};
               const latest = latestRelease(grantee);
-              const eligible = isEligible(grantee);
               const fullyPaid = isFullyPaidOut(grantee, scholarship);
 
               return (
@@ -414,7 +414,7 @@ export default function Grantees() {
                   {" "}· {payoutProgressLabel(selectedGrantee, selectedGrantee.scholarships || {})}
                 </p>
               </div>
-              <button className={f.closeBtn} onClick={() => { setScheduleModal(false); setSelectedGrantee(null); }} aria-label="Close">✕</button>
+              <button className={f.closeBtn} onClick={() => { setScheduleModal(false); setSelectedGrantee(null); }} aria-label="Close"><Icon name="close" size={14} /></button>
             </div>
 
             <div className={f.modalBody}>
@@ -424,7 +424,7 @@ export default function Grantees() {
               </p>
               {eligibilityWarning(selectedGrantee) && !(selectedGrantee.status === "Inactive" && selectedGrantee.termination_reason) && (
                 <p className={f.warnBanner} role="alert">
-                  <strong>⚠ Not cleared for payout.</strong> This grantee's {eligibilityWarning(selectedGrantee)}.
+                  <strong><Icon name="alert" size={14} /> Not cleared for payout.</strong> This grantee's {eligibilityWarning(selectedGrantee)}.
                   You can still record a payout, but please confirm with the scholarship coordinator first.
                 </p>
               )}
@@ -519,7 +519,7 @@ export default function Grantees() {
                 <h2 className={f.modalTitle}>Record Payout</h2>
                 <p className={f.modalSubtitle}>{payoutProgressLabel(selectedGrantee, selectedGrantee.scholarships || {})}</p>
               </div>
-              <button className={f.closeBtn} onClick={closeReleaseModal} aria-label="Close">✕</button>
+              <button className={f.closeBtn} onClick={closeReleaseModal} aria-label="Close"><Icon name="close" size={14} /></button>
             </div>
 
             <div className={f.modalBody}>
@@ -546,7 +546,7 @@ export default function Grantees() {
 
               {eligibilityWarning(selectedGrantee) && (
                 <p className={f.warnBanner} role="alert">
-                  <strong>⚠ Heads up:</strong> this grantee's {eligibilityWarning(selectedGrantee)}. Recording it now is allowed, and a
+                  <strong><Icon name="alert" size={14} /> Heads up:</strong> this grantee's {eligibilityWarning(selectedGrantee)}. Recording it now is allowed, and a
                   note will be added to the payout remarks.
                 </p>
               )}
@@ -592,7 +592,7 @@ export default function Grantees() {
                 <h2 className={f.modalTitle}>Skip Period</h2>
                 <p className={f.modalSubtitle}>{skipPeriodTarget.label}</p>
               </div>
-              <button className={f.closeBtn} onClick={closeSkipModal} aria-label="Close">✕</button>
+              <button className={f.closeBtn} onClick={closeSkipModal} aria-label="Close"><Icon name="close" size={14} /></button>
             </div>
 
             <div className={f.modalBody}>

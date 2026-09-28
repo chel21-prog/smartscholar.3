@@ -15,9 +15,9 @@ export const DURATION_TO_SEMESTERS = {
 
 // Assumed academic calendar length. Adjust here if your school year runs
 // differently — everything else derives from this one constant.
-export const MONTHS_PER_SEMESTER = 5;
+const MONTHS_PER_SEMESTER = 5;
 
-export const MONTHS = [
+const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];

@@ -1,8 +1,8 @@
+import Icon from "@/components/ui/Icon";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Modal from "@/components/ui/Modal";
 import NumberInput from "@/components/ui/NumberInput";
-import Papa from "papaparse";
 import { useNavigate } from "react-router-dom";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import InfoTooltip from "@/components/ui/InfoTooltip";
@@ -77,7 +77,7 @@ export default function Grantees() {
   const [rows, setRows] = useState(cachedRows || []);
   const [loading, setLoading] = useState(!cachedRows);
   const [currentPage, setCurrentPage] = useState(1);
-const [rowsPerPage, setRowsPerPage] = useState(10);
+const [rowsPerPage] = useState(10);
   const [search,setSearch]=useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 const [scholarshipFilter, setScholarshipFilter] = useState("All");
@@ -338,7 +338,8 @@ const [yearFilter, setYearFilter] = useState("All");
   };
 
   // ── bulk file import: template, parse+validate, commit ─────
-  const downloadCsvTemplate = () => {
+  const downloadCsvTemplate = async () => {
+    const { default: Papa } = await import("papaparse");
     const csv = Papa.unparse([CSV_COLUMNS, CSV_TEMPLATE_EXAMPLE]);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -370,6 +371,7 @@ const [yearFilter, setYearFilter] = useState("All");
     setImportFileName(file.name);
     setParsingFile(true);
 
+    const { default: Papa } = await import("papaparse");
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
@@ -1199,9 +1201,9 @@ const endRow =
             : null;
           const setCheck = (key, val) => setFieldChecks((c) => ({ ...c, [key]: val }));
           const choices = [
-            { id: "Eligible",   label: "Verified",     cls: styles.vfEligible,   icon: "✓", desc: "Information is accurate and up to date." },
+            { id: "Eligible",   label: "Verified",     cls: styles.vfEligible,   icon: <Icon name="check" size={14} />, desc: "Information is accurate and up to date." },
             { id: "Mismatch",   label: "Needs update", cls: styles.vfMismatch,   icon: "!", desc: "Something is wrong or outdated — hold at Pending Review." },
-            { id: "Ineligible", label: "Ineligible",   cls: styles.vfIneligible, icon: "✕", desc: "No longer qualifies — deactivate the grant." },
+            { id: "Ineligible", label: "Ineligible",   cls: styles.vfIneligible, icon: <Icon name="close" size={14} />, desc: "No longer qualifies — deactivate the grant." },
           ];
           return (
             <div className={styles.vfWrap}>
@@ -1706,14 +1708,14 @@ const endRow =
                       <td className={styles.td}>
                         {r.errors.length > 0 ? (
                           <span style={{ color: "var(--danger-700)", fontWeight: 600 }}>
-                            ✕ {r.errors.join("; ")}
+                            <Icon name="close" size={12} /> {r.errors.join("; ")}
                           </span>
                         ) : r.warnings.length > 0 ? (
                           <span style={{ color: "var(--warning-700)", fontWeight: 600 }}>
-                            ⚠ {r.warnings.join("; ")}
+                            <Icon name="alert" size={12} /> {r.warnings.join("; ")}
                           </span>
                         ) : (
-                          <span style={{ color: "var(--success-700)", fontWeight: 600 }}>✓ Ready</span>
+                          <span style={{ color: "var(--success-700)", fontWeight: 600 }}><Icon name="check" size={12} /> Ready</span>
                         )}
                       </td>
                     </tr>

@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, Badge, EmptyState } from "@/components/ui/Card";
@@ -170,7 +171,7 @@ export default function Compliance() {
       {rows.length === 0 ? (
         <Card>
           <EmptyState
-            icon="📋"
+            icon={<Icon name="clipboard" size={26} />}
             title="No compliance requirements yet"
             description="When a coordinator adds you as a grantee, your required documents will appear here."
           />
@@ -198,7 +199,7 @@ export default function Compliance() {
           {rows.map((r) => (
           <Card key={r.application_id} className={styles.scholarshipCard}>
             <div className={styles.scholarshipLabel}>
-              <span className={styles.pin}>📌</span>
+              <span className={styles.pin}><Icon name="pin" size={14} /></span>
               {r.scholarship_name}
             </div>
 
@@ -256,7 +257,7 @@ export default function Compliance() {
                                 </>
                               ) : (
                                 <>
-                                  <span className={styles.uploadIcon}>↑</span>
+                                  <Icon name="upload" size={13} />
                                   {req.file_url ? "Replace" : "Upload"}
                                 </>
                               )}

@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useState, useEffect } from "react";
 import { supabase, clearRememberMe } from "@/lib/supabase";
 import { signOutCurrentAccount } from "@/lib/authSync";
@@ -501,7 +502,7 @@ const [showCurrent, setShowCurrent] = useState(false);
 
           {pwSuccess && (
             <p className={styles.pwSuccess} role="status">
-              ✓ Password updated successfully.
+              <Icon name="check" size={14} /> Password updated successfully.
             </p>
           )}
 

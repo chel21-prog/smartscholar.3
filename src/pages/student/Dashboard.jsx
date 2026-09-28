@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Badge, EmptyState } from "@/components/ui/Card";
@@ -594,7 +595,7 @@ export default function Dashboard() {
         <h2 className={s.sectionTitle}><span className={s.dotSuccess} /> Eligible scholarships</h2>
         {eligible.length === 0 ? (
           <div className={s.emptyCard}>
-            <EmptyState icon="🎓" title="No eligible scholarships right now"
+            <EmptyState icon={<Icon name="cap" size={26} />} title="No eligible scholarships right now"
               description="Once your compliance profile matches a scholarship's requirements, it'll appear here." />
           </div>
         ) : (
@@ -636,7 +637,7 @@ export default function Dashboard() {
         </p>
         {notEligible.length === 0 ? (
           <div className={s.emptyCard}>
-            <EmptyState icon="✅" title="You're eligible for everything listed"
+            <EmptyState icon={<Icon name="checkCircle" size={26} />} title="You're eligible for everything listed"
               description="Nice work keeping your compliance profile up to date." />
           </div>
         ) : (
@@ -685,7 +686,7 @@ export default function Dashboard() {
           <div className={s.modal} role="dialog" aria-modal="true" aria-label="Apply for scholarship">
             <div className={s.modalHead}>
               <h2 className={s.modalTitle}>{selectedScholarship?.scholarship_name}</h2>
-              <button className={s.modalClose} onClick={closeApply} aria-label="Close">✕</button>
+              <button className={s.modalClose} onClick={closeApply} aria-label="Close"><Icon name="close" size={14} /></button>
             </div>
 
             <div className={s.modalBody}>

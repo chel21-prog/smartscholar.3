@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -32,7 +33,6 @@ const [statusFilter, setStatusFilter] = useState("All");
 const [courseFilter, setCourseFilter] = useState("All");
 const [currentPage, setCurrentPage] = useState(1);
 
-const [remarks, setRemarks] = useState("");
 // these are REQUIRED for insert
 const academicYear = academicSettings?.academic_year || "";
 const semester = academicSettings?.semester || "";
@@ -186,10 +186,10 @@ const loadAcademicSettings = async () => {
   const { error } = await supabase.from("grantees").insert({
     student_id: selectedStudent.student_id,
     scholarship_id: selectedScholarship,
-    application_id: application.application_id, // ✅ IMPORTANT FIX
+    application_id: application.application_id, // IMPORTANT FIX
     academic_year: academicYear,
     semester: semester,
-    date_awarded: new Date().toISOString().split("T")[0], // ✅ auto date
+    date_awarded: new Date().toISOString().split("T")[0], // auto date
     status: "Active",
   });
 
@@ -329,7 +329,7 @@ const paginatedStudents = filteredStudents.slice(
           className={s.modalClose}
           onClick={() => setOpenGrant(false)}
         >
-          ✕
+          <Icon name="close" size={14} />
         </button>
       </div>
 

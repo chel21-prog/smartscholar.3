@@ -16,9 +16,3 @@ export function formatDate(value, opts) {
   return d.toLocaleDateString("en-PH", opts || { year: "numeric", month: "long", day: "numeric" });
 }
 
-export function formatDateTime(value) {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (isNaN(d)) return "—";
-  return d.toLocaleString("en-PH");
-}

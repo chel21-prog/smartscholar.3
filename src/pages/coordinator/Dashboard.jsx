@@ -1,8 +1,7 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import AnnouncementModal from "@/components/ui/AnnouncementModal";
 import StatCard from "@/components/ui/StatCard";
 import InfoTooltip from "@/components/ui/InfoTooltip";
@@ -16,15 +15,9 @@ import Button from "@/components/ui/Button";
 const st = {
   periodBar:   { display:"flex", alignItems:"center", gap:16, flexWrap:"wrap", alignSelf:"flex-start", padding:"8px 14px", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, boxShadow:"var(--shadow-sm)", flexShrink:0 },
   periodTitle: { fontSize:11, fontWeight:700, letterSpacing:".5px", textTransform:"uppercase", color:"var(--text-secondary)" },
-  headerRight: { display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" },
-  title:       { margin:0, fontSize:21, fontWeight:700, color:"var(--text-primary)" },
   periodItem:  { display:"flex", alignItems:"center", gap:6 },
   periodInput: { padding:"5px 9px", border:"1px solid var(--border-strong)", borderRadius:6, fontSize:13, minWidth:130, background:"var(--surface)", color:"var(--text-primary)" },
-  card:        { background:"var(--surface)", borderRadius:10, padding:16, boxShadow:"var(--shadow-sm)", border:"1px solid var(--border)" },
-  cardLabel:   { fontSize:12, color:"var(--text-secondary)", marginBottom:8 },
-  cardValue:   { fontSize:24, fontWeight:700, color:"var(--text-primary)" },
   infoCard:    { background:"var(--surface)", borderRadius:10, padding:10, boxShadow:"var(--shadow-sm)", border:"1px solid var(--border)", minHeight:220, maxHeight:260, display:"flex", flexDirection:"column" },
-  infoTitle:   { marginBottom:12, fontSize:15, fontWeight:600, color:"var(--text-primary)", padding:"0 6px" },
   infoTitleRow:{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12, padding:"0 6px" },
   infoTitleTxt:{ margin:0, fontSize:15, fontWeight:600, color:"var(--text-primary)" },
   infoRow:     { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 6px", borderBottom:"1px solid var(--border)" },
@@ -37,7 +30,6 @@ const st = {
   modalBody:   { flex:1, overflowY:"auto", padding:"18px 22px", display:"flex", flexDirection:"column", gap:14 },
   modalFoot:   { display:"flex", justifyContent:"flex-end", gap:8, padding:"14px 22px", borderTop:"1px solid var(--border)", flexShrink:0 },
   closeBtn:    { width:30, height:30, border:"none", borderRadius:8, background:"var(--surface-muted)", color:"var(--text-secondary)", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" },
-  btnSm:       { padding:"5px 10px", background:"var(--navy-600)", color:"#fff", border:"none", borderRadius:6, fontWeight:600, cursor:"pointer", fontSize:11 },
   sectionLabel:{ fontSize:11, fontWeight:700, color:"var(--text-secondary)", textTransform:"uppercase", letterSpacing:".5px", marginBottom:6 },
   // form elements inside the modal — defined here so they never re-create in JSX
   sel:         { width:"100%", height:38, padding:"0 10px", background:"var(--surface)", color:"var(--text-primary)", border:"1px solid var(--border-strong)", borderRadius:8, fontSize:13, outline:"none" },
@@ -47,13 +39,6 @@ const st = {
   previewTable:{ width:"100%", borderCollapse:"collapse", fontSize:11, minWidth:560 },
   previewTh:   { background:"var(--navy-900)", color:"#fff", padding:"8px 10px", textAlign:"left", fontWeight:600, fontSize:10, textTransform:"uppercase", letterSpacing:".3px", whiteSpace:"nowrap", position:"sticky", top:0, zIndex:1 },
   previewTd:   { padding:"7px 10px", borderBottom:"1px solid var(--border)", color:"var(--text-primary)", verticalAlign:"middle", whiteSpace:"nowrap" },
-  sigRow:      { display:"flex", gap:6, alignItems:"center", marginBottom:6 },
-  studentCard: { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:14, background:"var(--surface-muted)", padding:16, borderRadius:10, marginBottom:12, border:"1px solid var(--border)" },
-  badge:       { display:"inline-block", padding:"3px 10px", borderRadius:999, fontSize:11, fontWeight:600 },
-  answersWrap: { display:"flex", flexDirection:"column", gap:10, maxHeight:360, overflowY:"auto", scrollbarWidth:"none" },
-  answerCard:  { border:"1px solid var(--border)", borderRadius:8, padding:12, background:"var(--surface)" },
-  question:    { fontWeight:600, marginBottom:6, color:"var(--text-primary)", fontSize:11, textTransform:"uppercase", letterSpacing:".3px" },
-  answer:      { color:"var(--text-secondary)", lineHeight:1.6 },
 };
 
 // Descriptive "All ___" labels for report-filter dropdowns, instead of a
@@ -140,8 +125,6 @@ export default function CoordinatorDashboard() {
   const [reportReturnTo, setReportReturnTo] = useState(null);
   const cached = getCached(CACHE_KEY);
   const [applications,   setApplications]   = useState(cached?.applications || []);
-  const [selectedApp,    setSelectedApp]    = useState(null);
-  const [answers,        setAnswers]        = useState([]);
   const [loading,        setLoading]        = useState(!cached);
   const [academic,       setAcademic]       = useState(null);
   const [scholarStats,   setScholarStats]   = useState(cached?.scholarStats || []);
@@ -398,11 +381,6 @@ export default function CoordinatorDashboard() {
     setAcademic({...academic,...f});
   };
 
-  const viewAnswers = async (app) => {
-    setSelectedApp(app);
-    const { data } = await supabase.from("application_form_responses").select("answer,scholarship_form_fields(label)").eq("application_id",app.application_id);
-    setAnswers(data||[]);
-  };
 
   const updateSignatory = (i, field, value) => {
     const updated = signatories.map((s,idx)=>idx===i?{...s,[field]:value}:s);
@@ -490,6 +468,10 @@ export default function CoordinatorDashboard() {
   // ── PDF generation ────────────────────────────────────────────────────────
   const generatePDF = async () => {
     setGenerating(true);
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
 
     const isLandscape = reportLayout === "landscape";
     const passwordProtect = securePdf && reportSecurity?.password;
@@ -1080,55 +1062,6 @@ export default function CoordinatorDashboard() {
         </div>
       </div>
 
-      {/* ── View answers modal ── */}
-      {selectedApp && (
-        <div style={st.overlay} onMouseDown={e=>e.target===e.currentTarget&&setSelectedApp(null)}>
-          <div style={{...st.modal,maxWidth:640}}>
-            <div style={st.modalHead}>
-              <h2 style={st.modalTitle}>Application Details</h2>
-              <button style={st.closeBtn} onClick={()=>setSelectedApp(null)}>✕</button>
-            </div>
-            <div style={st.modalBody}>
-              <div style={st.studentCard}>
-                {[["School ID",selectedApp.students?.school_id],["Student",`${selectedApp.students?.users?.first_name||""} ${selectedApp.students?.users?.middle_name?selectedApp.students.users.middle_name.charAt(0)+". ":""}${selectedApp.students?.users?.last_name||""}`],["Scholarship",selectedApp.scholarships?.scholarship_name]].map(([l,v])=>(
-                  <div key={l}><strong style={{fontSize:11,color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:".3px"}}>{l}</strong><p style={{margin:"4px 0 0",color:"var(--text-primary)"}}>{v}</p></div>
-                ))}
-                <div>
-                  <strong style={{fontSize:11,color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:".3px"}}>Status</strong>
-                  <p style={{margin:"4px 0 0"}}>
-                    <span style={{fontSize:12,fontWeight:700,color:selectedApp.status==="Approved"?"var(--status-success)":selectedApp.status==="Rejected"?"var(--status-danger)":"var(--status-warning)"}}>
-                      {selectedApp.status}
-                    </span>
-                  </p>
-                </div>
-              </div>
-              <h3 style={{margin:0,color:"var(--text-primary)"}}>Submitted Answers</h3>
-              <div style={st.answersWrap}>
-                {answers.map((r,i)=>{
-                  const isUrl = typeof r.answer === "string" && r.answer.startsWith("http");
-                  return (
-                    <div key={i} style={st.answerCard}>
-                      <div style={st.question}>{r.scholarship_form_fields?.label}</div>
-                      {isUrl ? (
-                        <a href={r.answer} target="_blank" rel="noreferrer"
-                          style={{color:"var(--navy-600)",fontSize:14,fontWeight:600,wordBreak:"break-all"}}>
-                          View attached file
-                        </a>
-                      ) : (
-                        <div style={st.answer}>{r.answer}</div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div style={st.modalFoot}>
-              <Button variant="ghost" onClick={()=>setSelectedApp(null)}>Close</Button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Report modal ── */}
       {showReportModal && (
         <div style={st.overlay} onMouseDown={e=>e.target===e.currentTarget&&closeReportModal()}>
@@ -1138,7 +1071,7 @@ export default function CoordinatorDashboard() {
                 <h2 style={st.modalTitle}>Generate Report</h2>
                 <p style={{margin:0,fontSize:13,color:"var(--text-secondary)"}}>Customize filters and columns, then export to PDF.</p>
               </div>
-              <button style={st.closeBtn} onClick={closeReportModal}>✕</button>
+              <button style={st.closeBtn} onClick={closeReportModal}><Icon name="close" size={14} /></button>
             </div>
 
             <div style={st.modalBody}>
@@ -1337,7 +1270,7 @@ export default function CoordinatorDashboard() {
                       {signatories.length>1 && (
                         <button onClick={()=>setSignatories(signatories.filter((_,idx)=>idx!==i))}
                           style={{position:"absolute",top:8,right:8,width:22,height:22,background:"var(--danger-50)",color:"var(--danger-700)",border:"1px solid var(--danger-100)",borderRadius:6,cursor:"pointer",fontWeight:700,fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>
-                          ✕
+                          <Icon name="close" size={14} />
                         </button>
                       )}
                       <div>
@@ -1531,7 +1464,7 @@ export default function CoordinatorDashboard() {
                     onChange={(e)=>setSecurePdf(e.target.checked)}
                     style={{width:15,height:15,cursor:"pointer"}}
                   />
-                  🔒 Secure this report with a password
+                  <Icon name="lock" size={14} /> Secure this report with a password
                 </label>
               ) : (
                 <span style={{fontSize:12,color:"var(--text-secondary)",marginRight:"auto"}}>

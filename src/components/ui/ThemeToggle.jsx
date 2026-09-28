@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useTheme } from "@/context/ThemeContext";
 import styles from "./ThemeToggle.module.css";
 
@@ -15,7 +16,7 @@ export default function ThemeToggle({ className = "" }) {
     >
       <span className={styles.track} data-dark={isDark}>
         <span className={styles.thumb}>
-          {isDark ? "🌙" : "☀️"}
+          <Icon name={isDark ? "moon" : "sun"} size={14} />
         </span>
       </span>
     </button>

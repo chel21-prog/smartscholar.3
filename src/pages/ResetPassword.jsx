@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
@@ -101,7 +102,7 @@ export default function ResetPassword() {
 
         {success && (
           <div style={styles.successBox}>
-            ✓ Password updated! Redirecting you to login…
+            <Icon name="check" size={14} /> Password updated! Redirecting you to login…
           </div>
         )}
 

@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useState } from "react";
 import { hasAcceptedTerms, setAcceptedTerms } from "../lib/termsConsent";
 import { supabase, persistRememberMe, clearRememberMe } from "../lib/supabase";
@@ -174,11 +175,11 @@ export default function Login() {
         </p>
 
         <div className={styles.features}>
-  <div>✓ Apply for scholarships online</div>
-  <div>✓ Track application progress</div>
-  <div>✓ Submit compliance requirements</div>
-  <div>✓ Receive scholarship notifications</div>
-  <div>✓ Secure document management</div>
+  <div><Icon name="check" size={14} /> Apply for scholarships online</div>
+  <div><Icon name="check" size={14} /> Track application progress</div>
+  <div><Icon name="check" size={14} /> Submit compliance requirements</div>
+  <div><Icon name="check" size={14} /> Receive scholarship notifications</div>
+  <div><Icon name="check" size={14} /> Secure document management</div>
 </div>
 
        

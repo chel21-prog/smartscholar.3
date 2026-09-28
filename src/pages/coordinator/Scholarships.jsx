@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -587,7 +588,7 @@ export default function Scholarships() {
           <div className={s.modal}>
             <div className={s.modalHeader}>
               <h2 className={s.modalTitle}>Requirements</h2>
-              <button className={s.closeBtn} onClick={closeModal}>✕</button>
+              <button className={s.closeBtn} onClick={closeModal}><Icon name="close" size={14} /></button>
             </div>
             <div className={s.modalBody}>
               <h3 className={s.sectionLabel}>Application Requirements</h3>
@@ -612,7 +613,7 @@ export default function Scholarships() {
           <div className={s.modal}>
             <div className={s.modalHeader}>
               <h2 className={s.modalTitle}>{formData.title}</h2>
-              <button className={s.closeBtn} onClick={closeModal}>✕</button>
+              <button className={s.closeBtn} onClick={closeModal}><Icon name="close" size={14} /></button>
             </div>
             <div className={s.modalBody}>
               <h3 className={s.sectionLabel}>Terms &amp; Conditions</h3>
@@ -643,7 +644,7 @@ export default function Scholarships() {
                 <h2 className={s.modalTitle}>{editMode ? "Edit Scholarship" : "Add Scholarship"}</h2>
                 <p className={s.modalSub}>Set up the scholarship, choose its requirements, then build the application form.</p>
               </div>
-              <button className={s.closeBtn} onClick={closeModal} aria-label="Close">✕</button>
+              <button className={s.closeBtn} onClick={closeModal} aria-label="Close"><Icon name="close" size={14} /></button>
             </div>
 
             {/* ── step tabs ── */}

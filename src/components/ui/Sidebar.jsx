@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useSession } from "@/context/SessionContext";
@@ -50,7 +51,7 @@ export default function Sidebar({ roleLabel, links, open, setOpen }) {
     <>
       <aside className={`${styles.sidebar} ${open ? styles.show : ""}`}>
         <button className={styles.closeBtn} onClick={close} aria-label="Close navigation menu">
-          ✕
+          <Icon name="close" size={14} />
         </button>
 
         <div className={styles.logoBox}>

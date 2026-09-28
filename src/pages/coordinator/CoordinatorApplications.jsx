@@ -1,7 +1,6 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import StatCard from "@/components/ui/StatCard";
@@ -32,10 +31,6 @@ export default function CoordinatorApplications() {
 const [currentPage, setCurrentPage] = useState(1);
 
 const [rowsPerPage] = useState(10);
-  const HEADER_HEIGHT = 30;
-const FOOTER_HEIGHT = 20;
-const MARGIN_TOP = 10;
-const MARGIN_BOTTOM = 10;
 const [approveOpen, setApproveOpen] = useState(false);
 
 const [rejectOpen, setRejectOpen] = useState(false);
@@ -175,21 +170,6 @@ const [sendNotification, setSendNotification] = useState(true);
   // =========================
   // APPROVE / REJECT
   // =========================
-  const updateStatus = async (id, status) => {
-    const { error } = await supabase
-      .from("scholarship_applications")
-      .update({ status })
-      .eq("application_id", id);
-
-    if (error) return toast.error(error.message);
-
-    setApplications((prev) =>
-      prev.map((a) =>
-        a.application_id === id ? { ...a, status } : a
-      )
-    );
-  };
- 
   const openApproveModal = (application) => {
 
 setSelectedApplication(application);
@@ -343,7 +323,7 @@ await load();
 };
 
   // =========================
-  // ⭐ EXPORT SINGLE APPLICATION
+  // EXPORT SINGLE APPLICATION
   // =========================
   const openExportConfirm = async (app) => {
     setExportTarget(app);
@@ -359,6 +339,10 @@ await load();
 
   const exportApplicationPDF = async (app) => {
   setExporting(true);
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
   const headerImage = await getBase64Image("/header.png");
   const footerImage = await getBase64Image("/footer.png");
 
@@ -685,7 +669,7 @@ const paginated = filtered.slice(
                   Applied for <strong>{selectedApp.scholarships?.scholarship_name || "—"}</strong>
                 </p>
               </div>
-              <button className={styles.closeBtn} onClick={closeViewModal} aria-label="Close">✕</button>
+              <button className={styles.closeBtn} onClick={closeViewModal} aria-label="Close"><Icon name="close" size={14} /></button>
             </div>
 
             <div className={styles.modalBody}>
@@ -833,7 +817,7 @@ approveOpen && (
         className={styles.closeBtn}
         onClick={() => setApproveOpen(false)}
       >
-        ✕
+        <Icon name="close" size={14} />
       </button>
     </div>
 
@@ -919,7 +903,7 @@ approveOpen && (
         className={styles.closeBtn}
         onClick={() => setRejectOpen(false)}
       >
-        ✕
+        <Icon name="close" size={14} />
       </button>
     </div>
 
@@ -1019,7 +1003,7 @@ approveOpen && (
               onChange={(e) => setExportSecure(e.target.checked)}
               style={{ width: 15, height: 15, cursor: "pointer" }}
             />
-            🔒 Secure this PDF with a password
+            <Icon name="lock" size={14} /> Secure this PDF with a password
           </label>
         ) : (
           <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary)" }}>

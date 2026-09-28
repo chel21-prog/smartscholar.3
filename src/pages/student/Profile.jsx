@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -409,7 +410,7 @@ export default function Profile() {
             marginBottom: "var(--space-5)",
           }}
         >
-          <span aria-hidden="true" style={{ fontSize: "1.2em", lineHeight: 1 }}>⚠️</span>
+          <Icon name="alert" size={20} />
           <div>
             <strong>Please complete your profile to continue.</strong>
             <p style={{ margin: "4px 0 0" }}>
@@ -429,10 +430,10 @@ export default function Profile() {
           action={
             <span className={styles.saveStatus} data-state={saveState}>
               {saveState === "saving" && "Saving…"}
-              {saveState === "saved" && "✓ Saved"}
+              {saveState === "saved" && (<><Icon name="check" size={13} /> Saved</>)}
               {saveState === "error" && (
                 <>
-                  ⚠ Couldn't save
+                  <Icon name="alert" size={13} /> Couldn't save
                   <button type="button" className={styles.retryBtn} onClick={retrySave}>
                     Retry
                   </button>

@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import Icon from "@/components/ui/Icon";
+import { Suspense, useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "@/components/ui/Sidebar";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import PageLoader from "@/components/ui/PageLoader";
 import HelpGuide from "@/components/ui/HelpGuide";
 import NotificationBell from "@/components/student/NotificationBell";
 import styles from "./PortalLayout.module.css";
@@ -46,7 +48,7 @@ export default function PortalLayout({ role, roleLabel, links, showNotifications
       onClick={() => setSidebarOpen(true)}
       aria-label="Open navigation menu"
     >
-      ☰
+      <Icon name="menu" size={22} />
     </button>
 
     <span
@@ -67,7 +69,9 @@ export default function PortalLayout({ role, roleLabel, links, showNotifications
         </header>
 
         <div className={styles.content}>
-          <Outlet />
+          <Suspense fallback={<PageLoader label="Loading page…" />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>

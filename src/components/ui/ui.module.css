@@ -220,49 +220,123 @@
   animation: loaderFadeIn .25s var(--ease-out);
 }
 
-/* Scholar loader — a graduation cap tossed up and caught (PageLoader.jsx). */
+/* Scholar loader — a scholar sprinting with a diploma (PageLoader.jsx).
+   Everything is timed off --stride (one full step cycle) so the legs,
+   arms, bounce, ground and dust stay locked together. */
 .scholar {
-  width: 64px; height: 64px;
+  --stride: .72s;
+  width: 132px; height: auto;
   overflow: visible;
 }
 .pageLoaderSm { padding: var(--space-6); gap: var(--space-2); }
-.pageLoaderSm .scholar { width: 40px; height: 40px; }
+.pageLoaderSm .scholar { width: 88px; }
 
-.scholarCap {
-  transform-box: fill-box;
-  transform-origin: 50% 70%;
-  animation: capToss 1.7s cubic-bezier(.45,0,.3,1) infinite;
+.scholar * { transform-box: view-box; }
+
+/* fills */
+.runGown      { fill: var(--navy-600); }
+.runFlap      { fill: var(--navy-600); opacity: .78; }
+.runStole     { fill: var(--teal-500); }
+.runStoleTrim { fill: none; stroke: var(--gold-500); stroke-width: 1.4; stroke-linecap: round; }
+.runSkin, .runHand { fill: #efc29c; }
+.runHair      { fill: #33261f; }
+.runEye       { fill: #33261f; }
+.runGlasses   { fill: none; stroke: var(--navy-900); stroke-width: .8; stroke-linecap: round; }
+.runCapTop    { fill: var(--navy-500); stroke: var(--navy-300); stroke-width: .6; stroke-linejoin: round; }
+.runCapBand   { fill: var(--navy-700); }
+.runGold      { fill: var(--gold-500); }
+.runCord      { fill: none; stroke: var(--gold-500); stroke-width: 1.2; stroke-linecap: round; }
+.runScroll    { fill: #fbf1d5; stroke: var(--gold-600); stroke-width: .6; }
+.runRibbon    { fill: var(--gold-500); }
+.runShoe      { fill: none; stroke: var(--teal-500); stroke-width: 3.4; stroke-linecap: round; }
+.runLimb      { fill: none; stroke: var(--navy-500); stroke-width: 4.4; stroke-linecap: round; }
+.runLegFar    { stroke: var(--navy-700); }
+
+/* ground + shadow */
+.runGround {
+  stroke: currentColor; stroke-width: 1.4; stroke-linecap: round;
+  stroke-dasharray: 9 11; opacity: .28;
+  animation: runGround calc(var(--stride) / 2) linear infinite;
 }
-.scholarTassel {
-  transform-box: view-box;
-  transform-origin: 51px 27px;
-  animation: tasselSwing 1.7s ease-in-out infinite;
-}
-.scholarShadow {
-  fill: currentColor;
-  opacity: .16;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: capShadow 1.7s cubic-bezier(.45,0,.3,1) infinite;
-}
+.runShadow { fill: currentColor; opacity: .14; animation: runShadow calc(var(--stride) / 2) ease-in-out infinite; transform-origin: 60px 73.4px; }
+
+/* body bounce (two footfalls per stride) */
+.runBob { animation: runBob var(--stride) ease-in-out infinite; }
+
+/* legs — the far leg runs half a stride behind the near one */
+.runThigh { transform-origin: 60px 50px;  animation: runThigh var(--stride) ease-in-out infinite; }
+.runShin  { transform-origin: 60px 60px;  animation: runShin  var(--stride) ease-in-out infinite; }
+.runLegA  { animation-delay: 0s; }
+.runLegB  { animation-delay: calc(var(--stride) / -2); }
+
+/* arms swing against the leg on the same side; forearms stay bent */
+.runArm  { transform-origin: 61px 31px; animation: runArm var(--stride) ease-in-out infinite; }
+.runFore { transform-origin: 61px 39px; animation: runFore var(--stride) ease-in-out infinite; }
+.runArmB, .runForeB { animation-delay: calc(var(--stride) / -2); }
+
+/* cloth + tassel streaming in the wind */
+.runFlap   { transform-origin: 53px 38px; animation: runFlap calc(var(--stride) / 2) ease-in-out infinite alternate; }
+.runTassel { transform-origin: 75px 14.6px; animation: runTassel calc(var(--stride) / 2) ease-in-out infinite alternate; }
+
+/* requirement sheets peeling off behind, and dust at the heels */
+.runSheet { fill: var(--surface); stroke: var(--ink-300); stroke-width: .7; opacity: 0; animation: runSheet calc(var(--stride) * 2.4) ease-out infinite; }
+.runSheet path { fill: none; stroke: var(--ink-300); stroke-width: .7; stroke-linecap: round; }
+.runSheet1 { animation-delay: 0s; }
+.runSheet2 { animation-delay: calc(var(--stride) * -.8); }
+.runSheet3 { animation-delay: calc(var(--stride) * -1.6); }
+.runPuff { fill: currentColor; opacity: 0; transform-box: fill-box; transform-origin: center; animation: runPuff var(--stride) ease-out infinite; }
+.runPuff1 { animation-delay: 0s; }
+.runPuff2 { animation-delay: calc(var(--stride) / -2); }
+
 .pageLoaderLabel { animation: loaderPulse 1.6s ease-in-out infinite; }
 
-@keyframes capToss {
-  0%   { transform: translateY(0) rotate(0deg); }
-  38%  { transform: translateY(-13px) rotate(-12deg); }
-  62%  { transform: translateY(-13px) rotate(8deg); }
-  84%  { transform: translateY(0) rotate(-2deg); }
-  100% { transform: translateY(0) rotate(0deg); }
+@keyframes runGround { to { stroke-dashoffset: 20; } }
+@keyframes runShadow {
+  0%, 50%, 100% { transform: scaleX(1);   opacity: .14; }
+  25%, 75%      { transform: scaleX(.78); opacity: .08; }
 }
-@keyframes tasselSwing {
-  0%, 100% { transform: rotate(0deg); }
-  30%      { transform: rotate(-22deg); }
-  55%      { transform: rotate(16deg); }
-  80%      { transform: rotate(-6deg); }
+@keyframes runBob {
+  0%, 50%, 100% { transform: translateY(1px); }
+  25%, 75%      { transform: translateY(-1.6px); }
 }
-@keyframes capShadow {
-  0%, 100% { transform: scaleX(1);   opacity: .16; }
-  38%, 62% { transform: scaleX(.65); opacity: .07; }
+@keyframes runThigh {
+  0%   { transform: rotate(-38deg); }
+  30%  { transform: rotate(4deg); }
+  55%  { transform: rotate(32deg); }
+  78%  { transform: rotate(-4deg); }
+  100% { transform: rotate(-38deg); }
+}
+@keyframes runShin {
+  0%   { transform: rotate(8deg); }
+  30%  { transform: rotate(4deg); }
+  55%  { transform: rotate(22deg); }
+  78%  { transform: rotate(88deg); }
+  100% { transform: rotate(8deg); }
+}
+@keyframes runArm {
+  0%, 100% { transform: rotate(44deg); }
+  50%      { transform: rotate(-50deg); }
+}
+@keyframes runFore {
+  0%, 100% { transform: rotate(-58deg); }
+  50%      { transform: rotate(-98deg); }
+}
+@keyframes runFlap {
+  from { transform: rotate(-7deg) scaleX(.96); }
+  to   { transform: rotate(6deg)  scaleX(1.12); }
+}
+@keyframes runTassel {
+  from { transform: rotate(-30deg); }
+  to   { transform: rotate(16deg); }
+}
+@keyframes runSheet {
+  0%   { opacity: 0;  transform: translate(0, 0) rotate(0deg); }
+  12%  { opacity: 1; }
+  100% { opacity: 0;  transform: translate(-38px, -7px) rotate(-52deg); }
+}
+@keyframes runPuff {
+  0%   { opacity: .3; transform: translate(0, 0) scale(.5); }
+  100% { opacity: 0;  transform: translate(-11px, -3px) scale(1.7); }
 }
 
 @keyframes loaderFadeIn {
@@ -275,19 +349,20 @@
   50%      { opacity: 1; }
 }
 
-/* Applied to page content once data has loaded, so it eases in instead
-   of popping — pair with a `key` change or conditional render. */
-.contentFadeIn {
-  animation: loaderFadeIn .3s var(--ease-out);
-}
-
+/* Reduced motion: the scholar just stands mid-stride, no movement. */
 @media (prefers-reduced-motion: reduce) {
   .pageLoader,
   .pageLoaderLabel,
-  .scholarCap,
-  .scholarTassel,
-  .scholarShadow,
-  .contentFadeIn {
+  .scholar * {
     animation: none !important;
   }
+  .runSheet, .runPuff { display: none; }
+  .runThigh.runLegA { transform: rotate(-22deg); }
+  .runShin.runLegA  { transform: rotate(20deg); }
+  .runThigh.runLegB { transform: rotate(20deg); }
+  .runShin.runLegB  { transform: rotate(35deg); }
+  .runArmA { transform: rotate(-30deg); }
+  .runForeA { transform: rotate(-80deg); }
+  .runArmB { transform: rotate(30deg); }
+  .runForeB { transform: rotate(-70deg); }
 }

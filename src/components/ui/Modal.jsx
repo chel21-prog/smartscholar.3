@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useRef } from "react";
 import styles from "./ui.module.css";
 
@@ -82,7 +83,7 @@ export default function Modal({
                 onClick={onClose}
                 aria-label="Close dialog"
               >
-                ✕
+                <Icon name="close" size={14} />
               </button>
             )}
           </div>

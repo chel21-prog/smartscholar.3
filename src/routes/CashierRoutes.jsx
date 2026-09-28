@@ -1,11 +1,12 @@
+import { lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import PortalLayout from "@/layouts/PortalLayout";
 import RoleGuard from "@/components/RoleGuard";
-import Dashboard from "@/pages/cashier/Dashboard";
-import Grantees from "@/pages/cashier/Grantees";
-import Funds from "@/pages/cashier/Funds";
-import LiquidationReport from "@/pages/cashier/LiquidationReport";
-import Settings from "@/pages/settings/Settings";
+const Dashboard = lazy(() => import("@/pages/cashier/Dashboard"));
+const Grantees = lazy(() => import("@/pages/cashier/Grantees"));
+const Funds = lazy(() => import("@/pages/cashier/Funds"));
+const LiquidationReport = lazy(() => import("@/pages/cashier/LiquidationReport"));
+const Settings = lazy(() => import("@/pages/settings/Settings"));
 
 const LINKS = [
   { to: "/cashier/dashboard",   label: "Dashboard"           },

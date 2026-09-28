@@ -1,13 +1,14 @@
+import { lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import PortalLayout from "@/layouts/PortalLayout";
 import RoleGuard from "@/components/RoleGuard";
 import ProfileGuard from "@/components/ProfileGuard";
-import Dashboard from "@/pages/student/Dashboard";
-import Profile from "@/pages/student/Profile";
-import Applications from "@/pages/student/Applications";
-import Compliance from "@/pages/student/Compliance";
-import Concerns from "@/pages/student/Concerns";
-import Settings from "@/pages/settings/Settings";
+const Dashboard = lazy(() => import("@/pages/student/Dashboard"));
+const Profile = lazy(() => import("@/pages/student/Profile"));
+const Applications = lazy(() => import("@/pages/student/Applications"));
+const Compliance = lazy(() => import("@/pages/student/Compliance"));
+const Concerns = lazy(() => import("@/pages/student/Concerns"));
+const Settings = lazy(() => import("@/pages/settings/Settings"));
 
 const LINKS = [
   { to: "/student/dashboard",    label: "Dashboard"    },

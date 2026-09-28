@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -229,7 +230,7 @@ export default function NotificationBell() {
                       aria-label="Delete notification"
                       title="Delete notification"
                     >
-                      ✕
+                      <Icon name="close" size={14} />
                     </button>
                   </div>
                   <p className={styles.itemMessage}>{n.message}</p>

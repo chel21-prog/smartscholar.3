@@ -2,7 +2,8 @@
     color:var(--text-primary);
     font-family:var(--font-sans);}
 
-.header, .toolbar, .pagination { flex-shrink:0; }.statsRow {
+.header,
+.pagination { flex-shrink:0; }.statsRow {
     flex-shrink:0;}
 .pagination {
   display: flex; justify-content: space-between; align-items: center;
@@ -20,21 +21,6 @@
 .pageBtn:hover:not(:disabled) { background: var(--navy-50); }
 .pageBtn:disabled { opacity: .45; cursor: not-allowed; }.header {
     flex-shrink:0;}
-
-
-
-/* ===========================
-   CARD
-=========================== */
-
-.card{
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:16px;
-    padding:10px;
-    box-shadow:var(--shadow-sm);
-    overflow-x:auto;
-}
 
 /* ===========================
    TABLE
@@ -64,10 +50,6 @@
     width:100%;
     border-collapse:collapse;
     min-width:1050px;
-}
-
-.thead{
-    background:var(--navy-900);
 }
 
 .th {
@@ -226,25 +208,6 @@
 .statusInactive { color: var(--status-neutral); }
 
 /* ===========================
-   BUTTONS
-=========================== */
-
-.statusBtn{
-    padding:9px 16px;
-    background:var(--navy-600);
-    color:#fff;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:600;
-    transition:.2s;
-}
-
-.statusBtn:hover{
-    background:var(--navy-700);
-}
-
-/* ===========================
    MODAL
 =========================== */
 
@@ -257,13 +220,6 @@
     justify-content:center;
     align-items:center;
     z-index:999;
-}
-.toolbar{
-    display:flex;
-    gap:15px;
-    flex-wrap:wrap;
-    align-items:center;
-    flex-shrink:0;
 }
 .modal {
     max-width: 100%;
@@ -362,23 +318,6 @@
     background: var(--navy-50);
     border: 1px solid var(--navy-100);
     border-radius: 12px;
-}
-
-.studentAvatar {
-    width: 42px;
-    height: 42px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 50%;
-
-    background: var(--navy-600);
-    color: #fff;
-
-    font-size: 17px;
-    font-weight: 700;
 }
 
 .studentLabel {
@@ -516,8 +455,7 @@
 /* ===========================
    RESPONSIVE
 =========================== */
-@media (max-width: 768px) {  .card { padding: 8px; }
-  .remarkWrap, .remarkInput { width: 140px; }
+@media (max-width: 768px) {  .remarkWrap, .remarkInput { width: 140px; }
   .colOptional { display: none; }
   .table { min-width: 620px; font-size: 12px; }
   .th, .td { padding: 8px 10px; }

@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -633,7 +634,7 @@ export default function AnnouncementModal({ open, onClose, types }) {
                         aria-label="Delete template"
                         onClick={(e) => { e.stopPropagation(); deleteTemplate(t.template_id); }}
                         onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); deleteTemplate(t.template_id); } }}
-                      >✕</span>
+                      ><Icon name="close" size={14} /></span>
                     </div>
                     <div className={styles.tplName}>{t.name}</div>
                     {tgt && <div className={styles.tplAudience}>{tgt.label}</div>}
@@ -650,7 +651,7 @@ export default function AnnouncementModal({ open, onClose, types }) {
       {step === "compose" && (
         sent ? (
           <div className={styles.sentBox}>
-            <div className={styles.sentIcon}>✓</div>
+            <div className={styles.sentIcon}><Icon name="check" size={26} strokeWidth={2.4} /></div>
             <h3 style={{margin:"0 0 6px",color:"var(--success-700)"}}>Announcement sent!</h3>
             <p style={{margin:"0 0 4px",fontSize:15,fontWeight:700,color:"var(--text-primary)"}}>
               {sentCount} recipient{sentCount !== 1 ? "s" : ""} notified

@@ -1,6 +1,5 @@
 
 
-
 .grid{
     display:grid;
     grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
@@ -89,21 +88,6 @@
     border:2px solid var(--navy-700);
 }
 
-.addBtn{
-    padding:12px;
-    border:none;
-    border-radius:var(--radius-md);
-    background:var(--navy-700);
-    color:#fff;
-    font-weight:600;
-    cursor:pointer;
-    transition:.2s;
-}
-
-.addBtn:hover{
-    background:var(--navy-800);
-}
-
 .divider{
     border:none;
     border-top:1px solid var(--border);
@@ -150,11 +134,6 @@
     align-items:center;
 }
 
-.requirementName{
-    font-weight:700;
-    color:var(--text-primary);
-}
-
 .badge{
     display:inline-flex;
     align-items:center;
@@ -193,21 +172,6 @@
     background:var(--navy-700);
     color:#fff;
     border:2px solid var(--navy-700);
-}
-
-.primaryBtn{
-    padding:12px;
-    border:none;
-    border-radius:10px;
-    background:var(--navy-700);
-    color:#fff;
-    font-weight:600;
-    cursor:pointer;
-    transition:.2s;
-}
-
-.primaryBtn:hover{
-    background:var(--navy-800);
 }
 
 .divider{
@@ -287,34 +251,6 @@
   flex-wrap: wrap;
 }
 
-.tplBtn {
-  padding: 6px 11px;
-  background: var(--navy-50);
-  color: var(--navy-700);
-  border: 1px solid var(--navy-100);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color var(--duration-fast);
-}
-.tplBtn:hover { background: var(--navy-100); }
-
-.tplBtnSecondary {
-  padding: 6px 11px;
-  background: var(--gold-50);
-  color: var(--gold-700);
-  border: 1px solid var(--gold-100);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color var(--duration-fast);
-}
-.tplBtnSecondary:hover { background: var(--gold-100); }
-
 .tplPicker {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -382,32 +318,6 @@
   flex-shrink: 0;
 }
 
-.tplUseBtn {
-  padding: 5px 12px;
-  background: var(--navy-600);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.tplUseBtn:hover { background: var(--navy-700); }
-.tplUseBtn:disabled { opacity: .55; cursor: not-allowed; }
-
-.tplDelBtn {
-  padding: 5px 10px;
-  background: var(--danger-50);
-  color: var(--danger-700);
-  border: 1px solid var(--danger-100);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.tplDelBtn:hover { background: var(--danger-100); }
-
 .tplSaveRow {
   display: flex;
   gap: var(--space-2);
@@ -443,18 +353,6 @@
   cursor: pointer;
   flex-shrink: 0;
 }
-
-.deleteBtn {
-  padding: 4px 10px;
-  background: var(--danger-50);
-  color: var(--danger-700);
-  border: 1px solid var(--danger-100);
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.deleteBtn:hover { background: var(--danger-100); }
 
 /* ===========================
    RESPONSIVE

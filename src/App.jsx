@@ -1,15 +1,17 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useSession } from "@/context/SessionContext";
 import PageLoader from "@/components/ui/PageLoader";
 import SiteNotice from "@/components/ui/SiteNotice";
 
-import Signup from "./pages/Signup";
 import Login from "./pages/Login";
-import AuthCallback from "./pages/AuthCallback";
-import ResetPassword from "./pages/ResetPassword";
-import StudentRoutes from "./routes/StudentRoutes";
-import CoordinatorRoutes from "./routes/CoordinatorRoutes";
-import CashierRoutes from "./routes/CashierRoutes";
+
+const Signup = lazy(() => import("./pages/Signup"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const StudentRoutes = lazy(() => import("./routes/StudentRoutes"));
+const CoordinatorRoutes = lazy(() => import("./routes/CoordinatorRoutes"));
+const CashierRoutes = lazy(() => import("./routes/CashierRoutes"));
 
 const ROLE_HOME = {
   Student: "/student/dashboard",
@@ -31,6 +33,7 @@ function App() {
   return (
     <>
     <SiteNotice />
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/" element={<SmartRedirect />} />
 
@@ -45,6 +48,7 @@ function App() {
       <Route path="/coordinator/*" element={<CoordinatorRoutes />} />
       <Route path="/cashier/*" element={<CashierRoutes />} />
     </Routes>
+    </Suspense>
     </>
   );
 }

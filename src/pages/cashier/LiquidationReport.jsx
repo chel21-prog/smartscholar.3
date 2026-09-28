@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import NumberInput from "@/components/ui/NumberInput";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/context/ToastContext";
 import { formatPeso, formatDate } from "@/lib/format";
@@ -143,6 +141,10 @@ export default function LiquidationReport() {
     }
 
     setGenerating(true);
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
     const headerImage = await getBase64Image("/header.png");
     const footerImage = await getBase64Image("/footer.png");
     const doc = new jsPDF();

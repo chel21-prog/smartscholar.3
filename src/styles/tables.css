@@ -7,7 +7,7 @@
    Look: compact rows, small type, clearly visible header, hairline row
    dividers. Long text NEVER wraps or stretches a row — it is cut
    off with an ellipsis on a single line, and the full text shows
-   as a tooltip on hover (lib/tableTruncate.js).
+   in a popover on hover (lib/expandOnHover.js).
 
    Rows that span the whole table (loading skeletons, empty states —
    a single <td colspan>) are excluded from hover and truncation.

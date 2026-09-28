@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, Badge, EmptyState } from "@/components/ui/Card";
@@ -228,7 +229,7 @@ export default function Applications() {
       {applications.length === 0 ? (
         <Card>
           <EmptyState
-            icon="📄"
+            icon={<Icon name="file" size={26} />}
             title="No applications yet"
             description="Once you apply for a scholarship from the Dashboard, it'll show up here so you can track its status."
           />

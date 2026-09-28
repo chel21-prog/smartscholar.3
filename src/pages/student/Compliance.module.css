@@ -105,11 +105,6 @@
   pointer-events: none;
 }
 
-.uploadIcon {
-  font-style: normal;
-  font-weight: 700;
-}
-
 .uploadSpinner {
   width: 12px;
   height: 12px;
@@ -124,10 +119,3 @@
   to { transform: rotate(360deg); }
 }
 
-/* "Submitted" badge override so it can be custom-colored (Badge
-   normally sets its own background; this is for the "submitted"
-   tone which maps to success via the STATUS_TONE_MAP) */
-.submittedBadge {
-  background: var(--success-100);
-  color: var(--success-700);
-}

@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import GUIDES from "./guideContent";
@@ -101,7 +102,7 @@ export default function HelpGuide({ role }) {
         >
           <div className={styles.panelHeader}>
             <span className={styles.roleTag}>{role} Portal</span>
-            <button className={styles.closeBtn} onClick={() => setOpen(false)} aria-label="Close guide">✕</button>
+            <button className={styles.closeBtn} onClick={() => setOpen(false)} aria-label="Close guide"><Icon name="close" size={14} /></button>
           </div>
 
           <p className={styles.overview}>{guide.overview}</p>

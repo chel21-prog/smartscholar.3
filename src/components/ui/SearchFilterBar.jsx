@@ -1,3 +1,4 @@
+import Icon from "@/components/ui/Icon";
 import f from "./SearchFilterBar.module.css";
 import FilterDropdown from "./FilterDropdown";
 
@@ -61,7 +62,7 @@ export default function SearchFilterBar({
               aria-label="Clear search"
               onClick={() => onSearchChange("")}
             >
-              ✕
+              <Icon name="close" size={14} />
             </button>
           )}
         </div>
@@ -88,7 +89,7 @@ export default function SearchFilterBar({
           {hasSearch && (
             <span className={f.chip}>
               Search: "{search}"
-              <button type="button" className={f.chipX} aria-label="Remove search" onClick={() => onSearchChange("")}>✕</button>
+              <button type="button" className={f.chipX} aria-label="Remove search" onClick={() => onSearchChange("")}><Icon name="close" size={14} /></button>
             </span>
           )}
           {activeFilters.map((flt) => {
@@ -102,7 +103,7 @@ export default function SearchFilterBar({
                   aria-label={`Remove ${flt.label} filter`}
                   onClick={() => flt.onChange(flt.options[0].value)}
                 >
-                  ✕
+                  <Icon name="close" size={14} />
                 </button>
               </span>
             );
