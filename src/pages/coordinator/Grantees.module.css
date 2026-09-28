@@ -249,3 +249,171 @@
 }
 
 .header, .statsRow, .toolbar, .pagination { flex-shrink: 0; }
+
+
+/* ===========================
+   VERIFY GRANTEE MODAL
+   (same card + labelled-field look as Add Scholarship)
+=========================== */
+.vfWrap { display: flex; flex-direction: column; gap: 14px; }
+
+.vfWho {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+.vfAvatar {
+    width: 46px; height: 46px; flex-shrink: 0; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--navy-600); color: #fff;
+    font-size: 18px; font-weight: 700;
+}
+.vfWhoText { min-width: 0; flex: 1; }
+.vfName { margin: 0; font-size: var(--text-md); font-weight: 700; color: var(--text-primary); }
+.vfMeta { margin: 2px 0 0; font-size: var(--text-sm); color: var(--text-secondary); }
+.vfChips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.vfChip {
+    padding: 3px 10px; border-radius: var(--radius-full);
+    background: var(--navy-100); color: var(--navy-700);
+    font-size: 12px; font-weight: 600;
+}
+
+.vfCard {
+    display: flex; flex-direction: column; gap: 14px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+.vfCardTitle { margin: 0; font-size: var(--text-md); font-weight: 700; color: var(--text-primary); }
+.vfHint { margin: 2px 0 0; font-size: var(--text-sm); color: var(--text-secondary); }
+.vfReq { color: var(--danger-600); }
+
+.vfGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.vfSpan { grid-column: 1 / -1; }
+.vfField { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.vfLabel {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    font-size: var(--text-sm); font-weight: 600; color: var(--text-primary);
+}
+
+.vfInput {
+    box-sizing: border-box; width: 100%; height: 36px;
+    padding: 0 12px;
+    background: var(--surface); color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    font-size: 14px; font-family: var(--font-sans);
+}
+.vfTextarea { height: auto; min-height: 64px; padding: 9px 12px; resize: vertical; }
+.vfFileVal {
+    display: flex; align-items: center; height: 36px; padding: 0 12px;
+    background: var(--surface-muted); color: var(--text-primary);
+    border: 1px dashed var(--border-strong); border-radius: var(--radius-md);
+    font-size: 14px; font-weight: 600;
+}
+
+.vfMatch {
+    padding: 1px 8px; border-radius: var(--radius-full);
+    font-size: 11px; font-weight: 700;
+}
+.vfMatchOk   { background: var(--success-100); color: var(--success-700); }
+.vfMatchDiff { background: var(--warning-100); color: var(--warning-700); }
+
+/* result choices */
+.vfChoices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.vfChoice {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+    padding: 12px; text-align: left; cursor: pointer;
+    background: var(--surface); color: var(--text-primary);
+    border: 1.5px solid var(--border); border-radius: var(--radius-lg);
+    transition: border-color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+}
+.vfChoiceIcon {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--surface-muted); color: var(--text-secondary);
+    border: 1px solid var(--border-strong);
+    font-size: 12px; font-weight: 700;
+}
+.vfChoiceTitle { font-size: 14px; font-weight: 700; }
+.vfChoiceDesc { font-size: 12px; line-height: 1.4; color: var(--text-secondary); }
+
+.vfEligible.vfOn   { border-color: var(--teal-600);   background: var(--success-50); }
+.vfMismatch.vfOn   { border-color: var(--gold-600);   background: var(--warning-50); }
+.vfIneligible.vfOn { border-color: var(--danger-600); background: var(--danger-50); }
+.vfEligible.vfOn   .vfChoiceIcon { background: var(--teal-600);   border-color: var(--teal-600);   color: #fff; }
+.vfMismatch.vfOn   .vfChoiceIcon { background: var(--gold-600);   border-color: var(--gold-600);   color: #fff; }
+.vfIneligible.vfOn .vfChoiceIcon { background: var(--danger-600); border-color: var(--danger-600); color: #fff; }
+
+.vfNote {
+    margin: 0; padding: 10px 12px; font-size: 12px; line-height: 1.5;
+    background: var(--warning-50); color: var(--warning-700);
+    border: 1px solid var(--warning-100); border-radius: var(--radius-md);
+}
+
+@media (max-width: 600px) {
+    .vfGrid, .vfChoices { grid-template-columns: 1fr; }
+}
+
+
+/* ---- verify: information review ---- */
+.vfCardHead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+
+.vfProgress { height: 6px; border-radius: var(--radius-full); background: var(--surface-muted); border: 1px solid var(--border); overflow: hidden; }
+.vfProgressBar { height: 100%; background: var(--teal-600); border-radius: var(--radius-full); transition: width var(--duration-base) var(--ease-out); }
+.vfProgressText { margin: -6px 0 0; font-size: 12px; color: var(--text-secondary); }
+
+.vfRows { display: flex; flex-direction: column; gap: 8px; }
+.vfRow {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    background: var(--surface);
+    transition: border-color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out);
+}
+.vfRowFlag { border-color: var(--gold-600); background: var(--warning-50); }
+.vfRowMain { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.vfRowInfo { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.vfRowLabel { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--text-secondary); }
+.vfRowVal { font-size: 14px; font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere; }
+.vfRowMissing { font-size: 14px; font-style: italic; color: var(--danger-600); }
+
+/* Accurate / Needs update toggle */
+.vfSeg { display: inline-flex; flex-shrink: 0; border: 1px solid var(--border-strong); border-radius: var(--radius-md); overflow: hidden; }
+.vfSegBtn {
+    padding: 6px 12px; border: none; border-radius: 0;
+    background: var(--surface); color: var(--text-secondary);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.vfSegBtn + .vfSegBtn { border-left: 1px solid var(--border-strong); }
+.vfSegBtn:hover { background: var(--surface-muted); color: var(--text-primary); }
+.vfSegOk,  .vfSegOk:hover  { background: var(--teal-600); color: #fff; }
+.vfSegBad, .vfSegBad:hover { background: var(--gold-600); color: #fff; }
+
+.vfChoiceTop { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px; }
+.vfSuggested {
+    padding: 1px 8px; border-radius: var(--radius-full);
+    background: var(--navy-100); color: var(--navy-700);
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+}
+
+
+/* ---- verify: notify the student ---- */
+.vfNotify {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 12px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+.vfNotifyHead { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--text-primary); cursor: pointer; }
+.vfNotifyHead input { margin-top: 2px; }
+.vfLinkBtn {
+    align-self: flex-start; padding: 0; border: none; background: none; border-radius: 0;
+    color: var(--teal-600); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;
+}

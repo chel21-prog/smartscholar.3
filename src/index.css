@@ -425,3 +425,4 @@ input[type="password"]::-ms-clear { display: none; }
   box-shadow: 0 0 0 3px var(--teal-100);
 }
 #root [data-stepper]:hover:not(:disabled) { box-shadow: none; }
+#root [data-plain-hover]:hover:not(:disabled) { box-shadow: none; }

@@ -14,6 +14,20 @@ import styles from "./Grantees.module.css";
 
 const CACHE_KEY = "coordinator-grantees";
 
+// The details a coordinator reviews when verifying a grantee. `get` reads the
+// value from the fetched student profile (students row + joined users row).
+const VERIFY_FIELDS = [
+  { key: "name",           label: "Full name",       get: (p) => [p.users?.first_name, p.users?.middle_name, p.users?.last_name].filter(Boolean).join(" ") },
+  { key: "school_id",      label: "School ID",       get: (p) => p.school_id },
+  { key: "course",         label: "Program / course", get: (p) => p.course },
+  { key: "year_level",     label: "Year level",      get: (p) => p.year_level },
+  { key: "contact_number", label: "Contact number",  get: (p) => p.contact_number },
+  { key: "email",          label: "Email",           get: (p) => p.users?.email },
+  { key: "gender",         label: "Gender",          get: (p) => p.gender },
+  { key: "ethnicity",      label: "Ethnicity",       get: (p) => p.ethnicity },
+];
+const hasVal = (v) => v !== null && v !== undefined && String(v).trim() !== "" && String(v) !== "N/A";
+
 const VERIFICATION_LABELS = {
   Verified: "Verified",
   "Pending Review": "Pending Review",
@@ -73,8 +87,12 @@ const [yearFilter, setYearFilter] = useState("All");
 
   // ── verification modal ────────────────────────────────────
   const [verifyTarget, setVerifyTarget] = useState(null); // the row being verified
-  const [regStatus, setRegStatus] = useState("");
-  const [regYearLevel, setRegYearLevel] = useState("");
+  const [verifyProfile, setVerifyProfile] = useState(null);   // fresh students + users row for the modal
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [fieldChecks, setFieldChecks] = useState({});          // { [key]: "ok" | "update" }
+  const [fieldNotes, setFieldNotes] = useState({});            // { [key]: "what is wrong" }
+  const [notifyChoice, setNotifyChoice] = useState(null);   // null = follow the default (on when "Needs update")
+  const [notifyMessage, setNotifyMessage] = useState(null);  // null = use the auto-written message
   const [verifyRemarks, setVerifyRemarks] = useState("");
   const [verifyResult, setVerifyResult] = useState("");
   const [terminationReason, setTerminationReason] = useState("");
@@ -611,6 +629,7 @@ const [yearFilter, setYearFilter] = useState("All");
 
     return {
       grantee_id: g.grantee_id,
+      student_id: g.student_id,
       school_id: g.students?.school_id ?? "N/A",
       student_name: `${first} ${last}`.trim() || "Unknown",
       course: g.students?.course ?? "N/A",
@@ -636,16 +655,66 @@ const [yearFilter, setYearFilter] = useState("All");
   setLoading(false);
 };
 
-  const openVerify = (row) => {
+  const openVerify = async (row) => {
     setVerifyTarget(row);
-    setRegStatus("");
-    setRegYearLevel("");
     setVerifyRemarks("");
     setVerifyResult("");
     setTerminationReason("");
+    setFieldChecks({});
+    setFieldNotes({});
+    setNotifyChoice(null);
+    setNotifyMessage(null);
+    setVerifyProfile(null);
+    setVerifyLoading(true);
+
+    // Pull the student's CURRENT profile so the coordinator reviews live data,
+    // not whatever the grantees list cached.
+    const { data } = await supabase
+      .from("students")
+      .select("user_id, school_id, course, year_level, gender, ethnicity, contact_number, users(first_name, middle_name, last_name, email)")
+      .eq("student_id", row.student_id)
+      .maybeSingle();
+
+    const profile = data || {
+      school_id: row.school_id,
+      course: row.course,
+      year_level: row.year_level,
+      users: { first_name: row.student_name },
+    };
+    setVerifyProfile(profile);
+
+    // anything the student never filled in is flagged automatically
+    const auto = {};
+    const notes = {};
+    VERIFY_FIELDS.forEach((f) => {
+      if (!hasVal(f.get(profile))) { auto[f.key] = "update"; notes[f.key] = "Missing"; }
+    });
+    setFieldChecks(auto);
+    setFieldNotes(notes);
+    setVerifyLoading(false);
   };
 
   const closeVerify = () => setVerifyTarget(null);
+
+  // ── notify-the-student helpers (used by the modal and by submitVerification) ──
+  const verifyFlagged = VERIFY_FIELDS.filter((f) => fieldChecks[f.key] === "update");
+  const canNotify =
+    !!verifyTarget && verifyFlagged.length > 0 && (verifyResult === "Mismatch" || verifyResult === "Eligible");
+  const willNotify = canNotify && (notifyChoice ?? verifyResult === "Mismatch");
+  const notifyDefaultMessage = (() => {
+    if (!verifyTarget) return "";
+    const first = verifyProfile?.users?.first_name || verifyTarget.student_name || "there";
+    const lines = verifyFlagged.map((f) =>
+      fieldNotes[f.key]?.trim() ? `• ${f.label} — ${fieldNotes[f.key].trim()}` : `• ${f.label}`
+    );
+    return (
+      `Hi ${first}, we reviewed your information for your ${verifyTarget.scholarship_name} grant ` +
+      `(${verifyTarget.academic_year} · ${verifyTarget.semester}) and found details that need updating:\n\n` +
+      `${lines.join("\n")}\n\n` +
+      `Please update them in your profile as soon as you can so your scholarship stays in good standing.`
+    );
+  })();
+  const notifyText = notifyMessage ?? notifyDefaultMessage;
 
   const submitVerification = async () => {
     if (!verifyTarget || !verifyResult) return;
@@ -666,9 +735,15 @@ const [yearFilter, setYearFilter] = useState("All");
         ? { verification_result: "Pending Review" }
         : { verification_result: "Ineligible", status: "Inactive", termination_reason: terminationReason };
 
-    const remarks = regStatus || regYearLevel
-      ? `Registrar: ${regStatus || "—"}${regYearLevel ? `, Year ${regYearLevel}` : ""}. ${verifyRemarks}`.trim()
-      : verifyRemarks;
+    // Record exactly what was reviewed so the history shows why it was judged this way.
+    const flagged = VERIFY_FIELDS.filter((f) => fieldChecks[f.key] === "update");
+    const okCount = VERIFY_FIELDS.filter((f) => fieldChecks[f.key] === "ok").length;
+    const summary = flagged.length
+      ? `Info check: ${okCount}/${VERIFY_FIELDS.length} accurate. Needs update: ${flagged
+          .map((f) => (fieldNotes[f.key]?.trim() ? `${f.label} (${fieldNotes[f.key].trim()})` : f.label))
+          .join("; ")}.`
+      : `Info check: ${okCount}/${VERIFY_FIELDS.length} accurate.`;
+    const remarks = [summary, verifyRemarks.trim()].filter(Boolean).join(" ");
 
     const { error: updateError } = await supabase
       .from("grantees")
@@ -700,6 +775,33 @@ const [yearFilter, setYearFilter] = useState("All");
     if (historyError) {
       toast.error(historyError.message);
     }
+
+    // Tell the student what to fix. Tries a dedicated "Profile Update" type
+    // (clicking it opens their profile); if the notifications table only
+    // accepts its older types, falls back to "Other" so it still gets sent.
+    let notified = false;
+    if (willNotify && verifyProfile?.user_id && notifyText.trim()) {
+      const base = {
+        user_id: verifyProfile.user_id,
+        title: "Action needed: update your information",
+        message: notifyText.trim(),
+        is_read: false,
+      };
+      let { error: notifError } = await supabase
+        .from("notifications")
+        .insert({ ...base, notification_type: "Profile Update" });
+      if (notifError) {
+        ({ error: notifError } = await supabase
+          .from("notifications")
+          .insert({ ...base, notification_type: "Other" }));
+      }
+      if (notifError) {
+        toast.error("Verification saved, but the student could not be notified: " + notifError.message);
+      } else {
+        notified = true;
+      }
+    }
+    if (notified) toast.success("Verification saved and the student was notified.");
 
     setSavingVerification(false);
     closeVerify();
@@ -1071,108 +1173,244 @@ const endRow =
         open={!!verifyTarget}
         onClose={closeVerify}
         title="Verify Grantee"
+        size="lg"
         footer={
           <>
-            <button className={styles.pageBtn} onClick={closeVerify}>Cancel</button>
-            <button
-              className={styles.documentButton}
+            <Button variant="secondary" onClick={closeVerify}>Cancel</Button>
+            <Button
+              variant="primary"
               disabled={!verifyResult || savingVerification}
               onClick={submitVerification}
             >
-              {savingVerification ? "Saving…" : "Save"}
-            </button>
+              {savingVerification ? "Saving…" : willNotify ? "Save & notify" : "Save"}
+            </Button>
           </>
         }
       >
-        {verifyTarget && (
-          <div className={styles.verifyForm}>
-            <div className={styles.verifySection}>
-              <h4 className={styles.verifySectionTitle}>Student Information</h4>
-              <div className={styles.verifyGrid}>
-                <div><span className={styles.verifyLabel}>Name</span><br />{verifyTarget.student_name}</div>
-                <div><span className={styles.verifyLabel}>School ID</span><br />{verifyTarget.school_id}</div>
-                <div><span className={styles.verifyLabel}>Course</span><br />{verifyTarget.course}</div>
-                <div><span className={styles.verifyLabel}>Year Level (on file)</span><br />{verifyTarget.year_level}</div>
+        {verifyTarget && (() => {
+          const initial = (verifyTarget.student_name || "?").trim().charAt(0).toUpperCase() || "?";
+          const total = VERIFY_FIELDS.length;
+          const okCount = VERIFY_FIELDS.filter((f) => fieldChecks[f.key] === "ok").length;
+          const flaggedCount = VERIFY_FIELDS.filter((f) => fieldChecks[f.key] === "update").length;
+          const reviewed = okCount + flaggedCount;
+          const suggested = flaggedCount > 0 ? "Mismatch" : reviewed === total ? "Eligible" : null;
+          const lastVerified = verifyTarget.last_verified_at
+            ? new Date(verifyTarget.last_verified_at).toLocaleDateString()
+            : null;
+          const setCheck = (key, val) => setFieldChecks((c) => ({ ...c, [key]: val }));
+          const choices = [
+            { id: "Eligible",   label: "Verified",     cls: styles.vfEligible,   icon: "✓", desc: "Information is accurate and up to date." },
+            { id: "Mismatch",   label: "Needs update", cls: styles.vfMismatch,   icon: "!", desc: "Something is wrong or outdated — hold at Pending Review." },
+            { id: "Ineligible", label: "Ineligible",   cls: styles.vfIneligible, icon: "✕", desc: "No longer qualifies — deactivate the grant." },
+          ];
+          return (
+            <div className={styles.vfWrap}>
+              {/* who / what is being verified */}
+              <div className={styles.vfWho}>
+                <div className={styles.vfAvatar} aria-hidden="true">{initial}</div>
+                <div className={styles.vfWhoText}>
+                  <h3 className={styles.vfName}>{verifyTarget.student_name}</h3>
+                  <p className={styles.vfMeta}>
+                    {lastVerified ? `Last verified ${lastVerified}` : "Never verified"}
+                  </p>
+                  <div className={styles.vfChips}>
+                    <span className={styles.vfChip}>{verifyTarget.scholarship_name}</span>
+                    <span className={styles.vfChip}>{verifyTarget.academic_year}</span>
+                    <span className={styles.vfChip}>{verifyTarget.semester}</span>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div className={styles.verifySection}>
-              <h4 className={styles.verifySectionTitle}>Scholarship</h4>
-              <div className={styles.verifyGrid}>
-                <div><span className={styles.verifyLabel}>Name</span><br />{verifyTarget.scholarship_name}</div>
-                <div><span className={styles.verifyLabel}>Academic Year</span><br />{verifyTarget.academic_year}</div>
-                <div><span className={styles.verifyLabel}>Semester</span><br />{verifyTarget.semester}</div>
-              </div>
-            </div>
-
-            <div className={styles.verifySection}>
-              <h4 className={styles.verifySectionTitle}>Registrar Verification</h4>
-              <p className={styles.description}>
-                Compare the student's profile above against what the registrar shows right now.
-              </p>
-              <div className={styles.verifyGrid}>
-                <input
-                  className={styles.search}
-                  placeholder="Registrar enrollment status"
-                  value={regStatus}
-                  onChange={(e) => setRegStatus(e.target.value)}
-                />
-                <NumberInput
-                  className={styles.search}
-                  min={1}
-                  placeholder="Registrar year level"
-                  value={regYearLevel}
-                  onChange={(e) => setRegYearLevel(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <textarea
-              className={styles.search}
-              placeholder="Remarks"
-              rows={2}
-              value={verifyRemarks}
-              onChange={(e) => setVerifyRemarks(e.target.value)}
-            />
-
-            <div className={styles.verifySection}>
-              <h4 className={styles.verifySectionTitle}>Verification Result</h4>
-              <div className={styles.verifyResultRow}>
-                {["Eligible", "Mismatch", "Ineligible"].map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    className={`${styles.select} ${verifyResult === opt ? styles.badge : ""}`}
-                    onClick={() => setVerifyResult(opt)}
+              {/* 1 · review the student's information */}
+              <section className={styles.vfCard}>
+                <div className={styles.vfCardHead}>
+                  <div>
+                    <h3 className={styles.vfCardTitle}>1 · Review student information</h3>
+                    <p className={styles.vfHint}>Check each detail. Flag anything that is wrong, missing or out of date.</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={verifyLoading}
+                    onClick={() =>
+                      setFieldChecks((c) => {
+                        const next = { ...c };
+                        VERIFY_FIELDS.forEach((f) => {
+                          if (next[f.key] !== "update") next[f.key] = "ok";
+                        });
+                        return next;
+                      })
+                    }
                   >
-                    {opt}
-                  </button>
-                ))}
-              </div>
+                    Mark all accurate
+                  </Button>
+                </div>
 
-              {verifyResult === "Ineligible" && (
-                <select
-                  className={styles.select}
-                  value={terminationReason}
-                  onChange={(e) => setTerminationReason(e.target.value)}
-                >
-                  <option value="">Select a reason…</option>
-                  <option value="Graduated">Graduated</option>
-                  <option value="Dropped">Dropped</option>
-                  <option value="Transferred">Transferred</option>
-                  <option value="Scholarship revoked">Scholarship revoked</option>
-                  <option value="Other">Other</option>
-                </select>
-              )}
-
-              {verifyResult === "Mismatch" && (
-                <p className={styles.description}>
-                  This keeps the grantee at Pending Review until they are checked again next verification cycle.
+                <div className={styles.vfProgress} aria-hidden="true">
+                  <div className={styles.vfProgressBar} style={{ width: `${(reviewed / total) * 100}%` }} />
+                </div>
+                <p className={styles.vfProgressText}>
+                  {reviewed} of {total} reviewed{flaggedCount > 0 ? ` · ${flaggedCount} flagged` : ""}
                 </p>
-              )}
+
+                {verifyLoading || !verifyProfile ? (
+                  <p className={styles.vfHint}>Loading student details…</p>
+                ) : (
+                  <div className={styles.vfRows}>
+                    {VERIFY_FIELDS.map((f) => {
+                      const val = f.get(verifyProfile);
+                      const check = fieldChecks[f.key];
+                      return (
+                        <div key={f.key} className={`${styles.vfRow} ${check === "update" ? styles.vfRowFlag : ""}`}>
+                          <div className={styles.vfRowMain}>
+                            <div className={styles.vfRowInfo}>
+                              <span className={styles.vfRowLabel}>{f.label}</span>
+                              <span className={hasVal(val) ? styles.vfRowVal : styles.vfRowMissing}>
+                                {hasVal(val) ? val : "Not provided"}
+                              </span>
+                            </div>
+                            <div className={styles.vfSeg} role="radiogroup" aria-label={`${f.label} check`}>
+                              <button
+                                type="button" role="radio" aria-checked={check === "ok"} data-plain-hover=""
+                                className={`${styles.vfSegBtn} ${check === "ok" ? styles.vfSegOk : ""}`}
+                                onClick={() => setCheck(f.key, "ok")}
+                              >
+                                Accurate
+                              </button>
+                              <button
+                                type="button" role="radio" aria-checked={check === "update"} data-plain-hover=""
+                                className={`${styles.vfSegBtn} ${check === "update" ? styles.vfSegBad : ""}`}
+                                onClick={() => setCheck(f.key, "update")}
+                              >
+                                Needs update
+                              </button>
+                            </div>
+                          </div>
+                          {check === "update" && (
+                            <input
+                              className={styles.vfInput}
+                              placeholder="What is wrong or needs changing? (optional)"
+                              value={fieldNotes[f.key] || ""}
+                              onChange={(e) => setFieldNotes((n) => ({ ...n, [f.key]: e.target.value }))}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              {/* 2 · verification status */}
+              <section className={styles.vfCard}>
+                <div>
+                  <h3 className={styles.vfCardTitle}>2 · Verification status <span className={styles.vfReq}>*</span></h3>
+                  <p className={styles.vfHint}>
+                    {suggested
+                      ? "Based on your review, we suggest the option marked below — you make the final call."
+                      : "Finish reviewing the information above and we will suggest a status."}
+                  </p>
+                </div>
+                <div className={styles.vfChoices} role="radiogroup" aria-label="Verification status">
+                  {choices.map((c) => {
+                    const on = verifyResult === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        className={`${styles.vfChoice} ${c.cls} ${on ? styles.vfOn : ""}`}
+                        onClick={() => setVerifyResult(c.id)}
+                      >
+                        <span className={styles.vfChoiceTop}>
+                          <span className={styles.vfChoiceIcon}>{c.icon}</span>
+                          {suggested === c.id && <span className={styles.vfSuggested}>Suggested</span>}
+                        </span>
+                        <span className={styles.vfChoiceTitle}>{c.label}</span>
+                        <span className={styles.vfChoiceDesc}>{c.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {verifyResult === "Eligible" && flaggedCount > 0 && (
+                  <p className={styles.vfNote}>
+                    {flaggedCount} detail{flaggedCount === 1 ? " is" : "s are"} flagged as needing an update. Mark the grantee
+                    Verified only if that's intentional.
+                  </p>
+                )}
+
+                {verifyResult === "Mismatch" && (
+                  <p className={styles.vfNote}>
+                    This keeps the grantee at Pending Review until their information is corrected and checked again.
+                  </p>
+                )}
+
+                {verifyResult === "Ineligible" && (
+                  <div className={styles.vfField}>
+                    <label className={styles.vfLabel}>Reason <span className={styles.vfReq}>*</span></label>
+                    <select
+                      className={styles.vfInput}
+                      value={terminationReason}
+                      onChange={(e) => setTerminationReason(e.target.value)}
+                    >
+                      <option value="">Select a reason…</option>
+                      <option value="Graduated">Graduated</option>
+                      <option value="Dropped">Dropped</option>
+                      <option value="Transferred">Transferred</option>
+                      <option value="Scholarship revoked">Scholarship revoked</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                )}
+
+                {canNotify && (
+                  <div className={styles.vfNotify}>
+                    <label className={styles.vfNotifyHead}>
+                      <input
+                        type="checkbox"
+                        checked={willNotify}
+                        onChange={(e) => setNotifyChoice(e.target.checked)}
+                      />
+                      <span>
+                        <strong>Notify the student</strong>
+                        <span className={styles.vfHint}> — sends a notification asking them to fix the flagged details.</span>
+                      </span>
+                    </label>
+                    {willNotify && (
+                      <>
+                        <textarea
+                          className={`${styles.vfInput} ${styles.vfTextarea}`}
+                          rows={6}
+                          value={notifyText}
+                          onChange={(e) => setNotifyMessage(e.target.value)}
+                          aria-label="Message to the student"
+                        />
+                        {notifyMessage !== null && (
+                          <button type="button" className={styles.vfLinkBtn} data-plain-hover="" onClick={() => setNotifyMessage(null)}>
+                            Reset to suggested message
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                <div className={styles.vfField}>
+                  <label className={styles.vfLabel}>Remarks (optional)</label>
+                  <textarea
+                    className={`${styles.vfInput} ${styles.vfTextarea}`}
+                    placeholder="Anything worth noting for the next verification…"
+                    rows={2}
+                    value={verifyRemarks}
+                    onChange={(e) => setVerifyRemarks(e.target.value)}
+                  />
+                </div>
+              </section>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </Modal>
 
       {/* ================= ADD HISTORICAL GRANTEE ================= */}

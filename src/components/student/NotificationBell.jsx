@@ -15,6 +15,7 @@ const ROUTE_FOR_TYPE = {
   "Fund Release":  "/student/dashboard",
   "Finance":       "/student/dashboard",
   "Concern":       "/student/concerns",
+  "Profile Update": "/student/profile",
 };
 
 export default function NotificationBell() {
