@@ -5,6 +5,7 @@ import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/hooks/useConfirm";
 import PageLoader from "@/components/ui/PageLoader";
 import StatCard from "@/components/ui/StatCard";
+import Button from "@/components/ui/Button";
 import { getCached, setCached } from "@/lib/dataCache";
 import styles from "./Requirements.module.css";
 
@@ -303,12 +304,12 @@ export default function Requirements() {
             Manage application and eligibility requirements used across scholarships.
           </p>
         </div>
-        <button
+        <Button
+          variant="primary"
           onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "requirements", returnTo: "/coordinator/requirements" } } })}
-          style={{ padding:"9px 16px", background:"var(--teal-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
         >
           Generate Report
-        </button>
+        </Button>
       </div>
 
       <div className={styles.statsRow}>
@@ -358,9 +359,7 @@ export default function Requirements() {
             onChange={e => setAppDesc(e.target.value)}
           />
 
-          <button className={styles.primaryBtn} onClick={addApp}>
-            Add Requirement
-          </button>
+          <Button variant="primary" onClick={addApp}>Add Requirement</Button>
 
           <hr className={styles.divider} />
 
@@ -368,14 +367,14 @@ export default function Requirements() {
           <div className={styles.tplBar}>
             <h3 className={styles.savedTitle}>Saved Requirements</h3>
             <div className={styles.tplBtns}>
-              <button className={styles.tplBtn}
+              <Button size="sm" variant="secondary"
                 onClick={() => { setShowAppTplPicker(v => !v); setShowAppSaveTpl(false); }}>
                 Load template
-              </button>
-              <button className={styles.tplBtnSecondary}
+              </Button>
+              <Button size="sm" variant="secondary"
                 onClick={() => { setShowAppSaveTpl(v => !v); setShowAppTplPicker(false); }}>
                 Save as template
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -394,8 +393,8 @@ export default function Requirements() {
                       </span>
                     </div>
                     <div className={styles.tplCardActions}>
-                      <button className={styles.tplUseBtn} onClick={() => applyAppTemplate(t)}>Load</button>
-                      <button className={styles.tplDelBtn} onClick={() => deleteAppTemplate(t.template_id)}>Delete</button>
+                      <Button size="sm" variant="secondary" onClick={() => applyAppTemplate(t)}>Load</Button>
+                      <Button size="sm" variant="danger" onClick={() => deleteAppTemplate(t.template_id)}>Delete</Button>
                     </div>
                   </div>
                 ))
@@ -412,13 +411,13 @@ export default function Requirements() {
                 value={appTplName}
                 onChange={e => setAppTplName(e.target.value)}
               />
-              <button className={styles.tplUseBtn} disabled={savingAppTpl} onClick={saveAppTemplate}>
+              <Button size="sm" variant="primary" disabled={savingAppTpl} onClick={saveAppTemplate}>
                 {savingAppTpl ? "Saving…" : "Save"}
-              </button>
-              <button className={styles.tplDelBtn}
+                </Button>
+              <Button size="sm" variant="ghost"
                 onClick={() => { setShowAppSaveTpl(false); setAppTplName(""); }}>
                 Cancel
-              </button>
+                </Button>
             </div>
           )}
 
@@ -450,10 +449,7 @@ export default function Requirements() {
                     </div>
                     <div className={styles.reqRight}>
                       <span className={styles.badge}>{r.requirement_type}</span>
-                      <button className={styles.deleteBtn}
-                        onClick={() => deleteApp(r.application_requirement_id)}>
-                        Delete
-                      </button>
+                      <Button size="sm" variant="danger" onClick={() => deleteApp(r.application_requirement_id)}>Delete</Button>
                     </div>
                   </div>
                   {r.description && (
@@ -490,9 +486,7 @@ export default function Requirements() {
             onChange={e => setEligDesc(e.target.value)}
           />
 
-          <button className={styles.primaryBtn} onClick={addElig}>
-            Add Requirement
-          </button>
+          <Button variant="primary" onClick={addElig}>Add Requirement</Button>
 
           <hr className={styles.divider} />
 
@@ -500,14 +494,14 @@ export default function Requirements() {
           <div className={styles.tplBar}>
             <h3 className={styles.savedTitle}>Saved Requirements</h3>
             <div className={styles.tplBtns}>
-              <button className={styles.tplBtn}
+              <Button size="sm" variant="secondary"
                 onClick={() => { setShowEligTplPicker(v => !v); setShowEligSaveTpl(false); }}>
                 Load template
-              </button>
-              <button className={styles.tplBtnSecondary}
+              </Button>
+              <Button size="sm" variant="secondary"
                 onClick={() => { setShowEligSaveTpl(v => !v); setShowEligTplPicker(false); }}>
                 Save as template
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -526,8 +520,8 @@ export default function Requirements() {
                       </span>
                     </div>
                     <div className={styles.tplCardActions}>
-                      <button className={styles.tplUseBtn} onClick={() => applyEligTemplate(t)}>Load</button>
-                      <button className={styles.tplDelBtn} onClick={() => deleteEligTemplate(t.template_id)}>Delete</button>
+                      <Button size="sm" variant="secondary" onClick={() => applyEligTemplate(t)}>Load</Button>
+                      <Button size="sm" variant="danger" onClick={() => deleteEligTemplate(t.template_id)}>Delete</Button>
                     </div>
                   </div>
                 ))
@@ -544,13 +538,13 @@ export default function Requirements() {
                 value={eligTplName}
                 onChange={e => setEligTplName(e.target.value)}
               />
-              <button className={styles.tplUseBtn} disabled={savingEligTpl} onClick={saveEligTemplate}>
+              <Button size="sm" variant="primary" disabled={savingEligTpl} onClick={saveEligTemplate}>
                 {savingEligTpl ? "Saving…" : "Save"}
-              </button>
-              <button className={styles.tplDelBtn}
+                </Button>
+              <Button size="sm" variant="ghost"
                 onClick={() => { setShowEligSaveTpl(false); setEligTplName(""); }}>
                 Cancel
-              </button>
+                </Button>
             </div>
           )}
 
@@ -580,10 +574,7 @@ export default function Requirements() {
                     </div>
                     <div className={styles.reqRight}>
                       <span className={styles.badge}>{r.requirement_type}</span>
-                      <button className={styles.deleteBtn}
-                        onClick={() => deleteElig(r.eligibility_requirement_id)}>
-                        Delete
-                      </button>
+                      <Button size="sm" variant="danger" onClick={() => deleteElig(r.eligibility_requirement_id)}>Delete</Button>
                     </div>
                   </div>
                   {r.description && (
@@ -630,7 +621,7 @@ export default function Requirements() {
             formFields.map((f, i) => (
               <div key={i} className={styles.fieldPreview}>
                 <span><b>{f.label}</b> ({f.type}){f.required ? " *" : ""}</span>
-                <button className={styles.removeBtn} onClick={() => removeFormField(i)}>Remove</button>
+                <Button size="sm" variant="danger" onClick={() => removeFormField(i)}>Remove</Button>
               </div>
             ))
           )}
@@ -659,7 +650,7 @@ export default function Requirements() {
                 <input type="checkbox" checked={fieldRequired} onChange={() => setFieldRequired(!fieldRequired)} />
                 Required
               </label>
-              <button className={styles.addBtn} onClick={addFormField}>+ Add field</button>
+              <Button variant="primary" onClick={addFormField}>+ Add field</Button>
             </div>
           </div>
 
@@ -672,11 +663,11 @@ export default function Requirements() {
               value={formTplName}
               onChange={e => setFormTplName(e.target.value)}
             />
-            <button className={styles.tplUseBtn} disabled={savingFormTpl} onClick={saveFormTemplate}>
+            <Button size="sm" variant="primary" disabled={savingFormTpl} onClick={saveFormTemplate}>
               {savingFormTpl ? "Saving…" : editingFormTplId ? "Update template" : "Save as template"}
-            </button>
+              </Button>
             {editingFormTplId && (
-              <button className={styles.tplDelBtn} onClick={resetFormBuilder}>Cancel edit</button>
+              <Button size="sm" variant="danger" onClick={resetFormBuilder}>Cancel edit</Button>
             )}
           </div>
 
@@ -695,8 +686,8 @@ export default function Requirements() {
                     </span>
                   </div>
                   <div className={styles.tplCardActions}>
-                    <button className={styles.tplUseBtn} onClick={() => loadFormTemplateIntoBuilder(t)}>Edit</button>
-                    <button className={styles.tplDelBtn} onClick={() => deleteFormTemplate(t.template_id)}>Delete</button>
+                    <Button size="sm" variant="secondary" onClick={() => loadFormTemplateIntoBuilder(t)}>Edit</Button>
+                    <Button size="sm" variant="danger" onClick={() => deleteFormTemplate(t.template_id)}>Delete</Button>
                   </div>
                 </div>
               ))
