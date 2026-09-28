@@ -198,8 +198,17 @@ input[type="password"]::-ms-clear { display: none; }
 #root [class*="card_" i]:hover,
 #root [class*="panel_" i]:hover,
 #root [data-glow]:hover {
+  position: relative;
+  z-index: 20; /* lift the hovered card above the search / filter bar so its info tooltip isn't covered */
   border-color: var(--teal-600) !important;
   box-shadow: var(--glow-teal) !important; /* !important: some boxes set their shadow inline */
+}
+
+#root [class*="card_" i]:focus-within,
+#root [class*="panel_" i]:focus-within,
+#root [data-glow]:focus-within {
+  position: relative;
+  z-index: 20;
 }
 
 /* every button (shared <Button>, filter pills, pagination, type pills, icon buttons…) */
@@ -239,7 +248,8 @@ input[type="password"]::-ms-clear { display: none; }
 #root [class*="rejectBtn_"]:hover:not(:disabled),
 #root [class*="deleteBtn_"]:hover:not(:disabled),
 #root [class*="removeBtn_"]:hover:not(:disabled),
-#root [class*="tplDelBtn_"]:hover:not(:disabled) {
+#root [class*="tplDelBtn_"]:hover:not(:disabled),
+#root [class*="logoutBtn_"]:hover:not(:disabled) {
   box-shadow: var(--glow-danger);
 }
 

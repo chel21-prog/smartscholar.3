@@ -95,9 +95,18 @@
   content: "";
   position: absolute;
   bottom: 100%;
-  right: 12px;
+  right: auto;
+  left: var(--arrow-left, 12px);
   border: 6px solid transparent;
   border-bottom-color: var(--navy-900);
+}
+
+/* bubble flipped above the icon when there is no room below */
+.tooltipAbove::after {
+  bottom: auto;
+  top: 100%;
+  border-bottom-color: transparent;
+  border-top-color: var(--navy-900);
 }
 
 .infoWrap:hover .tooltip,
