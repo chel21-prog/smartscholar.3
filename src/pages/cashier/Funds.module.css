@@ -632,3 +632,20 @@
   .table { min-width: 460px; font-size: 12px; }
   .th, .td { padding: 8px 10px; }
 }
+
+
+/* close (✕) button: keep the glyph centred in its square */
+.closeBtn { display: grid; place-items: center; padding: 0; line-height: 1; flex-shrink: 0; }
+
+/* payout warnings (cashier can still release, but is told why to be careful) */
+.warnTag {
+    display: inline-flex; align-items: center; white-space: nowrap;
+    font-size: 12px; font-weight: 700; color: var(--status-warning);
+}
+.warnBanner {
+    margin: 0; padding: 10px 12px; font-size: 12px; line-height: 1.5;
+    color: var(--warning-700); background: var(--warning-50);
+    border: 1px solid var(--warning-100); border-left: 3px solid var(--gold-600);
+    border-radius: 10px;
+}
+.actionRow { align-items: center; flex-wrap: wrap; }

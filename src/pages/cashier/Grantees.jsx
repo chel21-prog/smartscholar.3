@@ -151,6 +151,20 @@ export default function Grantees() {
     setReleaseModal(true);
   }
 
+  // Payouts are allowed for any grantee, but when the grantee isn't cleared
+  // (not Active / not Verified) we tell the cashier why so they can decide.
+  function eligibilityWarning(grantee) {
+    if (!grantee || isEligible(grantee)) return null;
+    const parts = [];
+    if (grantee.verification_result !== "Verified") {
+      parts.push(`verification is "${grantee.verification_result || "Pending Review"}"`);
+    }
+    if (grantee.status !== "Active") {
+      parts.push(`status is "${grantee.status || "Unknown"}"`);
+    }
+    return parts.join(" and ");
+  }
+
   function closeReleaseModal() {
     setReleaseModal(false);
     setSelectedGrantee(null);
@@ -172,12 +186,15 @@ export default function Grantees() {
       return;
     }
 
+    const warn = eligibilityWarning(selectedGrantee);
+    const unverifiedNote = warn ? `Released while ${warn}` : "";
+
     const payload = {
       grantee_id: selectedGrantee.grantee_id,
       amount_released: amount,
       release_date: new Date().toISOString().split("T")[0],
       status: "Released",
-      remarks,
+      remarks: unverifiedNote ? `${remarks ? remarks + " " : ""}[${unverifiedNote}]` : remarks,
       academic_year: selectedPeriod.academic_year,
       semester: selectedPeriod.semester,
       payout_period: selectedPeriod.payout_period,
@@ -215,7 +232,7 @@ export default function Grantees() {
     const updated = updatedRows.find((r) => r.grantee_id === selectedGrantee.grantee_id);
     if (updated) setSelectedGrantee(updated);
 
-    toast.success("Payout released successfully.");
+    toast.success("Payout recorded.");
     closeReleaseModal();
   }
 
@@ -274,7 +291,7 @@ export default function Grantees() {
       <div className={`page-header ${s.header}`}>
         <div>
           <h1 className="page-title">Grantees</h1>
-          <p className="page-subtitle">Manage scholarship payouts and monitor released funds.</p>
+          <p className="page-subtitle">Track scholarship payouts. Payments are made outside the system — record them here once released.</p>
         </div>
       </div>
 
@@ -365,13 +382,11 @@ export default function Grantees() {
                       : "—"}
                   </td>
                   <td>
-                    {!eligible ? (
-                      <Button size="sm" variant="secondary" disabled>Not Verified</Button>
-                    ) : (
+                    <div className={f.actionRow}>
                       <Button size="sm" variant={fullyPaid ? "secondary" : "primary"} onClick={() => { setSelectedGrantee(grantee); setScheduleModal(true); }}>
                         {fullyPaid ? "View Schedule (Fully Paid)" : "Payout Schedule"}
                       </Button>
-                    )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -399,16 +414,24 @@ export default function Grantees() {
                   {" "}· {payoutProgressLabel(selectedGrantee, selectedGrantee.scholarships || {})}
                 </p>
               </div>
-              <button className={f.closeBtn} onClick={() => { setScheduleModal(false); setSelectedGrantee(null); }}>
-                Close
-              </button>
+              <button className={f.closeBtn} onClick={() => { setScheduleModal(false); setSelectedGrantee(null); }} aria-label="Close">✕</button>
             </div>
 
             <div className={f.modalBody}>
+              <p className={f.periodHint}>
+                <strong>Tracking only.</strong> SmartScholar records payouts — no money is released through the system.
+                Use "Record payout" after the funds have been given to the student.
+              </p>
+              {eligibilityWarning(selectedGrantee) && !(selectedGrantee.status === "Inactive" && selectedGrantee.termination_reason) && (
+                <p className={f.warnBanner} role="alert">
+                  <strong>⚠ Not cleared for payout.</strong> This grantee's {eligibilityWarning(selectedGrantee)}.
+                  You can still record a payout, but please confirm with the scholarship coordinator first.
+                </p>
+              )}
               {selectedGrantee.status === "Inactive" && selectedGrantee.termination_reason && (
                 <p className={f.periodHint}>
                   This grantee's scholarship was discontinued — <strong>{selectedGrantee.termination_reason}</strong>.
-                  Remaining periods below are marked Discontinued and can't be released.
+                  Remaining periods below are marked Discontinued and can't be recorded.
                 </p>
               )}
               {Number(selectedGrantee.duration_extension_semesters) > 0 && (
@@ -435,7 +458,7 @@ export default function Grantees() {
                     {buildSchedule(selectedGrantee, selectedGrantee.scholarships || {}).map((period, idx) => {
                       const scholarship = selectedGrantee.scholarships || {};
                       const noBudget = remainingBudgetFor(selectedGrantee) < Number(scholarship.amount || 0);
-                      const actionable = (period.status === "Due" || period.status === "Upcoming") && isEligible(selectedGrantee);
+                      const actionable = (period.status === "Due" || period.status === "Upcoming");
                       return (
                         <tr key={idx}>
                           <td data-pin className={f.td}>{period.label}</td>
@@ -466,7 +489,7 @@ export default function Grantees() {
                                     openReleaseModal(selectedGrantee, period);
                                   }}
                                 >
-                                  {noBudget ? "No Budget" : "Release"}
+                                  {noBudget ? "No Budget" : "Record payout"}
                                 </Button>
                                 <Button size="sm" variant="secondary"
                                   onClick={() => openSkipModal(selectedGrantee, period)}
@@ -493,10 +516,10 @@ export default function Grantees() {
           <div className={f.modal}>
             <div className={f.modalHeader}>
               <div>
-                <h2 className={f.modalTitle}>Confirm Release</h2>
+                <h2 className={f.modalTitle}>Record Payout</h2>
                 <p className={f.modalSubtitle}>{payoutProgressLabel(selectedGrantee, selectedGrantee.scholarships || {})}</p>
               </div>
-              <button className={f.closeBtn} onClick={closeReleaseModal}>Close</button>
+              <button className={f.closeBtn} onClick={closeReleaseModal} aria-label="Close">✕</button>
             </div>
 
             <div className={f.modalBody}>
@@ -521,8 +544,20 @@ export default function Grantees() {
                 </div>
               </div>
 
+              {eligibilityWarning(selectedGrantee) && (
+                <p className={f.warnBanner} role="alert">
+                  <strong>⚠ Heads up:</strong> this grantee's {eligibilityWarning(selectedGrantee)}. Recording it now is allowed, and a
+                  note will be added to the payout remarks.
+                </p>
+              )}
+
               <p className={f.periodHint}>
-                Releasing for: <strong>{selectedPeriod.label}</strong> — picked from the payout schedule, so it's
+                <strong>Tracking only.</strong> This records the payout in SmartScholar — no money is sent through the
+                system. Confirm only after the funds have actually been handed over to the student.
+              </p>
+
+              <p className={f.periodHint}>
+                Recording payout for: <strong>{selectedPeriod.label}</strong> — picked from the payout schedule, so it's
                 locked to that exact period. Go back to the schedule if this is the wrong one.
               </p>
 
@@ -541,7 +576,7 @@ export default function Grantees() {
             <div className={f.modalFooter}>
               <button className={f.btnSecondary} onClick={closeReleaseModal}>Cancel</button>
               <button className={f.btnPrimary} disabled={saving} onClick={releaseFunds}>
-                {saving ? "Releasing…" : "Confirm Release"}
+                {saving ? "Saving…" : "Record Payout"}
               </button>
             </div>
           </div>
@@ -557,7 +592,7 @@ export default function Grantees() {
                 <h2 className={f.modalTitle}>Skip Period</h2>
                 <p className={f.modalSubtitle}>{skipPeriodTarget.label}</p>
               </div>
-              <button className={f.closeBtn} onClick={closeSkipModal}>Close</button>
+              <button className={f.closeBtn} onClick={closeSkipModal} aria-label="Close">✕</button>
             </div>
 
             <div className={f.modalBody}>

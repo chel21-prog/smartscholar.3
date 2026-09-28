@@ -199,7 +199,7 @@ export default function Funds() {
     if (updated) setSelectedScholarship(updated);
 
     closeReleaseModal();
-    toast.success("Payout released successfully.");
+    toast.success("Payout recorded.");
   }
 
   // ── skip period flow ─────────────────────────────────────
@@ -287,7 +287,7 @@ export default function Funds() {
         <div>
           <h1 className="page-title">Funds Management</h1>
           <p className="page-subtitle">
-            Release payouts by academic period, respecting each scholarship's frequency and duration.
+            Track payouts by academic period, respecting each scholarship's frequency and duration. Payments are made outside the system — record them here once released.
           </p>
         </div>
       </div>
@@ -411,7 +411,7 @@ export default function Funds() {
                   {" "}{selectedScholarship.duration_type || "—"}
                 </p>
               </div>
-              <button className={s.closeBtn} onClick={() => setSelectedScholarship(null)}>Close</button>
+              <button className={s.closeBtn} onClick={() => setSelectedScholarship(null)} aria-label="Close">✕</button>
             </div>
 
             <div className={s.modalBody}>
@@ -520,10 +520,10 @@ export default function Funds() {
           <div className={s.modal}>
             <div className={s.modalHeader}>
               <div>
-                <h2 className={s.modalTitle}>Confirm Release</h2>
+                <h2 className={s.modalTitle}>Record Payout</h2>
                 <p className={s.modalSubtitle}>{payoutProgressLabel(selectedGrantee, selectedScholarship)}</p>
               </div>
-              <button className={s.closeBtn} onClick={closeReleaseModal}>Close</button>
+              <button className={s.closeBtn} onClick={closeReleaseModal} aria-label="Close">✕</button>
             </div>
 
             <div className={s.modalBody}>
@@ -551,7 +551,12 @@ export default function Funds() {
               </div>
 
               <p className={s.periodHint}>
-                Releasing for: <strong>{selectedPeriod.label}</strong> — picked from the payout schedule, so it's
+                <strong>Tracking only.</strong> This records the payout in SmartScholar — no money is sent through the
+                system. Confirm only after the funds have actually been handed over to the student.
+              </p>
+
+              <p className={s.periodHint}>
+                Recording payout for: <strong>{selectedPeriod.label}</strong> — picked from the payout schedule, so it's
                 locked to that exact period. Go back to the schedule if this is the wrong one.
               </p>
 
@@ -604,7 +609,7 @@ export default function Funds() {
             <div className={s.modalFooter}>
               <button className={s.btnSecondary} onClick={closeReleaseModal}>Cancel</button>
               <button className={s.btnPrimary} disabled={saving} onClick={releaseFunds}>
-                {saving ? "Releasing…" : "Confirm Release"}
+                {saving ? "Saving…" : "Record Payout"}
               </button>
             </div>
           </div>
@@ -623,16 +628,14 @@ export default function Funds() {
                   {" "}· {payoutProgressLabel(selectedGrantee, selectedScholarship)}
                 </p>
               </div>
-              <button className={s.closeBtn} onClick={() => { setScheduleModal(false); setSelectedGrantee(null); }}>
-                Close
-              </button>
+              <button className={s.closeBtn} onClick={() => { setScheduleModal(false); setSelectedGrantee(null); }} aria-label="Close">✕</button>
             </div>
 
             <div className={s.modalBody}>
               {selectedGrantee.status === "Inactive" && selectedGrantee.termination_reason && (
                 <p className={s.periodHint}>
                   This grantee's scholarship was discontinued — <strong>{selectedGrantee.termination_reason}</strong>.
-                  Remaining periods below are marked Discontinued and can't be released.
+                  Remaining periods below are marked Discontinued and can't be recorded.
                 </p>
               )}
               {Number(selectedGrantee.duration_extension_semesters) > 0 && (
@@ -689,7 +692,7 @@ export default function Funds() {
                                     openReleaseModal(selectedGrantee, period);
                                   }}
                                 >
-                                  {noBudget ? "No Budget" : "Release"}
+                                  {noBudget ? "No Budget" : "Record payout"}
                                 </Button>
                                 <Button size="sm" variant="secondary"
                                   onClick={() => openSkipModal(selectedGrantee, period)}
@@ -719,7 +722,7 @@ export default function Funds() {
                 <h2 className={s.modalTitle}>Skip Period</h2>
                 <p className={s.modalSubtitle}>{skipPeriodTarget.label}</p>
               </div>
-              <button className={s.closeBtn} onClick={closeSkipModal}>Close</button>
+              <button className={s.closeBtn} onClick={closeSkipModal} aria-label="Close">✕</button>
             </div>
 
             <div className={s.modalBody}>
