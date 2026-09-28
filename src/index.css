@@ -144,6 +144,13 @@ input[type="checkbox"]:disabled { opacity: .5; cursor: not-allowed; }
   transition: border-color var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out);
 }
+/* softer glow on hover (declared before :focus so focus always wins) */
+#root input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):hover:not(:disabled),
+#root select:hover:not(:disabled),
+#root textarea:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--teal-600) 55%, var(--border-strong));
+  box-shadow: 0 0 0 2px var(--teal-100);
+}
 #root input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):focus,
 #root select:focus,
 #root textarea:focus {
@@ -157,3 +164,102 @@ input[type="checkbox"]:disabled { opacity: .5; cursor: not-allowed; }
    show/hide toggle on Login and Signup, so it would otherwise show twice. */
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear { display: none; }
+
+/* ============================================================
+   Hover glow — ONE effect (teal) on every interactive element:
+   cards, dashboard boxes/panels, buttons, fields, pagination
+   and sidebar links. Tables are deliberately left out. Cards are matched by class name
+   (any CSS-module class ending in "card") so no page needs editing.
+   Scoped under #root to out-rank the per-page module styles.
+   ============================================================ */
+:root {
+  --glow-teal:   0 0 0 1px var(--teal-600), 0 0 16px rgba(13, 158, 140, .28);
+  --glow-navy:   0 0 0 1px var(--navy-600), 0 0 14px rgba(35, 79, 136, .35);
+  --glow-danger: 0 0 0 1px var(--danger-600), 0 0 14px rgba(220, 38, 38, .35);
+  --shadow-glow-navy: var(--glow-navy); /* referenced by the cashier page, was never defined */
+}
+[data-theme="dark"] {
+  --glow-teal:   0 0 0 1px var(--teal-600), 0 0 18px rgba(20, 184, 166, .38);
+  --glow-navy:   0 0 0 1px var(--navy-600), 0 0 16px rgba(96, 140, 210, .42);
+  --glow-danger: 0 0 0 1px var(--danger-600), 0 0 16px rgba(248, 113, 113, .42);
+}
+
+/* cards */
+#root [class*="card_" i],
+#root [class*="panel_" i],
+#root [data-glow] {
+  transition: box-shadow var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+#root [class*="card_" i]:hover,
+#root [class*="panel_" i]:hover,
+#root [data-glow]:hover {
+  border-color: var(--teal-600) !important;
+  box-shadow: var(--glow-teal) !important; /* !important: some boxes set their shadow inline */
+}
+
+/* every button (shared <Button>, filter pills, pagination, type pills, icon buttons…) */
+#root button:hover:not(:disabled),
+#root [role="button"]:hover,
+#root [class*="btn-"]:hover:not(:disabled) {
+  box-shadow: var(--glow-teal);
+}
+
+/* buttons with a navy or red background glow in their own color
+   (matched by class name; everything else keeps the teal glow above) */
+#root [class*="btn-primary_"]:hover:not(:disabled),
+#root [class*="btnPrimary_"]:hover:not(:disabled),
+#root [class*="primaryBtn_"]:hover:not(:disabled),
+#root [class*="primaryButton_"]:hover:not(:disabled),
+#root [class*="modalButton_"]:hover:not(:disabled),
+#root [class*="approveBtn_"]:hover:not(:disabled),
+#root [class*="viewBtn_"]:hover:not(:disabled),
+#root [class*="applyBtn_"]:hover:not(:disabled),
+#root [class*="tplUseBtn_"]:hover:not(:disabled),
+#root [class*="addBtn_"]:hover:not(:disabled),
+#root [class*="releaseBtn_"]:hover:not(:disabled),
+#root [class*="grantBtn_"]:hover:not(:disabled),
+#root [class*="statusBtn_"]:hover:not(:disabled),
+#root [class*="generateBtn_"]:hover:not(:disabled),
+#root [class*="documentButton_"]:hover:not(:disabled),
+#root [class*="btnSm_"]:hover:not(:disabled),
+#root [class*="filterBtnActive_"]:hover:not(:disabled),
+#root [class*="typeBtnActive_"]:hover:not(:disabled),
+#root [class*="chipActive_"]:hover:not(:disabled),
+#root [class*="accept_"]:hover:not(:disabled),
+#root [class*="announceBtn_"]:hover:not(:disabled) {
+  box-shadow: var(--glow-navy);
+}
+#root [class*="btn-danger_"]:hover:not(:disabled),
+#root [class*="btnDanger_"]:hover:not(:disabled),
+#root [class*="rejectBtn_"]:hover:not(:disabled),
+#root [class*="deleteBtn_"]:hover:not(:disabled),
+#root [class*="removeBtn_"]:hover:not(:disabled),
+#root [class*="tplDelBtn_"]:hover:not(:disabled) {
+  box-shadow: var(--glow-danger);
+}
+
+/* sidebar / nav links */
+#root nav a:hover,
+#root [class*="navLink_"]:hover {
+  box-shadow: var(--glow-teal);
+}
+
+/* fields (focus glow is defined above) */
+#root input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):hover:not(:focus):not(:disabled),
+#root select:hover:not(:focus):not(:disabled),
+#root textarea:hover:not(:focus):not(:disabled) {
+  border-color: var(--teal-600);
+  box-shadow: 0 0 0 3px var(--teal-100);
+}
+
+/* checkboxes */
+#root input[type="checkbox"]:hover:not(:disabled) {
+  border-color: var(--teal-600);
+  box-shadow: 0 0 0 3px var(--teal-100);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #root [class*="card_" i], #root [class*="panel_" i], #root [data-glow], #root [class*="btn-"] { transition: none; }
+}

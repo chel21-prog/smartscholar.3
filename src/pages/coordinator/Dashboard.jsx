@@ -1003,7 +1003,7 @@ export default function CoordinatorDashboard() {
 
       {/* ── info grid ── */}
       <div style={st.infoGrid}>
-        <div style={st.infoCard}>
+        <div data-glow style={st.infoCard}>
           <div style={st.infoTitleRow}>
             <h3 style={st.infoTitleTxt}>Scholarship Slots</h3>
             <InfoTooltip label="Scholarship Slots">
@@ -1022,7 +1022,7 @@ export default function CoordinatorDashboard() {
           </div>
         </div>
 
-        <div style={st.infoCard}>
+        <div data-glow style={st.infoCard}>
           <div style={st.infoTitleRow}>
             <h3 style={st.infoTitleTxt}>Upcoming Deadlines</h3>
             <InfoTooltip label="Upcoming Deadlines">
@@ -1039,7 +1039,7 @@ export default function CoordinatorDashboard() {
           </div>
         </div>
 
-        <div style={st.infoCard}>
+        <div data-glow style={st.infoCard}>
           <div style={st.infoTitleRow}>
             <h3 style={st.infoTitleTxt}>Recent Activity</h3>
             <InfoTooltip label="Recent Activity">
@@ -1056,7 +1056,7 @@ export default function CoordinatorDashboard() {
           </div>
         </div>
 
-        <div style={st.infoCard}>
+        <div data-glow style={st.infoCard}>
           <div style={st.infoTitleRow}>
             <h3 style={st.infoTitleTxt}>Summary</h3>
             <InfoTooltip label="Summary">

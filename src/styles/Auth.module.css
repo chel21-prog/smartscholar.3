@@ -165,9 +165,12 @@
     font-size:14px;
     color:var(--text-secondary);
 }
+
+/* line up the box with the first line of text (14px font, 1.5 line-height) */
 .checkbox input[type="checkbox"]{
-    margin-top:4px;
+    margin-top:3px;
 }
+
 .link{
     color:var(--navy-600);
     cursor:pointer;
@@ -223,9 +226,9 @@
 
     border-radius:12px;
 
-    border:1px solid var(--border);
+    border:1px solid var(--border-strong);
 
-    background:var(--surface);
+    background:var(--surface-muted);
 
     color:var(--text-primary);
 
@@ -237,7 +240,7 @@
 }
 
 .googleButton:hover{
-    background:var(--surface-muted);
+    background:var(--border);
 }
 
 .signup{
