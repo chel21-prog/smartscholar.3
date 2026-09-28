@@ -255,18 +255,6 @@
 
 }
 
-.table tbody tr:nth-child(even){
-
-    background:var(--surface-muted);
-
-}
-
-.table tbody tr:hover{
-
-    background:var(--navy-50);
-
-}
-
 .table td:first-child{
 
     font-weight:600;
@@ -285,29 +273,7 @@
    BADGES
 =========================== */
 
-.badgeSuccess{
-
-    display:inline-flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    min-width:90px;
-
-    padding:6px 14px;
-
-    border-radius:999px;
-
-    background:var(--success-100);
-
-    color:var(--success-700);
-
-    font-size:13px;
-
-    font-weight:700;
-
-}
+.badgeSuccess { display: inline-flex; align-items: center; padding: 0; background: none; border: none; border-radius: 0; font-size: 12px; font-weight: 700; letter-spacing: .2px; line-height: 1.4; white-space: nowrap; color: var(--status-success); }
 
 /* ===========================
    BUTTONS

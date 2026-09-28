@@ -419,7 +419,7 @@ const paginatedStudents = filteredStudents.slice(
             <thead>
               <tr>
                 <th className={s.th}>School ID</th>
-                <th className={s.th}>Name</th>
+                <th data-pin className={s.th}>Name</th>
                 <th className={`${s.th} ${s.colOptional}`}>Email</th>
                 <th className={s.th}>Course</th>
                 <th className={s.th}>Year</th>
@@ -443,10 +443,9 @@ const paginatedStudents = filteredStudents.slice(
                 paginatedStudents.map((student, index) => (
                 <tr
   key={student.student_id}
-  className={index % 2 === 0 ? s.rowEven : s.rowOdd}
 >
                   <td className={s.td}>{student.school_id}</td>
-                  <td className={s.td}>{student.users?.first_name} {student.users?.last_name}</td>
+                  <td data-pin className={s.td}>{student.users?.first_name} {student.users?.last_name}</td>
                   <td className={`${s.td} ${s.colOptional}`}>{student.users?.email}</td>
                   <td className={s.td}>{student.course}</td>
                   <td className={s.td}>{student.year_level}</td>
@@ -484,24 +483,7 @@ const paginatedStudents = filteredStudents.slice(
 />
                   </td>
                   <td className={s.td}>
-                    <button
-                      style={{
-                      padding: "6px 10px",
-                      border: "none",
-                      borderRadius: 6,
-                      background: "var(--navy-700)",
-                      fontWeight: 600,
-transition: ".2s",
-                      color: "white",
-                      cursor: "pointer",
-                      }}
-                      onClick={() => {
-  setSelectedStudent(student);
-  setOpenGrant(true);
-}}
-                      >
-                      Grant Scholarship
-                      </button>
+                    <Button size="sm" variant="primary" onClick={() => { setSelectedStudent(student); setOpenGrant(true); }}>Grant Scholarship</Button>
                     </td>
                 </tr>
                 ))

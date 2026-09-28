@@ -94,14 +94,16 @@
 .uploadLabel {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  justify-content: center;
+  gap: var(--space-2);
   padding: 7px 12px;
-  background: var(--white);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  font-size: var(--text-xs);
+  background: var(--navy-100);
+  border: 1px solid var(--navy-100);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--ink-700);
+  color: var(--text-primary);
   cursor: pointer;
   white-space: nowrap;
   transition: background-color var(--duration-fast) var(--ease-out),
@@ -109,9 +111,8 @@
 }
 
 .uploadLabel:hover {
-  background: var(--navy-50);
-  border-color: var(--navy-300);
-  color: var(--navy-700);
+  background: var(--border-strong);
+  border-color: var(--border-strong);
 }
 
 .uploadLabel:focus-within {

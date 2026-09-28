@@ -470,7 +470,6 @@ export default function Scholarships() {
         <StatCard
           label="Active"
           value={list.filter((sch) => sch.status === "Active").length}
-          tone="success"
           explain='Scholarships whose status is exactly "Active".'
         />
         <StatCard
@@ -521,7 +520,7 @@ export default function Scholarships() {
                 { h: "Deadline", optional: true }, { h: "Payout" }, { h: "Duration", optional: true },
                 { h: "Status" }, { h: "Reqs", optional: true }, { h: "Form", optional: true }, { h: "Action" },
               ].map(({ h, optional }) => (
-                <th key={h} className={`${s.th} ${optional ? s.colOptional : ""}`}>{h}</th>
+                <th key={h} data-pin={h === "Name" || undefined} className={`${s.th} ${optional ? s.colOptional : ""}`}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -534,7 +533,7 @@ export default function Scholarships() {
               </tr>
             ) : paginated.map(sch => (
               <tr key={sch.scholarship_id} className={s.tr}>
-                <td className={s.td}>{sch.scholarship_name}</td>
+                <td data-pin className={s.td}>{sch.scholarship_name}</td>
                 <td className={s.td}>{sch.sponsor}</td>
                 <td className={`${s.td} ${s.colOptional}`}><div className={s.descriptionBox}>{sch.description}</div></td>
                 <td className={s.td}>₱{Number(sch.amount || 0).toLocaleString()}</td>
@@ -553,13 +552,13 @@ export default function Scholarships() {
                   </button>
                 </td>
                 <td className={`${s.td} ${s.colOptional}`}>
-                  <button className={s.btnSm} onClick={() => viewRequirementsModal(sch.scholarship_id)}>View</button>
+                  <Button size="sm" variant="secondary" onClick={() => viewRequirementsModal(sch.scholarship_id)}>View</Button>
                 </td>
                 <td className={`${s.td} ${s.colOptional}`}>
-                  <button className={s.btnSm} onClick={() => viewForm(sch.scholarship_id)}>View</button>
+                  <Button size="sm" variant="secondary" onClick={() => viewForm(sch.scholarship_id)}>View</Button>
                 </td>
                 <td className={s.td}>
-                  <button className={s.btnSm} onClick={() => editScholarship(sch)}>Edit</button>
+                  <Button size="sm" variant="secondary" onClick={() => editScholarship(sch)}>Edit</Button>
                 </td>
               </tr>
             ))}

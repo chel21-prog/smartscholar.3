@@ -7,6 +7,8 @@ import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import Modal from "@/components/ui/Modal";
+import Button from "@/components/ui/Button";
+import { TableActions } from "@/components/ui/Table";
 import { getCached, setCached } from "@/lib/dataCache";
 import { getReportSecurity } from "@/lib/reportSecurity";
 import { useToast } from "@/context/ToastContext";
@@ -541,19 +543,16 @@ const paginated = filtered.slice(
   <StatCard
     label="Pending"
     value={applications.filter((a) => a.status === "Pending").length}
-    tone="warning"
     explain='Applications not yet approved or rejected.'
   />
   <StatCard
     label="Approved"
     value={applications.filter((a) => a.status === "Approved").length}
-    tone="success"
     explain='Applications marked "Approved".'
   />
   <StatCard
     label="Rejected"
     value={applications.filter((a) => a.status === "Rejected").length}
-    tone="danger"
     explain='Applications marked "Rejected".'
   />
   <StatCard
@@ -590,7 +589,7 @@ const paginated = filtered.slice(
 <table className={styles.table}>
         <thead className={styles.thead}>
           <tr>
-            <th className={styles.th}>Student</th>
+            <th data-pin className={styles.th}>Student</th>
             <th className={styles.th}>Scholarship</th>
             <th className={`${styles.th} ${styles.colOptional}`}>AY Approved</th>
             <th className={`${styles.th} ${styles.colOptional}`}>Semester Approved</th>
@@ -609,7 +608,7 @@ const paginated = filtered.slice(
             </tr>
           ) : paginated.map((a) => (
             <tr key={a.application_id}>
-              <td className={styles.td}>{getStudentName(a)}</td>
+              <td data-pin className={styles.td}>{getStudentName(a)}</td>
               <td className={styles.td}>{a.scholarships?.scholarship_name}</td>
               <td className={`${styles.td} ${styles.colOptional}`}>{a.academic_year}</td>
               <td className={`${styles.td} ${styles.colOptional}`}>{a.semester}</td>
@@ -618,41 +617,17 @@ const paginated = filtered.slice(
                 {new Date(a.application_date).toLocaleDateString()}
               </td>
 
-              <td
-  className={styles.td}>
-
-                <button className={`${styles.actionBtn} ${styles.viewBtn}`}
-                 onClick={() => viewAnswers(a)}>
-                  View
-                </button>
-
-                <button
-  className={`${styles.actionBtn} ${styles.exportBtn}`}
-  onClick={() => openExportConfirm(a)}
->
-                  Export
-                </button>
-
-                {a.status === "Pending" && (
-                  <>
-                    <button
-  className={`${styles.actionBtn} ${styles.approveBtn}`}
-  onClick={() => openApproveModal(a)}
->
-  Approve
-</button>
-
-                    <button
-  className={`${styles.actionBtn} ${styles.rejectBtn}`}
-  onClick={() => {
-    openRejectModal(a);
-  }}
->
-  Reject
-</button>
-                  </>
-                )}
-
+              <td className={styles.td}>
+                <TableActions>
+                  <Button size="sm" variant="secondary" onClick={() => viewAnswers(a)}>View</Button>
+                  <Button size="sm" variant="secondary" onClick={() => openExportConfirm(a)}>Export</Button>
+                  {a.status === "Pending" && (
+                    <>
+                      <Button size="sm" variant="primary" onClick={() => openApproveModal(a)}>Approve</Button>
+                      <Button size="sm" variant="danger" onClick={() => openRejectModal(a)}>Reject</Button>
+                    </>
+                  )}
+                </TableActions>
               </td>
             </tr>
           ))}

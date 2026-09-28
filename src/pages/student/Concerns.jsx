@@ -124,7 +124,6 @@ export default function Concerns() {
             <StatCard
               label="Open"
               value={concerns.filter((c) => c.status === "Open").length}
-              tone="warning"
               explain="Concerns you've sent that haven't been responded to yet."
             />
             <StatCard
@@ -135,7 +134,6 @@ export default function Concerns() {
             <StatCard
               label="Resolved"
               value={concerns.filter((c) => c.status === "Resolved").length}
-              tone="success"
               explain='Concerns marked "Resolved".'
             />
             <StatCard

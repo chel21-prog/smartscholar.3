@@ -5,6 +5,7 @@ import { useToast } from "@/context/ToastContext";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
+import Button from "@/components/ui/Button";
 import { getCached, setCached } from "@/lib/dataCache";
 import s from "./Concerns.module.css";
 
@@ -145,9 +146,9 @@ export default function Concerns() {
       </div>
 
       <div className={s.summaryGrid}>
-        <StatCard label="Open" value={openCount} tone="warning" explain="Concerns not yet responded to." />
-        <StatCard label="In Progress" value={inProgressCount} tone="info" explain="Concerns you've replied to but marked as still ongoing." />
-        <StatCard label="Resolved" value={resolvedCount} tone="success" explain="Concerns marked Resolved." />
+        <StatCard label="Open" value={openCount} explain="Concerns not yet responded to." />
+        <StatCard label="In Progress" value={inProgressCount} explain="Concerns you've replied to but marked as still ongoing." />
+        <StatCard label="Resolved" value={resolvedCount} explain="Concerns marked Resolved." />
         <StatCard label="Total" value={rows.length} explain="All concerns ever submitted." />
       </div>
 
@@ -189,7 +190,7 @@ export default function Concerns() {
         <table className={s.table}>
           <thead className={s.thead}>
             <tr>
-              <th className={s.th}>Student</th>
+              <th data-pin className={s.th}>Student</th>
               <th className={s.th}>School ID</th>
               <th className={s.th}>Subject</th>
               <th className={s.th}>Category</th>
@@ -205,7 +206,7 @@ export default function Concerns() {
               <tr><td colSpan={7} className={s.emptyState}>No concerns found.</td></tr>
             ) : currentRows.map((c) => (
               <tr key={c.concern_id}>
-                <td className={s.td}>{c.students?.users?.first_name} {c.students?.users?.last_name}</td>
+                <td data-pin className={s.td}>{c.students?.users?.first_name} {c.students?.users?.last_name}</td>
                 <td className={s.td}>{c.students?.school_id || "—"}</td>
                 <td className={s.td}>{c.subject}</td>
                 <td className={s.td}>{c.category}</td>
@@ -214,9 +215,9 @@ export default function Concerns() {
                   <span className={s[STATUS_BADGE[c.status]] || s.badgeNeutral}>{c.status}</span>
                 </td>
                 <td className={s.td}>
-                  <button className={s.viewBtn} onClick={() => openConcern(c)}>
+                  <Button size="sm" variant={c.status === "Open" ? "primary" : "secondary"} onClick={() => openConcern(c)}>
                     {c.status === "Open" ? "Respond" : "View"}
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}

@@ -558,7 +558,7 @@ export default function Profile() {
             <Table>
               <thead>
                 <tr>
-                  <th>Requirement</th>
+                  <th data-pin>Requirement</th>
                   <th>Description</th>
                   <th>Status</th>
                 </tr>
@@ -566,7 +566,7 @@ export default function Profile() {
               <tbody>
                 {requirements.map((r) => (
                   <tr key={r.eligibility_requirement_id}>
-                    <td className={styles.reqName}>{r.requirement_name}</td>
+                    <td data-pin className={styles.reqName}>{r.requirement_name}</td>
                     <td className={styles.reqDesc}>{r.description}</td>
                     <td>
                       <button

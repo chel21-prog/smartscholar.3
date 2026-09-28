@@ -18,3 +18,15 @@ export function Table({ children, ...rest }) {
     </table>
   );
 }
+
+/**
+ * Row of action buttons for an "Action" cell. Use with the shared
+ * <Button size="sm"> so every table's actions look identical:
+ *   primary   — the main forward action (Approve, Release, Apply, Verify)
+ *   secondary — view/edit style actions (View, Edit, Export, Skip)
+ *   danger    — destructive actions (Reject)
+ *   ghost     — disabled/informational (Inactive, Not Verified)
+ */
+export function TableActions({ children }) {
+  return <div className={styles.tableActions}>{children}</div>;
+}

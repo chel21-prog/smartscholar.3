@@ -27,7 +27,7 @@
 
 /* ---- Button colors: exactly 4 across the whole system ----
    primary   — the main action on a screen (solid navy)
-   secondary — a real but lower-emphasis action (solid navy tint)
+   secondary — a real but lower-emphasis action (solid teal)
    ghost     — de-emphasized/neutral action, e.g. Cancel/Close (solid gray tint)
    danger    — destructive action (solid red)
    Every one of these has a real, visible background — nothing here
@@ -36,8 +36,8 @@
 .btn-primary   { background: var(--navy-600); color: #fff; box-shadow: var(--shadow-sm); }
 .btn-primary:hover:not(:disabled) { background: var(--navy-700); transform: translateY(-1px); box-shadow: var(--shadow-md); }
 
-.btn-secondary { background: var(--navy-100); color: var(--text-primary); border-color: var(--navy-100); }
-.btn-secondary:hover:not(:disabled) { background: var(--border-strong); border-color: var(--border-strong); }
+.btn-secondary { background: var(--teal-700); color: #fff; border-color: var(--teal-700); box-shadow: var(--shadow-sm); }
+.btn-secondary:hover:not(:disabled) { background: var(--teal-900); border-color: var(--teal-900); transform: translateY(-1px); box-shadow: var(--shadow-md); }
 
 .btn-ghost { background: var(--surface-muted); color: var(--text-secondary); border-color: var(--surface-muted); }
 .btn-ghost:hover:not(:disabled) { background: var(--border-strong); color: var(--text-primary); }
@@ -100,15 +100,15 @@
 /* ---- Badge ---- */
 .badge {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 12px; border-radius: var(--radius-full);
-  font-size: var(--text-xs); font-weight: 700; letter-spacing: .2px;
+  padding: 0; background: none;
+  font-size: var(--text-sm); font-weight: 700; letter-spacing: .2px;
   line-height: 1.4; white-space: nowrap;
 }
-.badge-success { background: var(--success-100); color: var(--success-700); }
-.badge-warning { background: var(--warning-100); color: var(--warning-700); }
-.badge-danger  { background: var(--danger-100);  color: var(--danger-700);  }
-.badge-info    { background: var(--info-100);    color: var(--info-700);    }
-.badge-neutral { background: var(--ink-100);     color: var(--ink-600);     }
+.badge-success { color: var(--status-success); }
+.badge-warning { color: var(--status-warning); }
+.badge-danger  { color: var(--status-danger);  }
+.badge-info    { color: var(--status-info);    }
+.badge-neutral { color: var(--status-neutral); }
 
 /* ---- Empty state ---- */
 .emptyState {
@@ -177,7 +177,7 @@
    Sticky navy header (keeps the brand's dominant color, per the
    design system), roomier rows, a single teal accent line under the
    header so the boundary reads clearly without a hard visual break,
-   and a quiet row hover — only the table itself scrolls horizontally
+   and zebra + hover (both come from styles/tables.css) — only the table itself scrolls horizontally
    on narrow screens, never the surrounding page layout. */
 .tableWrap {
   background: var(--surface); border: 1px solid var(--border);
@@ -198,8 +198,9 @@
   color: var(--text-primary); vertical-align: middle;
 }
 .table tbody tr:last-child td { border-bottom: none; }
-.table tbody tr:nth-child(even) { background: var(--surface-muted); }
-.table tbody tr:hover td { background: var(--navy-50); }
+/* Action cell: shared small buttons laid out in one tidy row */
+.tableActions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+.tableActions > * { flex-shrink: 0; }
 
 /* Columns marked optional/low-priority hide on small screens instead of
    forcing the whole table to scroll further than necessary — a real

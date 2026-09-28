@@ -11,17 +11,15 @@ import InfoTooltip from "./InfoTooltip";
  *  - label:  short metric name, e.g. "Acceptance Rate"
  *  - value:  the number/string to display big
  *  - explain: plain-language description of how `value` was derived
- *  - color:  optional CSS color for the value text
- *  - tone:   optional preset tone ("success" | "warning" | "danger" | "info")
+ *
+ * Every card renders identically on purpose — one value color, one
+ * label color — so the KPI rows look the same on every page. (There is
+ * intentionally no per-card color/tone prop.)
  */
-export default function StatCard({ label, value, explain, color, tone }) {
-  const toneClass = tone ? st[`tone-${tone}`] : "";
-
+export default function StatCard({ label, value, explain }) {
   return (
     <div className={st.card}>
-      <h2 className={`${st.value} ${toneClass}`} style={color ? { color } : undefined}>
-        {value}
-      </h2>
+      <h2 className={st.value}>{value}</h2>
       <div className={st.top}>
         <p className={st.label}>{label}</p>
         {explain && <InfoTooltip label={label}>{explain}</InfoTooltip>}

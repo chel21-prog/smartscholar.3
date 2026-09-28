@@ -4,6 +4,7 @@ import { useToast } from "@/context/ToastContext";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
+import Button from "@/components/ui/Button";
 import { getCached, setCached } from "@/lib/dataCache";
 import {
   buildSchedule, isEligible, isFullyPaidOut, payoutProgressLabel, latestRelease,
@@ -134,7 +135,6 @@ export default function Payouts() {
         <StatCard
           label="Total Released"
           value={`₱${totalReleased.toLocaleString()}`}
-          tone="success"
           explain="Sum of amount_released across every fund_releases row with status Released."
         />
         <StatCard
@@ -145,7 +145,6 @@ export default function Payouts() {
         <StatCard
           label="Awaiting Release"
           value={dueCount}
-          tone="warning"
           explain="Active, verified grantees whose next payout period is Due but hasn't been released yet."
         />
         <StatCard
@@ -203,7 +202,7 @@ export default function Payouts() {
           <table className={s.table}>
             <thead className={s.thead}>
               <tr>
-                <th className={s.th}>Student</th>
+                <th data-pin className={s.th}>Student</th>
                 <th className={s.th}>School ID</th>
                 <th className={s.th}>Scholarship</th>
                 <th className={s.th}>Progress</th>
@@ -226,7 +225,7 @@ export default function Payouts() {
 
                 return (
                   <tr key={g.grantee_id}>
-                    <td className={s.td}>{g.students?.users?.first_name} {g.students?.users?.last_name}</td>
+                    <td data-pin className={s.td}>{g.students?.users?.first_name} {g.students?.users?.last_name}</td>
                     <td className={s.td}>{g.students?.school_id || "—"}</td>
                     <td className={s.td}>{scholarship.scholarship_name || "—"}</td>
                     <td className={s.td}>{payoutProgressLabel(g, scholarship)}</td>
@@ -242,7 +241,7 @@ export default function Payouts() {
                       </span>
                     </td>
                     <td className={s.td}>
-                      <button className={s.viewBtn} onClick={() => setSelectedGrantee(g)}>View</button>
+                      <Button size="sm" variant="secondary" onClick={() => setSelectedGrantee(g)}>View</Button>
                     </td>
                   </tr>
                 );
@@ -255,7 +254,7 @@ export default function Payouts() {
           <table className={s.table}>
             <thead className={s.thead}>
               <tr>
-                <th className={s.th}>Student</th>
+                <th data-pin className={s.th}>Student</th>
                 <th className={s.th}>School ID</th>
                 <th className={s.th}>Scholarship</th>
                 <th className={s.th}>Period</th>
@@ -271,13 +270,13 @@ export default function Payouts() {
                 <tr><td colSpan={7} className={s.emptyState}>No releases logged yet.</td></tr>
               ) : currentRows.map(r => (
                 <tr key={r.release_id}>
-                  <td className={s.td}>{r.student || "—"}</td>
+                  <td data-pin className={s.td}>{r.student || "—"}</td>
                   <td className={s.td}>{r.schoolId || "—"}</td>
                   <td className={s.td}>{r.scholarship || "—"}</td>
                   <td className={s.td}>
                     {r.academic_year || "—"}{r.semester ? ` · ${r.semester}` : ""}{r.payout_period && r.payout_period !== "One-time" ? ` · ${r.payout_period}` : ""}
                   </td>
-                  <td className={s.money}>₱{Number(r.amount_released || 0).toLocaleString()}</td>
+                  <td className={`${s.td} ${s.money}`}>₱{Number(r.amount_released || 0).toLocaleString()}</td>
                   <td className={s.td}>{r.release_date || "—"}</td>
                   <td className={s.td}>{r.remarks || "—"}</td>
                 </tr>
@@ -327,7 +326,7 @@ export default function Payouts() {
                 <table className={s.table}>
                   <thead className={s.thead}>
                     <tr>
-                      <th className={s.th}>Period</th>
+                      <th data-pin className={s.th}>Period</th>
                       <th className={s.th}>Status</th>
                       <th className={s.th}>Release Date</th>
                       <th className={s.th}>Amount</th>
@@ -337,7 +336,7 @@ export default function Payouts() {
                   <tbody>
                     {buildSchedule(selectedGrantee, selectedGrantee.scholarships || {}).map((period, idx) => (
                       <tr key={idx}>
-                        <td className={s.td}>{period.label}</td>
+                        <td data-pin className={s.td}>{period.label}</td>
                         <td className={s.td}>
                           <span className={
                             period.status === "Paid" ? s.badgeSuccess
@@ -350,7 +349,7 @@ export default function Payouts() {
                           </span>
                         </td>
                         <td className={s.td}>{period.release?.release_date || "—"}</td>
-                        <td className={s.money}>
+                        <td className={`${s.td} ${s.money}`}>
                           {period.release ? `₱${Number(period.release.amount_released || 0).toLocaleString()}` : "—"}
                         </td>
                         <td className={s.td}>{period.release?.remarks || "—"}</td>

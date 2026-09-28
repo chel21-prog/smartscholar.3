@@ -138,14 +138,6 @@
   vertical-align: middle;
 }
 
-.table tbody tr:nth-child(even) {
-  background: var(--surface-muted);
-}
-
-.table tbody tr:hover {
-  background: var(--navy-50);
-}
-
 /* ===========================
    PAGINATION
 =========================== */
@@ -665,19 +657,18 @@
 =========================== */
 .statusBadge {
   display: inline-flex;
-  padding: 4px 11px;
-  border-radius: var(--radius-full);
-  font-size: 11px;
+  padding: 0;
+  background: none;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .3px;
-  background: var(--surface-muted);
-  color: var(--text-secondary);
+  color: var(--status-neutral);
   white-space: nowrap;
 }
-.statusPending  { background: var(--warning-100); color: var(--warning-700); }
-.statusApproved { background: var(--success-100); color: var(--success-700); }
-.statusRejected { background: var(--danger-100);  color: var(--danger-700); }
+.statusPending  { color: var(--status-warning); }
+.statusApproved { color: var(--status-success); }
+.statusRejected { color: var(--status-danger); }
 
 .detailLoading, .detailEmpty {
   margin: 0;

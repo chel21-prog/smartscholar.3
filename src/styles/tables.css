@@ -1,0 +1,104 @@
+/* ============================================================
+   Global table system — every data table in the app shares this.
+   Scoped under #root so it out-ranks the per-page module styles
+   (which only need to worry about width / column tweaks now).
+   Opt out with <table data-plain> for non-data / layout tables.
+
+   Covers: header, cell padding, zebra striping, hover highlight.
+   Rows that span the whole table (loading skeletons, empty states —
+   a single <td colspan>) are excluded from zebra + hover.
+   ============================================================ */
+
+#root table:not([data-plain]) {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--text-base);
+}
+
+/* ---- header ---- */
+#root table:not([data-plain]) thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px 16px;
+  background: var(--navy-900);
+  color: #fff;
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-bottom: 2px solid var(--teal-600);
+}
+
+/* ---- cells ---- */
+#root table:not([data-plain]) tbody td {
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+#root table:not([data-plain]) tbody tr:last-child td { border-bottom: none; }
+
+/* ---- zebra ---- */
+#root table:not([data-plain]) tbody tr:nth-child(even) > td:not([colspan]) {
+  background: var(--table-zebra);
+}
+
+/* ---- hover (declared after zebra so it always wins) ---- */
+#root table:not([data-plain]) tbody tr:hover > td:not([colspan]) {
+  background: var(--table-hover);
+}
+
+/* full-width rows: skeletons / empty states stay flat */
+#root table:not([data-plain]) tbody td[colspan] {
+  background: var(--surface);
+}
+
+/* ---- pinned column ----
+   Mark the identifying column (name / student / period) with
+   data-pin on its <th> and <td>. It stays fixed at the left edge
+   while the rest of the table scrolls horizontally, so the row is
+   never anonymous. Cells already have opaque backgrounds (zebra /
+   hover above), so scrolled content slides cleanly underneath. */
+#root table:not([data-plain]) th[data-pin],
+#root table:not([data-plain]) td[data-pin] {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+#root table:not([data-plain]) thead th[data-pin] {
+  z-index: 3; /* above both the other headers and the pinned body cells */
+}
+
+/* The divider/shadow only appears once the table has been scrolled
+   sideways (data-scrolled is set by lib/pinnedColumns.js). At rest the
+   pinned column looks exactly like any other column. */
+#root [data-scrolled] table:not([data-plain]) td[data-pin] {
+  box-shadow: 1px 0 0 var(--border), 6px 0 8px -6px rgba(11, 31, 58, .25);
+}
+#root [data-scrolled] table:not([data-plain]) thead th[data-pin] {
+  box-shadow: 1px 0 0 rgba(255, 255, 255, .12), 6px 0 8px -6px rgba(0, 0, 0, .45);
+}
+
+@media (max-width: 640px) {
+  /* keep the pinned column from eating the whole screen */
+  #root table:not([data-plain]) th[data-pin],
+  #root table:not([data-plain]) td[data-pin] {
+    max-width: 140px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 640px) {
+  #root table:not([data-plain]) thead th { padding: 8px 10px; font-size: 10px; }
+  #root table:not([data-plain]) tbody td { padding: 8px 10px; font-size: var(--text-sm); }
+}

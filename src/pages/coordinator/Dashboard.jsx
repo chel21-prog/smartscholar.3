@@ -1090,7 +1090,7 @@ export default function CoordinatorDashboard() {
                 <div>
                   <strong style={{fontSize:11,color:"var(--text-secondary)",textTransform:"uppercase",letterSpacing:".3px"}}>Status</strong>
                   <p style={{margin:"4px 0 0"}}>
-                    <span style={{...st.badge,background:selectedApp.status==="Approved"?"var(--success-100)":selectedApp.status==="Rejected"?"var(--danger-100)":"var(--warning-100)",color:selectedApp.status==="Approved"?"var(--success-700)":selectedApp.status==="Rejected"?"var(--danger-700)":"var(--warning-700)"}}>
+                    <span style={{fontSize:12,fontWeight:700,color:selectedApp.status==="Approved"?"var(--status-success)":selectedApp.status==="Rejected"?"var(--status-danger)":"var(--status-warning)"}}>
                       {selectedApp.status}
                     </span>
                   </p>
@@ -1493,7 +1493,7 @@ export default function CoordinatorDashboard() {
                           ) : (
                             <>
                               {activeRecords.slice(0, 8).map((row, i) => (
-                                <tr key={keyFn(row, i)} style={{background:i%2===0?"var(--surface)":"var(--surface-muted)"}}>
+                                <tr key={keyFn(row, i)}>
                                   <td style={{...st.previewTd, textAlign:"center", color:"var(--text-secondary)"}}>{i + 1}</td>
                                   {cols.map(c => <td key={c.label} style={st.previewTd}>{c.render(row)}</td>)}
                                 </tr>

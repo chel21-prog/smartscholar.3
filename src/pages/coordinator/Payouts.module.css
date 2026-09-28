@@ -110,9 +110,6 @@
   color: var(--text-primary);
 }
 
-.table tbody tr:nth-child(even) { background: var(--surface-muted); }
-.table tbody tr:hover { background: var(--navy-50); }
-
 .money { font-weight: 700; color: var(--text-primary); }
 
 .emptyState {
@@ -124,45 +121,13 @@
 /* ===========================================
    BADGES
 =========================================== */
-.badgeSuccess {
-  display: inline-flex;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--success-100);
-  color: var(--success-700);
-  font-size: 12px;
-  font-weight: 700;
-}
+.badgeSuccess { display: inline-flex; align-items: center; padding: 0; background: none; border: none; border-radius: 0; font-size: 12px; font-weight: 700; letter-spacing: .2px; line-height: 1.4; white-space: nowrap; color: var(--status-success); }
 
-.badgeWarning {
-  display: inline-flex;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--warning-100);
-  color: var(--warning-700);
-  font-size: 12px;
-  font-weight: 700;
-}
+.badgeWarning { display: inline-flex; align-items: center; padding: 0; background: none; border: none; border-radius: 0; font-size: 12px; font-weight: 700; letter-spacing: .2px; line-height: 1.4; white-space: nowrap; color: var(--status-warning); }
 
-.badgeNeutral {
-  display: inline-flex;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--surface-muted);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 700;
-}
+.badgeNeutral { display: inline-flex; align-items: center; padding: 0; background: none; border: none; border-radius: 0; font-size: 12px; font-weight: 700; letter-spacing: .2px; line-height: 1.4; white-space: nowrap; color: var(--status-neutral); }
 
-.badgeDanger {
-  display: inline-flex;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--danger-100);
-  color: var(--danger-700);
-  font-size: 12px;
-  font-weight: 700;
-}
+.badgeDanger { display: inline-flex; align-items: center; padding: 0; background: none; border: none; border-radius: 0; font-size: 12px; font-weight: 700; letter-spacing: .2px; line-height: 1.4; white-space: nowrap; color: var(--status-danger); }
 
 /* ===========================================
    BUTTONS

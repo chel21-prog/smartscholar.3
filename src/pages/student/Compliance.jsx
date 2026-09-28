@@ -184,13 +184,11 @@ export default function Compliance() {
             <StatCard
               label="Submitted"
               value={rows.reduce((n, r) => n + Object.values(r.requirements).filter((req) => req.file_url).length, 0)}
-              tone="success"
               explain="Requirements you've already uploaded a file for."
             />
             <StatCard
               label="Missing"
               value={rows.reduce((n, r) => n + Object.values(r.requirements).filter((req) => !req.file_url).length, 0)}
-              tone="warning"
               explain="Requirements still waiting on a file from you."
             />
           </div>
@@ -209,7 +207,7 @@ export default function Compliance() {
                 <Table>
                   <thead>
                     <tr>
-                      <th>Requirement</th>
+                      <th data-pin>Requirement</th>
                       <th>Status</th>
                       <th>File</th>
                       <th>Upload</th>
@@ -222,7 +220,7 @@ export default function Compliance() {
 
                       return (
                         <tr key={req.requirement_name}>
-                          <td className={styles.reqName}>{req.requirement_name}</td>
+                          <td data-pin className={styles.reqName}>{req.requirement_name}</td>
 
                           <td>
                             <Badge status={req.file_url ? "Submitted" : "Missing"} />

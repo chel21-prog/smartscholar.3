@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Badge, EmptyState } from "@/components/ui/Card";
 import { TableWrap, Table } from "@/components/ui/Table";
+import Button from "@/components/ui/Button";
 import uiStyles from "@/components/ui/ui.module.css";
 import PageLoader from "@/components/ui/PageLoader";
 import InfoTooltip from "@/components/ui/InfoTooltip";
@@ -548,7 +549,7 @@ export default function Dashboard() {
                         : "No deadline set"}
                     </span>
 
-                    <button className={s.applyBtn} onClick={() => openApply(sc)}>Apply</button>
+                    <Button size="sm" variant="primary" onClick={() => openApply(sc)}>Apply</Button>
                   </div>
                 </div>
               );
@@ -568,13 +569,13 @@ export default function Dashboard() {
         ) : (
           <TableWrap>
             <Table>
-              <thead><tr><th>Name</th><th className={uiStyles.colOptional}>Description</th><th>Amount</th><th className={uiStyles.colOptional}>Frequency</th><th className={uiStyles.colOptional}>Duration</th><th>Deadline</th><th>Action</th></tr></thead>
+              <thead><tr><th data-pin>Name</th><th className={uiStyles.colOptional}>Description</th><th>Amount</th><th className={uiStyles.colOptional}>Frequency</th><th className={uiStyles.colOptional}>Duration</th><th>Deadline</th><th>Action</th></tr></thead>
               <tbody>
                 {eligible.map((sc) => {
                   const app = getApplication(sc.scholarship_id);
                   return (
                     <tr key={sc.scholarship_id}>
-                      <td className={s.nameCell}>{sc.scholarship_name}</td>
+                      <td data-pin className={s.nameCell}>{sc.scholarship_name}</td>
                       <td className={`${s.descCell} ${uiStyles.colOptional}`}>{sc.description}</td>
                       <td>₱{Number(sc.amount || 0).toLocaleString()}</td>
                       <td className={uiStyles.colOptional}>{sc.payout_frequency || "—"}</td>
@@ -583,7 +584,7 @@ export default function Dashboard() {
                       <td>
                         {app
                           ? <Badge status={app.status} />
-                          : <button className={s.applyBtn} onClick={() => openApply(sc)}>Apply</button>
+                          : <Button size="sm" variant="primary" onClick={() => openApply(sc)}>Apply</Button>
                         }
                       </td>
                     </tr>
@@ -610,14 +611,14 @@ export default function Dashboard() {
         ) : (
           <TableWrap>
             <Table>
-              <thead><tr><th>Name</th><th className={uiStyles.colOptional}>Description</th><th>Amount</th><th className={uiStyles.colOptional}>Frequency</th><th className={uiStyles.colOptional}>Duration</th><th>Deadline</th><th>Action</th></tr></thead>
+              <thead><tr><th data-pin>Name</th><th className={uiStyles.colOptional}>Description</th><th>Amount</th><th className={uiStyles.colOptional}>Frequency</th><th className={uiStyles.colOptional}>Duration</th><th>Deadline</th><th>Action</th></tr></thead>
               <tbody>
                 {notEligible.map((sc) => {
                   const app = getApplication(sc.scholarship_id);
                   const reasons = getReasons(sc);
                   return (
                     <tr key={sc.scholarship_id}>
-                      <td className={s.nameCell}>
+                      <td data-pin className={s.nameCell}>
                         {sc.scholarship_name}
                         {reasons.length > 0 && (
                           <ul className={s.reasonList}>{reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
@@ -631,7 +632,7 @@ export default function Dashboard() {
                       <td>
                         {app
                           ? <Badge status={app.status} />
-                          : <button className={s.applyBtn} onClick={() => openApply(sc)}>Apply</button>
+                          : <Button size="sm" variant="primary" onClick={() => openApply(sc)}>Apply</Button>
                         }
                       </td>
                     </tr>

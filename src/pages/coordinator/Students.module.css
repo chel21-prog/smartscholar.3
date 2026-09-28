@@ -122,18 +122,6 @@
     vertical-align:middle;
 }
 
-.rowEven{
-    background:var(--surface);
-}
-
-.table tbody tr:hover{
-    background:var(--navy-50);
-}
-
-.rowOdd{
-    background:var(--surface-muted);
-}
-
 /* ===========================
    INPUTS
 =========================== */
@@ -231,33 +219,22 @@
 =========================== */
 
 .badge {
-  padding: 5px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: 0;
+  background: none;
   border: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
 }
 
-.statusEnrolled {
-  background: var(--success-100);
-  color: var(--success-700);
-}
+.statusEnrolled { color: var(--status-success); }
 
-.statusGraduated {
-  background: var(--navy-100);
-  color: var(--navy-700);
-}
+.statusGraduated { color: var(--status-info); }
 
-.statusDropped {
-  background: var(--danger-100);
-  color: var(--danger-700);
-}
+.statusDropped { color: var(--status-danger); }
 
-.statusInactive {
-  background: var(--surface-muted);
-  color: var(--text-secondary);
-}
+.statusInactive { color: var(--status-neutral); }
 
 /* ===========================
    BUTTONS

@@ -924,7 +924,7 @@ const endRow =
           <thead className={styles.thead}>
             <tr>
               <th className={`${styles.th} ${styles.colOptional}`}>School ID</th>
-              <th className={styles.th}>Student Name</th>
+              <th data-pin className={styles.th}>Student Name</th>
               <th className={styles.th}>Scholarship</th>
               <th className={`${styles.th} ${styles.colOptional}`}>AY Approved</th>
               <th className={`${styles.th} ${styles.colOptional}`}>Semester Approved</th>
@@ -954,7 +954,7 @@ const endRow =
     {student.school_id}
 </td>
 
-<td className={styles.td}>
+<td data-pin className={styles.td}>
     {student.student_name}
 </td>
         <td className={styles.td}>
@@ -977,7 +977,7 @@ const endRow =
 
         <td className={styles.td}>
           <span
-            className={`${styles.badge} ${
+            className={`${styles.statusText} ${
               s.status === "Active"
                 ? styles.active
                 : styles.inactive
@@ -989,7 +989,7 @@ const endRow =
 
         <td className={styles.td}>
   <span
-    className={`${styles.badge} ${
+    className={`${styles.statusText} ${
       s.verification_result === "Verified"
         ? styles.active
         : styles.inactive
@@ -1020,12 +1020,9 @@ const endRow =
   )}
 </td>
 <td className={`${styles.td} ${styles.actionCell}`}>
-  <button
-    className={styles.documentButton}
-    onClick={() => openVerify(s)}
-  >
+  <Button size="sm" variant={s.verification_result === "Verified" ? "secondary" : "primary"} onClick={() => openVerify(s)}>
     {s.verification_result === "Verified" ? "Re-verify" : "Verify"}
-  </button>
+  </Button>
 </td>
 
       </tr>
@@ -1452,7 +1449,7 @@ const endRow =
                 <thead className={styles.thead}>
                   <tr>
                     <th className={styles.th}>Row</th>
-                    <th className={styles.th}>Name</th>
+                    <th data-pin className={styles.th}>Name</th>
                     <th className={styles.th}>School ID</th>
                     <th className={styles.th}>Scholarship</th>
                     <th className={styles.th}>AY / Semester</th>
@@ -1463,7 +1460,7 @@ const endRow =
                   {importRows.map(r => (
                     <tr key={r.rowNumber}>
                       <td className={styles.td}>{r.rowNumber}</td>
-                      <td className={styles.td}>{r.first_name} {r.last_name}</td>
+                      <td data-pin className={styles.td}>{r.first_name} {r.last_name}</td>
                       <td className={styles.td}>{r.school_id || "—"}</td>
                       <td className={styles.td}>{r.scholarship_name || "—"}</td>
                       <td className={styles.td}>{r.academic_year} {r.semester}</td>

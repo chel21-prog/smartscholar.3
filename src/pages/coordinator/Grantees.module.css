@@ -203,14 +203,20 @@
     white-space: nowrap;
 }
 
-.active{
-    background:var(--success-100);
-    color:var(--success-700);
+.statusText {
+    display:inline-flex;
+    padding:0;
+    font-size:12px;
+    font-weight:700;
+    white-space:nowrap;
 }
 
-.inactive{
-    background:var(--danger-100);
-    color:var(--danger-700);
+.active {
+    color:var(--status-success);
+}
+
+.inactive {
+    color:var(--status-danger);
 }
 /* ── verification modal ── */
 .verifyForm {

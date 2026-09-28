@@ -35,11 +35,6 @@
   line-height: 1;
 }
 
-.tone-success { color: var(--success-600); }
-.tone-warning { color: var(--warning-600); }
-.tone-danger  { color: var(--danger-600); }
-.tone-info    { color: var(--navy-600); }
-
 /* ── info icon + hover tooltip ─────────────────────────── */
 .infoWrap {
   position: relative;

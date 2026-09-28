@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
+import Button from "@/components/ui/Button";
 import { getCached, setCached } from "@/lib/dataCache";
 import { useToast } from "@/context/ToastContext";
 import {
@@ -286,13 +287,11 @@ export default function Grantees() {
         <StatCard
           label="Released"
           value={releasedCount}
-          tone="success"
           explain="Grantees who have received at least one fund release."
         />
         <StatCard
           label="Pending"
           value={pendingCount}
-          tone="warning"
           explain="Total Grantees minus Released — grantees who haven't had a fund release yet."
         />
       </div>
@@ -329,7 +328,7 @@ export default function Grantees() {
         <table className={s.table}>
           <thead className={s.thead}>
             <tr>
-              <th>Student</th>
+              <th data-pin>Student</th>
               <th>School ID</th>
               <th>Scholarship</th>
               <th>Amount</th>
@@ -355,7 +354,7 @@ export default function Grantees() {
 
               return (
                 <tr key={grantee.grantee_id}>
-                  <td>{grantee.students?.users?.first_name} {grantee.students?.users?.last_name}</td>
+                  <td data-pin>{grantee.students?.users?.first_name} {grantee.students?.users?.last_name}</td>
                   <td>{grantee.students?.school_id}</td>
                   <td>{scholarship.scholarship_name || "—"}</td>
                   <td>₱{Number(scholarship.amount || 0).toLocaleString()}</td>
@@ -367,14 +366,11 @@ export default function Grantees() {
                   </td>
                   <td>
                     {!eligible ? (
-                      <button className={f.btnReleased} disabled>Not Verified</button>
+                      <Button size="sm" variant="secondary" disabled>Not Verified</Button>
                     ) : (
-                      <button
-                        className={fullyPaid ? f.viewBtn : s.releaseBtn}
-                        onClick={() => { setSelectedGrantee(grantee); setScheduleModal(true); }}
-                      >
+                      <Button size="sm" variant={fullyPaid ? "secondary" : "primary"} onClick={() => { setSelectedGrantee(grantee); setScheduleModal(true); }}>
                         {fullyPaid ? "View Schedule (Fully Paid)" : "Payout Schedule"}
-                      </button>
+                      </Button>
                     )}
                   </td>
                 </tr>
@@ -427,7 +423,7 @@ export default function Grantees() {
                 <table className={f.table}>
                   <thead className={f.thead}>
                     <tr>
-                      <th className={f.th}>Period</th>
+                      <th data-pin className={f.th}>Period</th>
                       <th className={f.th}>Status</th>
                       <th className={`${f.th} ${f.colOptional}`}>Release Date</th>
                       <th className={f.th}>Amount</th>
@@ -442,7 +438,7 @@ export default function Grantees() {
                       const actionable = (period.status === "Due" || period.status === "Upcoming") && isEligible(selectedGrantee);
                       return (
                         <tr key={idx}>
-                          <td className={f.td}>{period.label}</td>
+                          <td data-pin className={f.td}>{period.label}</td>
                           <td className={f.td}>
                             <span
                               className={
@@ -457,29 +453,26 @@ export default function Grantees() {
                             </span>
                           </td>
                           <td className={`${f.td} ${f.colOptional}`}>{period.release?.release_date || "—"}</td>
-                          <td className={f.money}>
+                          <td className={`${f.td} ${f.money}`}>
                             {period.status === "Paid" ? `₱${Number(period.release.amount_released).toLocaleString()}` : "—"}
                           </td>
                           <td className={`${f.td} ${f.colOptional}`}>{period.release?.remarks || "—"}</td>
                           <td className={f.actionCell}>
                             {actionable && (
                               <div className={f.actionRow}>
-                                <button
-                                  className={f.viewBtn}
-                                  disabled={noBudget}
+                                <Button size="sm" variant="primary" disabled={noBudget}
                                   onClick={() => {
                                     setScheduleModal(false);
                                     openReleaseModal(selectedGrantee, period);
                                   }}
                                 >
                                   {noBudget ? "No Budget" : "Release"}
-                                </button>
-                                <button
-                                  className={f.historyBtn}
+                                </Button>
+                                <Button size="sm" variant="secondary"
                                   onClick={() => openSkipModal(selectedGrantee, period)}
                                 >
                                   Skip
-                                </button>
+                                </Button>
                               </div>
                             )}
                           </td>

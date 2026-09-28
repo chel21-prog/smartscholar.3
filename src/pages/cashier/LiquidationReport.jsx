@@ -321,7 +321,7 @@ export default function LiquidationReport() {
             <thead>
               <tr>
                 <th>Date</th><th>Check No./ADA/WeAccess No.</th><th>Payroll #/DV No.</th>
-                <th>Payee</th><th>Account Name</th><th>Amount</th>
+                <th data-pin>Payee</th><th>Account Name</th><th>Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -336,7 +336,7 @@ export default function LiquidationReport() {
                   <td>{formatDate(r.date)}</td>
                   <td>{r.check_no || "—"}</td>
                   <td>{r.dv_no || "—"}</td>
-                  <td>{r.payee}</td>
+                  <td data-pin>{r.payee}</td>
                   <td>{r.account_name}</td>
                   <td>{formatPeso(r.amount)}</td>
                 </tr>

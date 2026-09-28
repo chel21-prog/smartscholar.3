@@ -65,19 +65,19 @@ export default function CashierDashboard() {
 
   const stats = [
     {
-      label: "Total Grantees", value: totalGrantees, color: "",
+      label: "Total Grantees", value: totalGrantees,
       explain: "Total number of rows in the grantees table, regardless of status.",
     },
     {
-      label: "Total Released", value: formatPeso(totalReleased), color: "var(--success-600)",
+      label: "Total Released", value: formatPeso(totalReleased),
       explain: "Sum of amount_released for every fund release whose status is \"Released\".",
     },
     {
-      label: "Pending Releases", value: pendingCount, color: "var(--warning-600)",
+      label: "Pending Releases", value: pendingCount,
       explain: "Active, verified grantees whose next payout period is due but hasn't been released yet — computed from each grantee's schedule, not a stored status.",
     },
     {
-      label: "Completed Releases", value: releasedCount, color: "var(--navy-600)",
+      label: "Completed Releases", value: releasedCount,
       explain: "Count of fund releases whose status is \"Released\".",
     },
   ];
@@ -99,8 +99,8 @@ export default function CashierDashboard() {
 
       {/* KPI cards */}
       <div style={s.grid}>
-        {stats.map(({label, value, color, explain}) => (
-          <StatCard key={label} label={label} value={value} explain={explain} color={color || undefined} />
+        {stats.map(({label, value, explain}) => (
+          <StatCard key={label} label={label} value={value} explain={explain} />
         ))}
       </div>
 
@@ -132,23 +132,19 @@ export default function CashierDashboard() {
           </InfoTooltip>
         </div>
         <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+          <table>
             <thead>
               <tr>
-                {["Date","Amount","Status"].map(h => (
-                  <th key={h} style={{textAlign:"left",padding:"10px 14px",background:"var(--navy-900)",color:"#fff",fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:".3px"}}>{h}</th>
-                ))}
+                {["Date","Amount","Status"].map(h => <th key={h}>{h}</th>)}
               </tr>
             </thead>
             <tbody>
-              {releases.slice(0, 8).map((r, i) => (
-                <tr key={r.release_id} style={{background:i%2===0?"var(--surface)":"var(--surface-muted)"}}>
-                  <td style={{padding:"10px 14px",borderBottom:"1px solid var(--border)",color:"var(--text-primary)"}}>{r.release_date || "—"}</td>
-                  <td style={{padding:"10px 14px",borderBottom:"1px solid var(--border)",color:"var(--text-primary)",fontWeight:600}}>{formatPeso(r.amount_released)}</td>
-                  <td style={{padding:"10px 14px",borderBottom:"1px solid var(--border)"}}>
-                    <span style={{padding:"4px 12px",borderRadius:999,fontSize:11,fontWeight:700,
-                      background:r.status==="Released"?"var(--success-100)":"var(--warning-100)",
-                      color:r.status==="Released"?"var(--success-700)":"var(--warning-700)"}}>
+              {releases.slice(0, 8).map((r) => (
+                <tr key={r.release_id}>
+                  <td>{r.release_date || "—"}</td>
+                  <td style={{fontWeight:600}}>{formatPeso(r.amount_released)}</td>
+                  <td>
+                    <span style={{fontSize:12,fontWeight:700,color:r.status==="Released"?"var(--status-success)":"var(--status-warning)"}}>
                       {r.status}
                     </span>
                   </td>

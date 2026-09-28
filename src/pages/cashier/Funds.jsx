@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
+import Button from "@/components/ui/Button";
 import { getCached, setCached } from "@/lib/dataCache";
 import { useToast } from "@/context/ToastContext";
 import {
@@ -301,13 +302,11 @@ export default function Funds() {
         <StatCard
           label="Total Released"
           value={`₱${totalReleased.toLocaleString()}`}
-          tone="success"
           explain="Sum of amount_released across every fund release, for every grantee, across every scholarship."
         />
         <StatCard
           label="Remaining Budget"
           value={`₱${totalRemaining.toLocaleString()}`}
-          tone="info"
           explain="Total Budget minus Total Released."
         />
         <StatCard
@@ -343,7 +342,7 @@ export default function Funds() {
         <table className={s.table}>
           <thead className={s.thead}>
             <tr>
-              <th className={s.th}>Scholarship</th>
+              <th data-pin className={s.th}>Scholarship</th>
               <th className={`${s.th} ${s.colOptional}`}>Sponsor</th>
               <th className={`${s.th} ${s.colOptional}`}>Frequency</th>
               <th className={`${s.th} ${s.colOptional}`}>Duration</th>
@@ -365,7 +364,7 @@ export default function Funds() {
                 const remaining = remainingBudget(scholarship);
                 return (
                   <tr key={scholarship.scholarship_id}>
-                    <td className={s.nameCell}><strong>{scholarship.scholarship_name}</strong></td>
+                    <td data-pin className={s.nameCell}><strong>{scholarship.scholarship_name}</strong></td>
                     <td className={`${s.td} ${s.colOptional}`}>{scholarship.sponsor}</td>
                     <td className={`${s.td} ${s.colOptional}`}>{scholarship.payout_frequency || "—"}</td>
                     <td className={`${s.td} ${s.colOptional}`}>{scholarship.duration_type || "—"}</td>
@@ -381,9 +380,7 @@ export default function Funds() {
                       </div>
                     </td>
                     <td className={s.td}>
-                      <button className={s.viewBtn} onClick={() => setSelectedScholarship(scholarship)}>
-                        View
-                      </button>
+                      <Button size="sm" variant="secondary" onClick={() => setSelectedScholarship(scholarship)}>View</Button>
                     </td>
                   </tr>
                 );
@@ -451,7 +448,7 @@ export default function Funds() {
                 <table className={s.table}>
                   <thead className={s.thead}>
                     <tr>
-                      <th className={s.th}>Student</th>
+                      <th data-pin className={s.th}>Student</th>
                       <th className={`${s.th} ${s.colOptional}`}>School ID</th>
                       <th className={s.th}>Verification</th>
                       <th className={s.th}>Payouts</th>
@@ -478,7 +475,7 @@ export default function Funds() {
 
                         return (
                           <tr key={grantee.grantee_id}>
-                            <td className={s.studentCell}>
+                            <td data-pin className={s.studentCell}>
                               <div className={s.studentName}>
                                 {grantee.students?.users?.first_name} {grantee.students?.users?.last_name}
                               </div>
@@ -497,14 +494,11 @@ export default function Funds() {
                             <td className={s.actionCell}>
                               <div className={s.actionRow}>
                                 {!canRelease ? (
-                                  <button className={s.btnReleased} disabled>Inactive</button>
+                                  <Button size="sm" variant="secondary" disabled>Inactive</Button>
                                 ) : (
-                                  <button
-                                    className={fullyPaid ? s.viewBtn : s.btnPrimary}
-                                    onClick={() => { setSelectedGrantee(grantee); setScheduleModal(true); }}
-                                  >
+                                  <Button size="sm" variant={fullyPaid ? "secondary" : "primary"} onClick={() => { setSelectedGrantee(grantee); setScheduleModal(true); }}>
                                     {fullyPaid ? "View Schedule (Fully Paid)" : "Payout Schedule"}
-                                  </button>
+                                  </Button>
                                 )}
                               </div>
                             </td>
@@ -653,7 +647,7 @@ export default function Funds() {
                 <table className={s.table}>
                   <thead className={s.thead}>
                     <tr>
-                      <th className={s.th}>Period</th>
+                      <th data-pin className={s.th}>Period</th>
                       <th className={s.th}>Status</th>
                       <th className={`${s.th} ${s.colOptional}`}>Release Date</th>
                       <th className={s.th}>Amount</th>
@@ -667,7 +661,7 @@ export default function Funds() {
                       const actionable = (period.status === "Due" || period.status === "Upcoming") && selectedGrantee.status === "Active";
                       return (
                         <tr key={idx}>
-                          <td className={s.td}>{period.label}</td>
+                          <td data-pin className={s.td}>{period.label}</td>
                           <td className={s.td}>
                             <span
                               className={
@@ -682,29 +676,26 @@ export default function Funds() {
                             </span>
                           </td>
                           <td className={`${s.td} ${s.colOptional}`}>{period.release?.release_date || "—"}</td>
-                          <td className={s.money}>
+                          <td className={`${s.td} ${s.money}`}>
                             {period.status === "Paid" ? `₱${Number(period.release.amount_released).toLocaleString()}` : "—"}
                           </td>
                           <td className={`${s.td} ${s.colOptional}`}>{period.release?.remarks || "—"}</td>
                           <td className={s.actionCell}>
                             {actionable && (
                               <div className={s.actionRow}>
-                                <button
-                                  className={s.viewBtn}
-                                  disabled={noBudget}
+                                <Button size="sm" variant="primary" disabled={noBudget}
                                   onClick={() => {
                                     setScheduleModal(false);
                                     openReleaseModal(selectedGrantee, period);
                                   }}
                                 >
                                   {noBudget ? "No Budget" : "Release"}
-                                </button>
-                                <button
-                                  className={s.historyBtn}
+                                </Button>
+                                <Button size="sm" variant="secondary"
                                   onClick={() => openSkipModal(selectedGrantee, period)}
                                 >
                                   Skip
-                                </button>
+                                </Button>
                               </div>
                             )}
                           </td>

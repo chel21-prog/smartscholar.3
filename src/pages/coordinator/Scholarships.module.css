@@ -113,8 +113,6 @@
   white-space: nowrap;
   position: sticky; top: 0; z-index: 1;
 }
-.tr:nth-child(even) { background: var(--surface-muted); }
-.tr:hover { background: var(--navy-50); }
 .td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text-primary); }
 .tdDesc{
     max-width:260px;
@@ -145,15 +143,15 @@
 .tdDesc::-webkit-scrollbar-thumb:hover { background-color: var(--navy-500); }
 /* ── badges ── */
 .badge {
-  display: inline-block; padding: 4px 10px; border-radius: var(--radius-full);
-  font-size: var(--text-xs); font-weight: 700; border: none; cursor: pointer;
+  display: inline-block; padding: 0; background: none; border: none;
+  font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
   transition: opacity var(--duration-fast);
 }
 .badge:hover { opacity: .85; }
-.badgeSuccess { background: var(--success-100); color: var(--success-700); }
-.badgeWarning { background: var(--warning-100); color: var(--warning-700); }
-.badgeDanger  { background: var(--danger-100);  color: var(--danger-700);  }
-.badgeNeutral { background: var(--ink-100);      color: var(--ink-600);     }
+.badgeSuccess { color: var(--status-success); }
+.badgeWarning { color: var(--status-warning); }
+.badgeDanger  { color: var(--status-danger);  }
+.badgeNeutral { color: var(--status-neutral); }
 
 /* ── pagination ── */
 .pagination {
