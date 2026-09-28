@@ -14,17 +14,17 @@ import Button from "@/components/ui/Button";
 
 // ─── stable style objects defined outside the component ──────────────────────
 const st = {
-  container:   { padding: 10 },
-  header:      { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:22, flexWrap:"wrap", gap:10 },
+  container:   { padding: 0 },
+  header:      { display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:18, flexWrap:"wrap", gap:14 },
   headerRight: { display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" },
   title:       { margin:0, fontSize:21, fontWeight:700, color:"var(--text-primary)" },
   periodItem:  { display:"flex", alignItems:"center", gap:6 },
   periodInput: { padding:"5px 9px", border:"1px solid var(--border-strong)", borderRadius:6, fontSize:13, minWidth:130, background:"var(--surface)", color:"var(--text-primary)" },
-  cardGrid:    { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:14, marginBottom:22 },
+  cardGrid:    { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:14, marginBottom:18 },
   card:        { background:"var(--surface)", borderRadius:10, padding:16, boxShadow:"var(--shadow-sm)", border:"1px solid var(--border)" },
   cardLabel:   { fontSize:12, color:"var(--text-secondary)", marginBottom:8 },
   cardValue:   { fontSize:24, fontWeight:700, color:"var(--text-primary)" },
-  infoGrid:    { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:14, marginBottom:22 },
+  infoGrid:    { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:14, marginBottom:18 },
   infoCard:    { background:"var(--surface)", borderRadius:10, padding:10, boxShadow:"var(--shadow-sm)", border:"1px solid var(--border)", minHeight:220, maxHeight:260, display:"flex", flexDirection:"column" },
   infoTitle:   { marginBottom:12, fontSize:15, fontWeight:600, color:"var(--text-primary)", padding:"0 6px" },
   infoTitleRow:{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12, padding:"0 6px" },
@@ -949,7 +949,10 @@ export default function CoordinatorDashboard() {
     <div style={st.container}>
       {/* ── header ── */}
       <div style={st.header}>
-        <h1 style={st.title}>Dashboard</h1>
+        <div>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-subtitle">Overview of scholarship applications, grantees, and the current academic period.</p>
+        </div>
         <div style={st.headerRight}>
           <div style={st.periodItem}>
             <label style={{fontSize:13,color:"var(--text-secondary)"}}>AY</label>
@@ -977,27 +980,27 @@ export default function CoordinatorDashboard() {
       <div style={st.cardGrid}>
         {[
           {
-            label: "Applications This Month",
+            label: "Applications This Month", to: "/coordinator/applications", hint: "Applications",
             val: applications.filter(a=>{const d=new Date(a.application_date),n=new Date();return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear()}).length,
             explain: "Count of applications whose application date falls in the current calendar month and year.",
           },
           {
-            label: "Grantees",
+            label: "Grantees", to: "/coordinator/grantees", hint: "Grantees",
             val: totalGrantees,
             explain: "Sum of the \"occupied\" slot count across every scholarship — i.e. how many active grantees currently hold a slot.",
           },
           {
-            label: "Acceptance Rate",
+            label: "Acceptance Rate", to: "/coordinator/applications", hint: "Applications",
             val: totalApplicants ? Math.round(applications.filter(a=>a.status==="Approved").length/totalApplicants*100)+"%" : "0%",
             explain: "Applications with status \"Approved\" ÷ total applications × 100, rounded to the nearest whole percent.",
           },
           {
-            label: "Scholarships",
+            label: "Scholarships", to: "/coordinator/scholarships", hint: "Scholarships",
             val: totalScholarships,
             explain: "Total number of scholarship programs currently in the system, regardless of status.",
           },
-        ].map(({label,val,explain})=>(
-          <StatCard key={label} label={label} value={val} explain={explain} />
+        ].map(({label,val,explain,to,hint})=>(
+          <StatCard key={label} label={label} value={val} explain={explain} to={to} hint={hint} />
         ))}
       </div>
 

@@ -435,42 +435,71 @@ export default function Dashboard() {
 
   const recommended = [...scored].sort(SORTERS[sortMode]).slice(0, 3);
 
+  // stat cards jump to the list they count, then briefly highlight it
+  const goToSection = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.classList.remove(s.sectionFlash);
+    void el.offsetWidth; // restart the animation if clicked twice
+    el.classList.add(s.sectionFlash);
+    setTimeout(() => el.classList.remove(s.sectionFlash), 1800);
+  };
+  const cardKey = (id) => (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goToSection(id); }
+  };
+
   if (loading) return <PageLoader label="Loading your scholarships…" />;
 
   return (
     <div className={s.page}>
       <div className={s.header}>
-        <h1>Scholarship Dashboard</h1>
-        <p className={s.subtitle}>Browse open scholarships and track which ones you qualify for.</p>
+        <h1 className="page-title">Scholarship Dashboard</h1>
+        <p className="page-subtitle">Browse open scholarships and track which ones you qualify for.</p>
       </div>
 
       {/* stats */}
       <div className={s.statsRow}>
-        <div className={s.statCard}>
+        <div className={`${s.statCard} ${s.statClickable}`}>
+          <span role="link" tabIndex={0} className={s.statLink} aria-label="Total scholarships — jump to list"
+            onClick={() => goToSection("eligible-scholarships")} onKeyDown={cardKey("eligible-scholarships")} />
+          <span className={s.statGo} aria-hidden="true">↓</span>
           <div className={s.statNum}>{scholarships.length}</div>
           <div className={s.statLblRow}>
             <span className={s.statLbl}>Total scholarships</span>
-            <InfoTooltip label="Total scholarships" align="left">
-              Count of every scholarship program currently loaded, regardless of eligibility.
-            </InfoTooltip>
+            <span className={s.statInfoSlot}>
+              <InfoTooltip label="Total scholarships" align="left">
+                Count of every scholarship program currently loaded, regardless of eligibility.
+              </InfoTooltip>
+            </span>
           </div>
         </div>
-        <div className={s.statCard}>
+        <div className={`${s.statCard} ${s.statClickable}`}>
+          <span role="link" tabIndex={0} className={s.statLink} aria-label="Eligible — jump to list"
+            onClick={() => goToSection("eligible-scholarships")} onKeyDown={cardKey("eligible-scholarships")} />
+          <span className={s.statGo} aria-hidden="true">↓</span>
           <div className={`${s.statNum} ${s.statSuccess}`}>{eligible.length}</div>
           <div className={s.statLblRow}>
             <span className={s.statLbl}>Eligible</span>
-            <InfoTooltip label="Eligible" align="left">
-              Scholarships where you meet every linked eligibility requirement (each shows status "Compliant" in your profile).
-            </InfoTooltip>
+            <span className={s.statInfoSlot}>
+              <InfoTooltip label="Eligible" align="left">
+                Scholarships where you meet every linked eligibility requirement (each shows status "Compliant" in your profile).
+              </InfoTooltip>
+            </span>
           </div>
         </div>
-        <div className={s.statCard}>
+        <div className={`${s.statCard} ${s.statClickable}`}>
+          <span role="link" tabIndex={0} className={s.statLink} aria-label="May need more requirements — jump to list"
+            onClick={() => goToSection("needs-requirements")} onKeyDown={cardKey("needs-requirements")} />
+          <span className={s.statGo} aria-hidden="true">↓</span>
           <div className={`${s.statNum} ${s.statDanger}`}>{notEligible.length}</div>
           <div className={s.statLblRow}>
             <span className={s.statLbl}>May need more requirements</span>
-            <InfoTooltip label="May need more requirements" align="left">
-              Scholarships where at least one linked eligibility requirement is missing or not yet marked "Compliant".
-            </InfoTooltip>
+            <span className={s.statInfoSlot}>
+              <InfoTooltip label="May need more requirements" align="left">
+                Scholarships where at least one linked eligibility requirement is missing or not yet marked "Compliant".
+              </InfoTooltip>
+            </span>
           </div>
         </div>
       </div>
@@ -559,7 +588,7 @@ export default function Dashboard() {
       )}
 
       {/* eligible */}
-      <section className={s.section}>
+      <section id="eligible-scholarships" className={s.section}>
         <h2 className={s.sectionTitle}><span className={s.dotSuccess} /> Eligible scholarships</h2>
         {eligible.length === 0 ? (
           <div className={s.emptyCard}>
@@ -597,7 +626,7 @@ export default function Dashboard() {
       </section>
 
       {/* may need more requirements — still applyable */}
-      <section className={s.section}>
+      <section id="needs-requirements" className={s.section}>
         <h2 className={s.sectionTitle}><span className={s.dotDanger} /> May need more requirements</h2>
         <p className={s.sectionNote}>
           These are based on your profile and may be incomplete or outdated — you can still apply.

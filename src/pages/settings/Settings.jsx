@@ -324,8 +324,8 @@ const [showCurrent, setShowCurrent] = useState(false);
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1>Settings</h1>
-        <p className={styles.subtitle}>
+        <h1 className="page-title">Settings</h1>
+        <p className="page-subtitle">
           Manage your account and security.
         </p>
       </div>

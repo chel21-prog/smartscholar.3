@@ -5,12 +5,11 @@
   padding: 16px;
   box-shadow: var(--shadow-sm);
   min-width: 0;
-  transition: box-shadow var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
+  transition: box-shadow var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out);
 }
 
 .card:hover {
   box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
 }
 
 .top {
@@ -124,3 +123,55 @@
   color: var(--gold-500);
   margin-bottom: 4px;
 }
+
+/* ── clickable cards (dashboards) ─────────────────────── */
+.card { position: relative; }
+
+.clickable { cursor: pointer; }
+
+/* invisible link stretched over the whole card */
+.cardLink {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+.cardLink:focus-visible {
+  outline: 2px solid var(--navy-600);
+  outline-offset: 2px;
+}
+
+/* keeps the info icon usable above the stretched link */
+.infoSlot { position: relative; z-index: 2; display: inline-flex; }
+
+/* "View →" indicator, top-right of the card */
+.goHint {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  pointer-events: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.goText {
+  opacity: 0;
+  transform: translateX(4px);
+  transition: opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+}
+.goArrow {
+  display: inline-block;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.clickable:hover .goHint,
+.clickable:focus-within .goHint { color: var(--navy-600); }
+.clickable:hover .goText,
+.clickable:focus-within .goText { opacity: 1; transform: none; }
+.clickable:hover .goArrow,
+.clickable:focus-within .goArrow { transform: translateX(3px); }

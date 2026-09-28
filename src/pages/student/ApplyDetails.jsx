@@ -34,7 +34,10 @@ export default function ApplyDetails() {
 
   return (
     <div>
-      <h1>Apply</h1>
+      <div style={{ marginBottom: 20 }}>
+        <h1 className="page-title">Apply</h1>
+        <p className="page-subtitle">Review the scholarship details and submit your application.</p>
+      </div>
 
       {scholarship && (
         <>

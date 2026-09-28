@@ -16,7 +16,10 @@ export default function Settings() {
 
   return (
     <div>
-      <h1>Settings</h1>
+      <div style={{ marginBottom: 20 }}>
+        <h1 className="page-title">Settings</h1>
+        <p className="page-subtitle">Manage your account.</p>
+      </div>
 
       <div style={card}>
         <h3>Account</h3>

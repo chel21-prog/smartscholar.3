@@ -126,8 +126,8 @@ export default function Payouts() {
     <div className={s.page}>
       <div className={s.header}>
         <div>
-          <h1>Payouts</h1>
-          <p>View-only — payout schedules for every grantee and the full release history. To release or skip a payout, use the Cashier portal.</p>
+          <h1 className="page-title">Payouts</h1>
+          <p className="page-subtitle">View-only — payout schedules for every grantee and the full release history. To release or skip a payout, use the Cashier portal.</p>
         </div>
       </div>
 

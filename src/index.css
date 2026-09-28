@@ -276,3 +276,19 @@ input[type="password"]::-ms-clear { display: none; }
 @media (prefers-reduced-motion: reduce) {
   #root [class*="card_" i]:not([data-no-glow]), #root [class*="panel_" i]:not([data-no-glow]), #root [data-glow]:not([data-no-glow]), #root [class*="btn-"] { transition: none; }
 }
+
+/* ---- Page titles & subtitles (shared by every page) ---- */
+.page-title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+}
+.page-subtitle {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-base);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}

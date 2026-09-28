@@ -87,11 +87,11 @@
   /* ---- Semantic surfaces (light) ---- */
   --surface:       var(--white);
   --surface-muted: var(--ink-50);
-  --border:        var(--ink-100);
+  --border:        #d5dee6;
   --border-strong: var(--ink-200);
   --text-primary:  var(--ink-900);
   --text-secondary: var(--ink-500);
-  --page-bg:       var(--ink-50);
+  --page-bg:       #e8eef3;
   --topbar-bg:     var(--white);
 
   /* ---- Typography ---- */

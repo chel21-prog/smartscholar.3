@@ -101,8 +101,8 @@ export default function Concerns() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <h1>Concerns</h1>
-          <p className={styles.subtitle}>
+          <h1 className="page-title">Concerns</h1>
+          <p className="page-subtitle">
             Send a problem or concern straight to your coordinator and track their reply here.
           </p>
         </div>

@@ -1,22 +1,24 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-5);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: var(--space-4);
   flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: var(--space-4);
+  margin: 0;
 }
 
-.subtitle {
-  font-size: var(--text-sm);
-  color: var(--ink-400);
-  margin-top: var(--space-1);
-}
 
 .grid {
   display: grid;

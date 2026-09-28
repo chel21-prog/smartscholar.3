@@ -217,8 +217,8 @@ export default function Applications() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1>My Applications</h1>
-        <p className={styles.subtitle}>
+        <h1 className="page-title">My Applications</h1>
+        <p className="page-subtitle">
           Track the status of every scholarship you've applied to.
         </p>
       </div>

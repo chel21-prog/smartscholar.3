@@ -524,10 +524,10 @@ const paginated = filtered.slice(
   return (
     <div className={styles.page}>
 
-      <div className={styles.header} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:10 }}>
+      <div className={styles.pageHeader}>
   <div>
-    <h1 className={styles.title}>Applications</h1>
-    <p className={styles.subtitle}>
+    <h1 className="page-title">Applications</h1>
+    <p className="page-subtitle">
       Review scholarship applications, approve or reject submissions, and notify applicants.
     </p>
   </div>

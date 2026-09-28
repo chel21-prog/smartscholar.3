@@ -35,7 +35,10 @@ export default function Apply() {
   <p><b>Academic Year:</b> {academic?.academic_year}</p>
   <p><b>Semester:</b> {academic?.semester}</p>
 </div>
-      <h1>Apply for Scholarships</h1>
+      <div style={{ marginBottom: 20 }}>
+        <h1 className="page-title">Apply for Scholarships</h1>
+        <p className="page-subtitle">Choose a scholarship to apply for in the current academic period.</p>
+      </div>
        
       {data?.map((s) => (
         <div key={s.scholarship_id} style={card}>

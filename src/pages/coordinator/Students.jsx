@@ -253,8 +253,8 @@ const paginatedStudents = filteredStudents.slice(
     <div className={s.page}>
       <div className={s.header}>
   <div>
-    <h1 className={s.title}>Students</h1>
-    <p className={s.subtitle}>
+    <h1 className="page-title">Students</h1>
+    <p className="page-subtitle">
       Manage student records, enrollment status, and scholarship assignments.
     </p>
   </div>

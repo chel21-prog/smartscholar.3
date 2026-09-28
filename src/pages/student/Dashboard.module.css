@@ -1,7 +1,21 @@
-.page { display:flex; flex-direction:column; gap:var(--space-5); }
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-.header { display:flex; flex-direction:column; gap:var(--space-1); }
-.subtitle { font-size:var(--text-sm); color:var(--text-secondary); }
+.header {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 0;
+  margin: 0;
+}
 
 /* stats */
 .statsRow { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:var(--space-4); }
@@ -16,6 +30,26 @@
 .statLbl { margin-top:var(--space-2); font-size:var(--text-xs); font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.3px; }
 .statLblRow { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:var(--space-2); }
 .statLblRow .statLbl { margin-top:0; }
+
+/* clickable stat cards — jump to the list they count */
+.statCard { position:relative; }
+.statClickable { cursor:pointer; }
+.statLink { position:absolute; inset:0; z-index:1; border-radius:inherit; cursor:pointer; }
+.statLink:focus-visible { outline:2px solid var(--navy-600); outline-offset:2px; }
+.statInfoSlot { position:relative; z-index:2; display:inline-flex; }
+.statGo {
+  position:absolute; top:10px; right:12px; font-size:13px; font-weight:700;
+  color:var(--text-secondary); pointer-events:none;
+  transition:transform var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.statClickable:hover .statGo, .statClickable:focus-within .statGo { color:var(--navy-600); transform:translateY(3px); }
+
+/* section highlight after a card jump */
+.sectionFlash { animation: sectionFlash 1.6s ease-out; border-radius:var(--radius-lg); }
+@keyframes sectionFlash {
+  0%   { box-shadow:0 0 0 6px var(--teal-100); background:var(--teal-100); }
+  100% { box-shadow:0 0 0 6px transparent;     background:transparent; }
+}
 
 /* sections */
 .section { display:flex; flex-direction:column; gap:var(--space-3); }

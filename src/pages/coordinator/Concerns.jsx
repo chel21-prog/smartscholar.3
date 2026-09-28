@@ -140,8 +140,8 @@ export default function Concerns() {
     <div className={s.page}>
       <div className={s.header}>
         <div>
-          <h1>Concerns</h1>
-          <p>Problems and concerns students have sent in, with your replies.</p>
+          <h1 className="page-title">Concerns</h1>
+          <p className="page-subtitle">Problems and concerns students have sent in, with your replies.</p>
         </div>
       </div>
 

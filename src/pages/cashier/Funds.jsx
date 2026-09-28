@@ -285,8 +285,8 @@ export default function Funds() {
       {/* ================= HEADER ================= */}
       <div className={s.pageHeader}>
         <div>
-          <h1 className={s.pageTitle}>Funds Management</h1>
-          <p className={s.pageSubtitle}>
+          <h1 className="page-title">Funds Management</h1>
+          <p className="page-subtitle">
             Release payouts by academic period, respecting each scholarship's frequency and duration.
           </p>
         </div>

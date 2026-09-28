@@ -824,11 +824,11 @@ const endRow =
     <div className={styles.page}>
       <div className={styles.header}>
     <div>
-        <h1 className={styles.title}>
+        <h1 className="page-title">
             Scholarship Grantees
         </h1>
 
-        <p className={styles.subtitle}>
+        <p className="page-subtitle">
             View all approved scholarship recipients and their submitted requirements.
         </p>
     </div>

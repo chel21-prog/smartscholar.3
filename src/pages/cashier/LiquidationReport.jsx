@@ -244,8 +244,8 @@ export default function LiquidationReport() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <h1>Liquidation Report</h1>
-          <p>Generate a sponsor liquidation report — release, disbursement, and remaining balance for a scholarship batch.</p>
+          <h1 className="page-title">Liquidation Report</h1>
+          <p className="page-subtitle">Generate a sponsor liquidation report — release, disbursement, and remaining balance for a scholarship batch.</p>
         </div>
       </div>
 

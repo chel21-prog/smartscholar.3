@@ -1,14 +1,22 @@
-.page{
-    display:flex;
-    flex-direction:column;
-    gap:var(--space-5);
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.header{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    margin-bottom:var(--space-4);
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: var(--space-4);
+  margin: 0;
 }
 
 .statsRow {
@@ -18,18 +26,7 @@
   margin-bottom: var(--space-4);
 }
 
-.title{
-    margin:0;
-    font-size:var(--text-2xl);
-    font-weight:700;
-    color:var(--text-primary);
-}
 
-.subtitle{
-    margin-top:var(--space-1);
-    color:var(--text-secondary);
-    font-size:var(--text-sm);
-}
 
 .grid{
     display:grid;

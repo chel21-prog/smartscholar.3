@@ -381,10 +381,14 @@
    PAGE LAYOUT
 =========================================== */
 .page {
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .pageHeader, .statsGrid, .filterBar, .pagination { flex-shrink: 0; }
@@ -395,22 +399,16 @@
 }
 
 .pageHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: var(--space-4);
+  margin: 0;
 }
 
-.pageTitle {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-primary);
-}
 
-.pageSubtitle {
-    margin-top: 4px;
-    color: var(--text-secondary);
-}
 
 /* ===========================================
    SUMMARY / STATS
@@ -666,7 +664,7 @@
 }
 
 @media (max-width: 640px) {
-  .page { padding: 14px; }
+  .page { }
   .statsGrid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .modalStats { grid-template-columns: 1fr 1fr; gap: 10px; }
   .infoGrid { grid-template-columns: 1fr; }

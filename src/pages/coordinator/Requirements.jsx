@@ -299,8 +299,8 @@ export default function Requirements() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Requirement Library</h1>
-          <p className={styles.subtitle}>
+          <h1 className="page-title">Requirement Library</h1>
+          <p className="page-subtitle">
             Manage application and eligibility requirements used across scholarships.
           </p>
         </div>

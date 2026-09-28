@@ -386,8 +386,8 @@ export default function Profile() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1>Student Profile</h1>
-        <p className={styles.subtitle}>
+        <h1 className="page-title">Student Profile</h1>
+        <p className="page-subtitle">
           Keep your details current — scholarship eligibility is checked against this information.
         </p>
       </div>

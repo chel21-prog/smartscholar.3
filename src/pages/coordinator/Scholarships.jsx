@@ -447,8 +447,8 @@ export default function Scholarships() {
       {/* header */}
       <div className={s.pageHeader}>
         <div>
-          <h1 className={s.pageTitle}>Scholarships</h1>
-          <p className={s.pageSubtitle}>Manage scholarships, requirements, and application forms</p>
+          <h1 className="page-title">Scholarships</h1>
+          <p className="page-subtitle">Manage scholarships, requirements, and application forms</p>
         </div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
           <button className={s.btnPrimary} onClick={() => setOpen(true)}>Add Scholarship</button>

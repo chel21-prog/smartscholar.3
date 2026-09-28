@@ -9,6 +9,7 @@ export default function HelpGuide({ role }) {
   const [pos, setPos] = useState(null);
   const boxRef = useRef();
   const btnRef = useRef();
+  const panelRef = useRef();
 
   const guide = GUIDES[role];
   const page = guide?.pages?.[location.pathname];
@@ -17,7 +18,9 @@ export default function HelpGuide({ role }) {
   // positioning computed from the button's real screen position, so this
   // can never be clipped by an ancestor's overflow:hidden or run off the
   // edge of the screen.
-  const updatePosition = () => {
+  const updatePosition = (e) => {
+    // scrolling inside the panel itself must not trigger a reposition
+    if (e?.target instanceof Node && panelRef.current?.contains(e.target)) return;
     const btn = btnRef.current;
     if (!btn) return;
 
@@ -37,17 +40,22 @@ export default function HelpGuide({ role }) {
       }
     }
 
-    setPos({ top, left, width });
+    setPos((prev) =>
+      prev && prev.top === top && prev.left === left && prev.width === width
+        ? prev
+        : { top, left, width }
+    );
   };
 
   useLayoutEffect(() => {
     if (!open) return;
     updatePosition();
 
-    const onViewportChange = () => updatePosition();
+    const onViewportChange = (e) => updatePosition(e);
     window.addEventListener("resize", onViewportChange);
     window.addEventListener("scroll", onViewportChange, true);
     return () => {
+      setPos(null); // never reopen at a stale position
       window.removeEventListener("resize", onViewportChange);
       window.removeEventListener("scroll", onViewportChange, true);
     };
@@ -84,7 +92,9 @@ export default function HelpGuide({ role }) {
 
       {open && pos && (
         <div
+          ref={panelRef}
           className={styles.panel}
+          data-no-glow
           role="region"
           aria-label="Help guide"
           style={{ top: pos.top, left: pos.left, width: pos.width }}

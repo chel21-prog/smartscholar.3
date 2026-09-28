@@ -273,8 +273,8 @@ export default function Grantees() {
     <div className={s.page}>
       <div className={s.header}>
         <div>
-          <h1>Grantees</h1>
-          <p>Manage scholarship payouts and monitor released funds.</p>
+          <h1 className="page-title">Grantees</h1>
+          <p className="page-subtitle">Manage scholarship payouts and monitor released funds.</p>
         </div>
       </div>
 

@@ -159,8 +159,8 @@ export default function Compliance() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1>Compliance requirements</h1>
-        <p className={styles.subtitle}>
+        <h1 className="page-title">Compliance Requirements</h1>
+        <p className="page-subtitle">
           Upload the required documents for each active scholarship grant.
         </p>
       </div>
