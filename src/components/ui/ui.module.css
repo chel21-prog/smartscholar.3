@@ -220,34 +220,49 @@
   animation: loaderFadeIn .25s var(--ease-out);
 }
 
-/* Dual-ring spinner: an outer ring in the brand navy and an inner ring in
-   gold, rotating at slightly different speeds — reads as more "alive"
-   than a single flat ring, without being distracting. */
-.pageLoaderSpinner {
-  position: relative;
-  width: 40px; height: 40px;
+/* Scholar loader — a graduation cap tossed up and caught (PageLoader.jsx). */
+.scholar {
+  width: 64px; height: 64px;
+  overflow: visible;
 }
-.pageLoaderSpinner::before,
-.pageLoaderSpinner::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 3px solid transparent;
-}
-.pageLoaderSpinner::before {
-  border-top-color: var(--navy-600);
-  border-right-color: var(--navy-600);
-  animation: spin .9s cubic-bezier(.55,0,.45,1) infinite;
-}
-.pageLoaderSpinner::after {
-  inset: 7px;
-  border-top-color: var(--teal-600);
-  animation: spin 1.3s cubic-bezier(.55,0,.45,1) infinite reverse;
-}
+.pageLoaderSm { padding: var(--space-6); gap: var(--space-2); }
+.pageLoaderSm .scholar { width: 40px; height: 40px; }
 
-.pageLoader span:last-child {
-  animation: loaderPulse 1.6s ease-in-out infinite;
+.scholarCap {
+  transform-box: fill-box;
+  transform-origin: 50% 70%;
+  animation: capToss 1.7s cubic-bezier(.45,0,.3,1) infinite;
+}
+.scholarTassel {
+  transform-box: view-box;
+  transform-origin: 51px 27px;
+  animation: tasselSwing 1.7s ease-in-out infinite;
+}
+.scholarShadow {
+  fill: currentColor;
+  opacity: .16;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: capShadow 1.7s cubic-bezier(.45,0,.3,1) infinite;
+}
+.pageLoaderLabel { animation: loaderPulse 1.6s ease-in-out infinite; }
+
+@keyframes capToss {
+  0%   { transform: translateY(0) rotate(0deg); }
+  38%  { transform: translateY(-13px) rotate(-12deg); }
+  62%  { transform: translateY(-13px) rotate(8deg); }
+  84%  { transform: translateY(0) rotate(-2deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+@keyframes tasselSwing {
+  0%, 100% { transform: rotate(0deg); }
+  30%      { transform: rotate(-22deg); }
+  55%      { transform: rotate(16deg); }
+  80%      { transform: rotate(-6deg); }
+}
+@keyframes capShadow {
+  0%, 100% { transform: scaleX(1);   opacity: .16; }
+  38%, 62% { transform: scaleX(.65); opacity: .07; }
 }
 
 @keyframes loaderFadeIn {
@@ -268,9 +283,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pageLoader,
-  .pageLoaderSpinner::before,
-  .pageLoaderSpinner::after,
-  .pageLoader span:last-child,
+  .pageLoaderLabel,
+  .scholarCap,
+  .scholarTassel,
+  .scholarShadow,
   .contentFadeIn {
     animation: none !important;
   }

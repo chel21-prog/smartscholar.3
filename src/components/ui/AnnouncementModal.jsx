@@ -411,7 +411,7 @@ export default function AnnouncementModal({ open, onClose, types }) {
     setLoading(false);
   };
 
-  const useTemplate = (tpl) => {
+  const applyTemplate = (tpl) => {
     const t = tpl.layout?.type || "General";
     const def = TYPE_DEFS[t] || TYPE_DEFS.General;
     const savedTarget = tpl.layout?.target;
@@ -623,7 +623,7 @@ export default function AnnouncementModal({ open, onClose, types }) {
               {visibleTemplates.map(t => {
                 const tgt = TARGETS[t.layout?.target];
                 return (
-                  <button key={t.template_id} className={styles.tplCard} onClick={() => useTemplate(t)}>
+                  <button key={t.template_id} className={styles.tplCard} onClick={() => applyTemplate(t)}>
                     <div className={styles.tplCardTop}>
                       <span className={styles.tplTypeChip}>{t.layout?.type || "General"}</span>
                       <span
