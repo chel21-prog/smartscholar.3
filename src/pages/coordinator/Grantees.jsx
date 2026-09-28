@@ -833,17 +833,17 @@ const endRow =
         </p>
     </div>
     <div className={styles.headerActions}>
+      <Button variant="primary" onClick={openAddGrantee}>
+        + Add Historical Grantee
+      </Button>
+      <Button variant="primary" onClick={openImport}>
+        Import from File
+      </Button>
       <Button
         variant="secondary"
         onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "grantees", returnTo: "/coordinator/grantees" } } })}
       >
         Generate Report
-      </Button>
-      <Button variant="primary" onClick={openAddGrantee}>
-        + Add Historical Grantee
-      </Button>
-      <Button variant="ghost" onClick={openImport}>
-        Import from File
       </Button>
     </div>
 </div>

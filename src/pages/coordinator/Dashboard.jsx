@@ -964,11 +964,11 @@ export default function CoordinatorDashboard() {
               <option>2nd Semester</option>
             </select>
           </div>
-          <Button variant="secondary" onClick={()=>{setReportReturnTo(null); openReportModal();}}>
-            Generate Report
-          </Button>
           <Button variant="primary" onClick={()=>setShowAnnouncement(true)}>
             Announcements
+          </Button>
+          <Button variant="secondary" onClick={()=>{setReportReturnTo(null); openReportModal();}}>
+            Generate Report
           </Button>
         </div>
       </div>

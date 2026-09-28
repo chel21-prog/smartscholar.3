@@ -305,7 +305,7 @@ export default function Requirements() {
           </p>
         </div>
         <Button
-          variant="primary"
+          variant="secondary"
           onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "requirements", returnTo: "/coordinator/requirements" } } })}
         >
           Generate Report

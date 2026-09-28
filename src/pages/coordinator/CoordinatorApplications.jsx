@@ -531,12 +531,12 @@ const paginated = filtered.slice(
       Review scholarship applications, approve or reject submissions, and notify applicants.
     </p>
   </div>
-  <button
+  <Button
+    variant="secondary"
     onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "applications", returnTo: "/coordinator/applications" } } })}
-    style={{ padding:"9px 16px", background:"var(--teal-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
   >
     Generate Report
-  </button>
+  </Button>
 </div>
 
 <div className={styles.statsRow}>
