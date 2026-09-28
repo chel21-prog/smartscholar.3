@@ -188,25 +188,25 @@ input[type="password"]::-ms-clear { display: none; }
 :where(button, [role="button"]) { border-radius: var(--radius-md); }
 
 /* cards */
-#root [class*="card_" i],
-#root [class*="panel_" i],
-#root [data-glow] {
+#root [class*="card_" i]:not([data-no-glow]),
+#root [class*="panel_" i]:not([data-no-glow]),
+#root [data-glow]:not([data-no-glow]) {
   transition: box-shadow var(--duration-base) var(--ease-out),
     border-color var(--duration-base) var(--ease-out),
     transform var(--duration-base) var(--ease-out);
 }
-#root [class*="card_" i]:hover,
-#root [class*="panel_" i]:hover,
-#root [data-glow]:hover {
+#root [class*="card_" i]:not([data-no-glow]):hover,
+#root [class*="panel_" i]:not([data-no-glow]):hover,
+#root [data-glow]:not([data-no-glow]):hover {
   position: relative;
   z-index: 20; /* lift the hovered card above the search / filter bar so its info tooltip isn't covered */
   border-color: var(--teal-600) !important;
   box-shadow: var(--glow-teal) !important; /* !important: some boxes set their shadow inline */
 }
 
-#root [class*="card_" i]:focus-within,
-#root [class*="panel_" i]:focus-within,
-#root [data-glow]:focus-within {
+#root [class*="card_" i]:not([data-no-glow]):focus-within,
+#root [class*="panel_" i]:not([data-no-glow]):focus-within,
+#root [data-glow]:not([data-no-glow]):focus-within {
   position: relative;
   z-index: 20;
 }
@@ -274,5 +274,5 @@ input[type="password"]::-ms-clear { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #root [class*="card_" i], #root [class*="panel_" i], #root [data-glow], #root [class*="btn-"] { transition: none; }
+  #root [class*="card_" i]:not([data-no-glow]), #root [class*="panel_" i]:not([data-no-glow]), #root [data-glow]:not([data-no-glow]), #root [class*="btn-"] { transition: none; }
 }

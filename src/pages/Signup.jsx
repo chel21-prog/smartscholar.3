@@ -131,7 +131,7 @@ export default function Signup() {
   <div className={styles.container}>
 
       {/* LEFT INTRO PANEL */}
-            <div className={styles.leftPanel}>
+            <div data-no-glow className={styles.leftPanel}>
               <img
           src="/logo.png"
           alt="SmartScholar Logo"
@@ -157,7 +157,7 @@ export default function Signup() {
             </div>
 
       {/* RIGHT PANEL */}
-      <div className={styles.rightPanel}>
+      <div data-no-glow className={styles.rightPanel}>
         <div className={styles.card}>
           <div className={styles.header}>
             <h2 className={styles.title}>Create Account</h2>

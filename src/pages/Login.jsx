@@ -159,7 +159,7 @@ export default function Login() {
       <ThemeToggle className={styles.fixedThemeToggle} />
       <div className={styles.container}>
       {/* LEFT INTRO PANEL */}
-      <div className={styles.leftPanel}>
+      <div data-no-glow className={styles.leftPanel}>
         <img
     src="/logo.png"
     alt="SmartScholar Logo"
@@ -185,7 +185,7 @@ export default function Login() {
       </div>
 
       {/* RIGHT LOGIN PANEL */}
-      <div className={styles.rightPanel}>
+      <div data-no-glow className={styles.rightPanel}>
         <div className={styles.card}>
           <div className={styles.header}>
             
