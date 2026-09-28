@@ -396,9 +396,27 @@ export default function Grantees() {
       </div>
 
       <div className={s.pagination}>
-        <button disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
-        <span>Page {page} of {totalPages || 1}</span>
-        <button disabled={page === totalPages || totalPages === 0} onClick={() => setPage(page + 1)}>Next</button>
+        <span className={s.pageInfo}>
+          Showing{" "}
+          {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
+          {" - "}
+          {Math.min(page * PAGE_SIZE, filtered.length)} of{" "}
+          {filtered.length}
+        </span>
+
+        <div className={s.pageButtons}>
+          <button className={s.pageBtn} disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+            Previous
+          </button>
+
+          <span className={s.pageInfo}>
+            Page {filtered.length === 0 ? 0 : page} of {totalPages || 1}
+          </span>
+
+          <button className={s.pageBtn} disabled={page >= totalPages || filtered.length === 0} onClick={() => setPage((p) => p + 1)}>
+            Next
+          </button>
+        </div>
       </div>
 
       {/* ================= PAYOUT SCHEDULE MODAL ================= */}

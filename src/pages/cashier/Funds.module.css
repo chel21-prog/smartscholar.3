@@ -392,30 +392,56 @@
     gap: 8px;
 }
 
-/* ===========================================
-   PAGINATION
-=========================================== */
-.pagination {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+
+/* ===========================
+   PAGINATION (matches coordinator)
+=========================== */
+.pagination{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px 18px;
+    flex-wrap:wrap;
+    gap:12px;
 }
-
-.pageInfo { color: var(--text-secondary); font-size: 13px; }
-
-.pageButtons { display: flex; gap: 8px; }
-
-.pageBtn {
-    border: 1px solid var(--border);
-    background: var(--surface);
-    padding: 7px 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
+.pageInfo{
+    font-size:14px;
+    color:var(--text-secondary);
 }
-
-.pageBtn:disabled { opacity: .5; cursor: default; }
-.pageBtn:hover:not(:disabled) { background: var(--navy-50); }
+.pageButtons{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+.pageBtn{
+    padding:9px 18px;
+    border:1px solid var(--border-strong);
+    border-radius:10px;
+    background:var(--surface);
+    color:var(--text-primary);
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    transition:.2s ease;
+}
+.pageBtn:hover:not(:disabled){
+    background:var(--navy-50);
+    border-color:var(--navy-600);
+}
+.pageBtn:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+}
+@media (max-width:1024px){
+    .pagination{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+    .pageButtons{
+        width:100%;
+        justify-content:flex-end;
+    }
+}
 
 /* ===========================================
    RELEASE MODAL (compact)

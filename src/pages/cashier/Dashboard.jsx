@@ -6,9 +6,11 @@ import StatCard from "@/components/ui/StatCard";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { getCached, setCached } from "@/lib/dataCache";
 import { buildSchedule, isEligible } from "@/lib/payoutSchedule";
-import { formatPeso } from "@/lib/format";
+import { formatPeso, formatDate } from "@/lib/format";
+import s2 from "./Dashboard.module.css";
 
-const CACHE_KEY = "cashier-dashboard";
+const CACHE_KEY = "cashier-dashboard-v2";
+const PAGE_SIZE = 10;
 
 export default function CashierDashboard() {
   const cached = getCached(CACHE_KEY);
@@ -17,6 +19,7 @@ export default function CashierDashboard() {
   const [pendingCount,      setPendingCount]      = useState(cached?.pendingCount ?? 0);
   const [loading,           setLoading]           = useState(!cached);
   const [showAnnouncement,  setShowAnnouncement]  = useState(false);
+  const [page,              setPage]              = useState(1);
 
   useEffect(() => { load(); }, []);
 
@@ -31,7 +34,21 @@ export default function CashierDashboard() {
     // returns 0, regardless of how many payouts are actually due.
     const [{ data: g }, { data: r }, { data: scheduleData }] = await Promise.all([
       supabase.from("grantees").select("grantee_id,status"),
-      supabase.from("fund_releases").select("release_id,amount_released,status,release_date"),
+      supabase
+        .from("fund_releases")
+        .select(`
+          release_id, amount_released, status, release_date,
+          academic_year, semester, payout_period,
+          grantees(
+            grantee_id,
+            students(
+              school_id,
+              users(first_name, last_name)
+            ),
+            scholarships(scholarship_name)
+          )
+        `)
+        .order("release_date", { ascending: false, nullsFirst: false }),
       supabase
         .from("grantees")
         .select(`
@@ -61,6 +78,8 @@ export default function CashierDashboard() {
   const totalGrantees  = grantees.length;
   const totalReleased  = releases.filter(r => r.status === "Released").reduce((sum, r) => sum + Number(r.amount_released || 0), 0);
   const releasedCount  = releases.filter(r => r.status === "Released").length;
+  const totalPages     = Math.max(1, Math.ceil(releases.length / PAGE_SIZE));
+  const currentRows    = releases.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const stats = [
     {
@@ -108,30 +127,66 @@ export default function CashierDashboard() {
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
           <h3 style={{margin:0,fontSize:16,fontWeight:700,color:"var(--text-primary)"}}>Recent Fund Releases</h3>
           <InfoTooltip label="Recent Fund Releases">
-            The first 8 fund release records, in the order they were returned from the database.
+            Every fund release record, newest first — showing who received it, for which scholarship, and for which payout period.
           </InfoTooltip>
         </div>
         <div style={{overflowX:"auto"}}>
           <table>
             <thead>
               <tr>
-                {["Date","Amount","Status"].map(h => <th key={h}>{h}</th>)}
+                {["Date","Recipient","Student ID","Scholarship","Period","Amount","Status"].map(h => <th key={h}>{h}</th>)}
               </tr>
             </thead>
             <tbody>
-              {releases.slice(0, 8).map((r) => (
-                <tr key={r.release_id}>
-                  <td>{r.release_date || "—"}</td>
-                  <td style={{fontWeight:600}}>{formatPeso(r.amount_released)}</td>
-                  <td>
-                    <span style={{fontSize:12,fontWeight:700,color:r.status==="Released"?"var(--status-success)":"var(--status-warning)"}}>
-                      {r.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {releases.length === 0 ? (
+                <tr><td colSpan={7} style={{textAlign:"center",padding:24,color:"var(--text-secondary)"}}>No fund releases yet.</td></tr>
+              ) : currentRows.map((r) => {
+                const g = r.grantees;
+                const u = g?.students?.users;
+                const name = u ? `${u.first_name || ""} ${u.last_name || ""}`.trim() : "";
+                const period = [r.academic_year, r.semester, r.payout_period].filter(Boolean).join(" · ");
+                return (
+                  <tr key={r.release_id}>
+                    <td>{r.release_date ? formatDate(r.release_date, { year: "numeric", month: "short", day: "numeric" }) : "—"}</td>
+                    <td style={{fontWeight:600}}>{name || "—"}</td>
+                    <td>{g?.students?.school_id || "—"}</td>
+                    <td>{g?.scholarships?.scholarship_name || "—"}</td>
+                    <td>{period || "—"}</td>
+                    <td style={{fontWeight:600}}>{formatPeso(r.amount_released)}</td>
+                    <td>
+                      <span style={{fontSize:12,fontWeight:700,color:r.status==="Released"?"var(--status-success)":"var(--status-warning)"}}>
+                        {r.status}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+        </div>
+
+        <div className={s2.pagination}>
+          <span className={s2.pageInfo}>
+            Showing{" "}
+            {releases.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
+            {" - "}
+            {Math.min(page * PAGE_SIZE, releases.length)} of{" "}
+            {releases.length}
+          </span>
+
+          <div className={s2.pageButtons}>
+            <button className={s2.pageBtn} disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+              Previous
+            </button>
+
+            <span className={s2.pageInfo}>
+              Page {releases.length === 0 ? 0 : page} of {totalPages}
+            </span>
+
+            <button className={s2.pageBtn} disabled={page >= totalPages || releases.length === 0} onClick={() => setPage((p) => p + 1)}>
+              Next
+            </button>
+          </div>
         </div>
       </div>
 
