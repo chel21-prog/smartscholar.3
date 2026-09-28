@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import NumberInput from "@/components/ui/NumberInput";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/lib/supabase";
@@ -271,7 +272,7 @@ export default function LiquidationReport() {
           </div>
           <div className={styles.field}>
             <label>Release Amount (₱) *</label>
-            <input className={styles.input} type="number" value={releaseAmount} onChange={(e) => setReleaseAmount(e.target.value)}
+            <NumberInput className={styles.input} min={0} value={releaseAmount} onChange={(e) => setReleaseAmount(e.target.value)}
               placeholder="Total funds received from sponsor for this batch" />
           </div>
         </div>
@@ -286,7 +287,7 @@ export default function LiquidationReport() {
           <div className={styles.field}>
             <label>Previous liquidation amount (₱)</label>
             <div className={styles.inlineRow}>
-              <input className={styles.input} type="number" value={prevLiquidation} onChange={(e) => setPrevLiquidation(e.target.value)}
+              <NumberInput className={styles.input} min={0} value={prevLiquidation} onChange={(e) => setPrevLiquidation(e.target.value)}
                 placeholder="From your last report" />
               <button type="button" className={styles.calcBtn} disabled={calculating} onClick={calculatePreviousLiquidation}>
                 {calculating ? "Calculating…" : "Calculate from records"}

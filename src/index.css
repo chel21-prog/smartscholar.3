@@ -400,3 +400,28 @@ input[type="password"]::-ms-clear { display: none; }
   flex-wrap: wrap;
   gap: var(--space-3);
 }
+
+
+/* ============================================================
+   NumberInput (custom − / + field): the outer box shows the glow,
+   not the bare <input> inside it, and the tiny stepper buttons
+   don't get the big button glow.
+   ============================================================ */
+#root input[data-numfield]:hover:not(:focus),
+#root input[data-numfield]:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+#root [data-numwrap] {
+  transition: border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+#root [data-numwrap]:hover:not(:focus-within) {
+  border-color: var(--teal-600);
+  box-shadow: 0 0 0 3px var(--teal-100);
+}
+#root [data-numwrap]:focus-within {
+  border-color: var(--teal-600);
+  box-shadow: 0 0 0 3px var(--teal-100);
+}
+#root [data-stepper]:hover:not(:disabled) { box-shadow: none; }

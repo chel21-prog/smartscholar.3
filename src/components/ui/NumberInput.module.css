@@ -1,0 +1,68 @@
+/* Outer box: the caller's className (e.g. .search / .input) supplies border,
+   padding, background and width — this only lays out the field + stepper. */
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  padding-right: 8px !important; /* stepper sits close to the right edge */
+}
+
+/* the real <input> is bare — the outer box draws the field */
+.field {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  /* hide the browser's own spinner arrows */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.field::-webkit-outer-spin-button,
+.field::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.field:disabled { cursor: not-allowed; opacity: .6; }
+
+/* ▲ / ▼ stepper */
+.steppers {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 22px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+.step {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  line-height: 0;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+.step + .step { border-top: 1px solid var(--border); }
+.step:hover:not(:disabled) {
+  background: var(--teal-100);
+  color: var(--teal-600);
+}
+.step:active:not(:disabled) {
+  background: var(--teal-600);
+  color: #fff;
+}
+.step:disabled { opacity: .35; cursor: not-allowed; }

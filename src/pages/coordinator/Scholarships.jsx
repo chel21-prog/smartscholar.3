@@ -4,6 +4,7 @@ import { useConfirm } from "@/hooks/useConfirm";
 import { useToast } from "@/context/ToastContext";
 import { useNavigate } from "react-router-dom";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
+import NumberInput from "@/components/ui/NumberInput";
 import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import { getCached, setCached } from "@/lib/dataCache";
@@ -38,6 +39,7 @@ export default function Scholarships() {
   const [viewFormOpen, setViewFormOpen] = useState(false);
   const [editMode,     setEditMode]    = useState(false);
   const [editingId,    setEditingId]   = useState(null);
+  const [tab,          setTab]         = useState("info"); // info | reqs | form
 
   // ── scholarship fields ──────────────────────────────────
   const [name,           setName]           = useState("");
@@ -274,6 +276,7 @@ export default function Scholarships() {
     setFieldLabel(""); setFieldType("text"); setIsRequired(false); setEditingFieldIndex(null);
     setShowTplPicker(false); setShowSaveTpl(false); setTplName("");
     setSaving(false);
+    setTab("info");
   };
 
   const performClose = () => {
@@ -634,269 +637,377 @@ export default function Scholarships() {
       {/* ── Create / Edit Modal ── */}
       {open && (
         <div className={s.overlay} onMouseDown={e => e.target === e.currentTarget && closeModal()}>
-          <div className={s.modal}>
+          <div className={`${s.modal} ${s.modalWide}`} role="dialog" aria-modal="true" aria-label={editMode ? "Edit Scholarship" : "Add Scholarship"}>
             <div className={s.modalHeader}>
-              <h2 className={s.modalTitle}>{editMode ? "Edit Scholarship" : "Add Scholarship"}</h2>
-              <button className={s.closeBtn} onClick={closeModal}>✕</button>
+              <div>
+                <h2 className={s.modalTitle}>{editMode ? "Edit Scholarship" : "Add Scholarship"}</h2>
+                <p className={s.modalSub}>Set up the scholarship, choose its requirements, then build the application form.</p>
+              </div>
+              <button className={s.closeBtn} onClick={closeModal} aria-label="Close">✕</button>
+            </div>
+
+            {/* ── step tabs ── */}
+            <div className={s.tabs} role="tablist">
+              {[
+                { id: "info", n: 1, label: "Details",          count: null },
+                { id: "reqs", n: 2, label: "Requirements",     count: selectedReq.length },
+                { id: "form", n: 3, label: "Application form", count: fields.length },
+              ].map(tb => (
+                <button key={tb.id} type="button" role="tab" aria-selected={tab === tb.id}
+                  className={`${s.tab} ${tab === tb.id ? s.tabActive : ""}`}
+                  onClick={() => setTab(tb.id)}>
+                  <span className={s.tabNum}>{tb.n}</span>
+                  <span>{tb.label}</span>
+                  {tb.count > 0 && <span className={s.tabCount}>{tb.count}</span>}
+                </button>
+              ))}
             </div>
 
             <div className={s.modalBody}>
-              {/* Scholarship Info */}
-              <section className={s.section}>
-                <h3 className={s.sectionTitle}>Scholarship Information</h3>
-                <div className={s.formGrid}>
-                  <div className={s.fieldWrap}>
-                    <label className={s.label}>Scholarship Name</label>
-                    <input className={s.input} placeholder="e.g. Academic Excellence Award"
-                      value={name} onChange={e => setName(e.target.value)} />
-                  </div>
-                  <div className={s.fieldWrap}>
-                    <label className={s.label}>Sponsor</label>
-                    <input className={s.input} placeholder="e.g. DOST" value={sponsor} onChange={e => setSponsor(e.target.value)} />
-                  </div>
-                  <div className={s.fieldWrapFull}>
-                    <label className={s.label}>Description</label>
-                    <textarea className={s.textarea} placeholder="Brief description…" value={description} onChange={e => setDescription(e.target.value)} />
-                  </div>
-                  <div className={s.fieldWrap}>
-                    <label className={s.label}>Amount per grantee (₱)</label>
-                    <input className={s.input} placeholder="e.g. 5000" value={amount} onChange={e => setAmount(e.target.value)} />
-                  </div>
-                  <div className={s.fieldWrap}>
-                    <label className={s.label}>Total Budget (₱)</label>
-                    <input className={s.input} type="number" placeholder="e.g. 500000" value={budget} onChange={e => setBudget(e.target.value)} />
-                  </div>
-                  <div className={s.fieldWrap}>
-                    <label className={s.label}>Slots available</label>
-                    <input className={s.input} type="number" placeholder="e.g. 20" value={slots} onChange={e => setSlots(e.target.value)} />
-                  </div>
-                  <div className={s.fieldWrap}>
-                    <label className={s.label}>Submission deadline</label>
-                    <input className={s.input} type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
-                  </div>
-                  <div className={s.fieldWrap}>
-                    <label className={s.label}>Payout Frequency</label>
-                    <select className={s.input} value={payoutFreq} onChange={e => setPayoutFreq(e.target.value)}>
-                      <option value="Semester">Semester</option>
-                      <option value="Annual">Annual</option>
-                      <option value="Monthly">Monthly</option>
-                      <option value="One-time">One-time</option>
-                    </select>
-                  </div>
-                  <div className={s.fieldWrap}>
-                    <label className={s.label}>Duration</label>
-                    <select className={s.input} value={duration} onChange={e => setDuration(e.target.value)}>
-                      <option value="1 Semester">1 Semester</option>
-                      <option value="1 Academic Year">1 Academic Year</option>
-                      <option value="2 Academic Years">2 Academic Years</option>
-                      <option value="3 Academic Years">3 Academic Years</option>
-                      <option value="4 Academic Years">4 Academic Years</option>
-                      <option value="Until Graduation">Until Graduation</option>
-                    </select>
-                  </div>
-                </div>
-              </section>
-
-              {/* Requirements */}
-              <section className={s.section}>
-                <h3 className={s.sectionTitle}>Requirements</h3>
-                <div className={s.reqGroup}>
-                  <h4 className={s.reqGroupTitle}>Application Requirements</h4>
-                  {appReq.map(r => (
-                    <label key={r.application_requirement_id} className={s.checkItem}>
-                      <input type="checkbox"
-                        checked={selectedReq.some(x => x.id === r.application_requirement_id && x.type === "app")}
-                        onChange={() => toggleReq(r.application_requirement_id, "app")} />
-                      {r.requirement_name}
-                    </label>
-                  ))}
-                  <button className={s.addBtn} onClick={() => setShowAppForm(!showAppForm)}>+ New requirement</button>
-                  {showAppForm && (
-                    <div className={s.inlineForm}>
-                      <input className={s.input} placeholder="Requirement name" value={newAppName} onChange={e => setNewAppName(e.target.value)} />
-                      <select className={s.input} value={newAppType} onChange={e => setNewAppType(e.target.value)}>
-                        <option>Document</option><option>Grade</option><option>Income</option><option>Other</option>
-                      </select>
-                      <button className={s.btnSm} disabled={addingAppReq} onClick={addApplicationRequirement}>
-                        {addingAppReq ? "Saving…" : "Save"}
-                      </button>
+              {/* ═════════ 1 · DETAILS ═════════ */}
+              {tab === "info" && (
+                <>
+                  <section className={s.card}>
+                    <h3 className={s.cardTitle}>Basics</h3>
+                    <div className={s.formGrid}>
+                      <div className={s.fieldWrap}>
+                        <label className={s.label}>Scholarship name <span className={s.req}>*</span></label>
+                        <input className={s.input} placeholder="e.g. Academic Excellence Award"
+                          value={name} onChange={e => setName(e.target.value)} />
+                      </div>
+                      <div className={s.fieldWrap}>
+                        <label className={s.label}>Sponsor</label>
+                        <input className={s.input} placeholder="e.g. DOST" value={sponsor} onChange={e => setSponsor(e.target.value)} />
+                      </div>
+                      <div className={s.fieldWrapFull}>
+                        <label className={s.label}>Description</label>
+                        <textarea className={s.textarea} placeholder="Brief description of who this scholarship is for…" value={description} onChange={e => setDescription(e.target.value)} />
+                      </div>
                     </div>
-                  )}
-                </div>
-                <div className={s.reqGroup}>
-                  <h4 className={s.reqGroupTitle}>Eligibility Requirements</h4>
-                  {eligReq.map(r => (
-                    <label key={r.eligibility_requirement_id} className={s.checkItem}>
-                      <input type="checkbox"
-                        checked={selectedReq.some(x => x.id === r.eligibility_requirement_id && x.type === "elig")}
-                        onChange={() => toggleReq(r.eligibility_requirement_id, "elig")} />
-                      {r.requirement_name}
-                    </label>
-                  ))}
-                  <button className={s.addBtn} onClick={() => setShowEligForm(!showEligForm)}>+ New requirement</button>
-                  {showEligForm && (
-                    <div className={s.inlineForm}>
-                      <input className={s.input} placeholder="Requirement name" value={newEligName} onChange={e => setNewEligName(e.target.value)} />
-                      <select className={s.input} value={newEligType} onChange={e => setNewEligType(e.target.value)}>
-                        <option>Status</option><option>Other</option>
-                      </select>
-                      <button className={s.btnSm} disabled={addingEligReq} onClick={addEligibilityRequirement}>
-                        {addingEligReq ? "Saving…" : "Save"}
-                      </button>
+                  </section>
+
+                  <section className={s.card}>
+                    <h3 className={s.cardTitle}>Funding &amp; slots</h3>
+                    <div className={s.formGrid3}>
+                      <div className={s.fieldWrap}>
+                        <label className={s.label}>Amount per grantee</label>
+                        <div className={s.adorned}>
+                          <span className={s.adorn}>₱</span>
+                          <input className={s.inputBare} inputMode="decimal" placeholder="5,000" value={amount} onChange={e => setAmount(e.target.value)} />
+                        </div>
+                      </div>
+                      <div className={s.fieldWrap}>
+                        <label className={s.label}>Total budget</label>
+                        <div className={s.adorned}>
+                          <span className={s.adorn}>₱</span>
+                          <NumberInput bare min={0} className={s.inputBare} placeholder="500,000" value={budget} onChange={e => setBudget(e.target.value)} />
+                        </div>
+                      </div>
+                      <div className={s.fieldWrap}>
+                        <label className={s.label}>Slots available</label>
+                        <div className={s.adorned}>
+                          <NumberInput bare min={0} className={s.inputBare} placeholder="20" value={slots} onChange={e => setSlots(e.target.value)} />
+                          <span className={s.adorn}>slots</span>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </section>
+                  </section>
 
-              {/* Form Builder */}
-              <section className={s.section}>
-                {/* ── Form section header with template actions ── */}
-                <div className={s.formSectionHead}>
-                  <h3 className={s.sectionTitle}>Application Form</h3>
-                  <div className={s.tplActions}>
-                    <Button variant="secondary" size="sm" onClick={() => { setShowTplPicker(v => !v); setShowSaveTpl(false); }}>
-                      Load template
-                    </Button>
-                    <Button variant="secondary" size="sm" onClick={() => { setShowSaveTpl(v => !v); setShowTplPicker(false); }}>
-                      Save as template
-                    </Button>
-                  </div>
-                </div>
+                  <section className={s.card}>
+                    <h3 className={s.cardTitle}>Schedule</h3>
+                    <div className={s.formGrid3}>
+                      <div className={s.fieldWrap}>
+                        <label className={s.label}>Submission deadline</label>
+                        <input className={s.input} type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
+                      </div>
+                      <div className={s.fieldWrap}>
+                        <label className={s.label}>Payout frequency</label>
+                        <select className={s.input} value={payoutFreq} onChange={e => setPayoutFreq(e.target.value)}>
+                          <option value="Semester">Semester</option>
+                          <option value="Annual">Annual</option>
+                          <option value="Monthly">Monthly</option>
+                          <option value="One-time">One-time</option>
+                        </select>
+                      </div>
+                      <div className={s.fieldWrap}>
+                        <label className={s.label}>Duration</label>
+                        <select className={s.input} value={duration} onChange={e => setDuration(e.target.value)}>
+                          <option value="1 Semester">1 Semester</option>
+                          <option value="1 Academic Year">1 Academic Year</option>
+                          <option value="2 Academic Years">2 Academic Years</option>
+                          <option value="3 Academic Years">3 Academic Years</option>
+                          <option value="4 Academic Years">4 Academic Years</option>
+                          <option value="Until Graduation">Until Graduation</option>
+                        </select>
+                      </div>
+                    </div>
+                  </section>
+                </>
+              )}
 
-                {/* ── Template picker ── */}
-                {showTplPicker && (
-                  <div className={s.tplPicker}>
-                    {formTemplates.length === 0 ? (
-                      <p className={s.tplEmpty}>No saved form templates yet. Build a form and save it to reuse it here.</p>
-                    ) : (
-                      formTemplates.map(t => (
-                        <div key={t.template_id} className={s.tplCard}>
-                          <div className={s.tplCardInfo}>
-                            <strong className={s.tplCardName}>{t.name}</strong>
-                            <span className={s.tplCardMeta}>
-                              {t.layout?.fields?.length || 0} field{t.layout?.fields?.length !== 1 ? "s" : ""}
-                              {t.layout?.formTitle ? ` · "${t.layout.formTitle}"` : ""}
-                            </span>
+              {/* ═════════ 2 · REQUIREMENTS ═════════ */}
+              {tab === "reqs" && (
+                <>
+                  <section className={s.card}>
+                    <div className={s.cardHead}>
+                      <div>
+                        <h3 className={s.cardTitle}>Application requirements</h3>
+                        <p className={s.cardHint}>Documents or details applicants must submit.</p>
+                      </div>
+                      <span className={s.countPill}>
+                        {selectedReq.filter(x => x.type === "app").length} selected
+                      </span>
+                    </div>
+                    {appReq.length === 0 && <p className={s.empty}>No application requirements yet — add one below.</p>}
+                    <div className={s.checkGrid}>
+                      {appReq.map(r => (
+                        <label key={r.application_requirement_id} className={s.checkItem}>
+                          <input type="checkbox"
+                            checked={selectedReq.some(x => x.id === r.application_requirement_id && x.type === "app")}
+                            onChange={() => toggleReq(r.application_requirement_id, "app")} />
+                          <span className={s.checkText}>{r.requirement_name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <button type="button" className={s.dashedBtn} onClick={() => setShowAppForm(!showAppForm)}>
+                      {showAppForm ? "Cancel" : "+ New requirement"}
+                    </button>
+                    {showAppForm && (
+                      <div className={s.inlineForm}>
+                        <input className={s.input} placeholder="Requirement name" value={newAppName} onChange={e => setNewAppName(e.target.value)} />
+                        <select className={s.input} value={newAppType} onChange={e => setNewAppType(e.target.value)}>
+                          <option>Document</option><option>Grade</option><option>Income</option><option>Other</option>
+                        </select>
+                        <button type="button" className={s.btnSm} disabled={addingAppReq} onClick={addApplicationRequirement}>
+                          {addingAppReq ? "Saving…" : "Save"}
+                        </button>
+                      </div>
+                    )}
+                  </section>
+
+                  <section className={s.card}>
+                    <div className={s.cardHead}>
+                      <div>
+                        <h3 className={s.cardTitle}>Eligibility requirements</h3>
+                        <p className={s.cardHint}>Conditions a student must meet to qualify.</p>
+                      </div>
+                      <span className={s.countPill}>
+                        {selectedReq.filter(x => x.type === "elig").length} selected
+                      </span>
+                    </div>
+                    {eligReq.length === 0 && <p className={s.empty}>No eligibility requirements yet — add one below.</p>}
+                    <div className={s.checkGrid}>
+                      {eligReq.map(r => (
+                        <label key={r.eligibility_requirement_id} className={s.checkItem}>
+                          <input type="checkbox"
+                            checked={selectedReq.some(x => x.id === r.eligibility_requirement_id && x.type === "elig")}
+                            onChange={() => toggleReq(r.eligibility_requirement_id, "elig")} />
+                          <span className={s.checkText}>{r.requirement_name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <button type="button" className={s.dashedBtn} onClick={() => setShowEligForm(!showEligForm)}>
+                      {showEligForm ? "Cancel" : "+ New requirement"}
+                    </button>
+                    {showEligForm && (
+                      <div className={s.inlineForm}>
+                        <input className={s.input} placeholder="Requirement name" value={newEligName} onChange={e => setNewEligName(e.target.value)} />
+                        <select className={s.input} value={newEligType} onChange={e => setNewEligType(e.target.value)}>
+                          <option>Status</option><option>Other</option>
+                        </select>
+                        <button type="button" className={s.btnSm} disabled={addingEligReq} onClick={addEligibilityRequirement}>
+                          {addingEligReq ? "Saving…" : "Save"}
+                        </button>
+                      </div>
+                    )}
+                  </section>
+                </>
+              )}
+
+              {/* ═════════ 3 · APPLICATION FORM ═════════ */}
+              {tab === "form" && (
+                <>
+                  <section className={s.card}>
+                    <div className={s.cardHead}>
+                      <div>
+                        <h3 className={s.cardTitle}>Form settings</h3>
+                        <p className={s.cardHint}>Start from a saved template or build your own.</p>
+                      </div>
+                      <div className={s.tplActions}>
+                        <Button variant="secondary" size="sm" onClick={() => { setShowTplPicker(v => !v); setShowSaveTpl(false); }}>
+                          Load template
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={() => { setShowSaveTpl(v => !v); setShowTplPicker(false); }}>
+                          Save as template
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* ── Template picker ── */}
+                  {showTplPicker && (
+                    <div className={s.tplPicker}>
+                      {formTemplates.length === 0 ? (
+                        <p className={s.tplEmpty}>No saved form templates yet. Build a form and save it to reuse it here.</p>
+                      ) : (
+                        formTemplates.map(t => (
+                          <div key={t.template_id} className={s.tplCard}>
+                            <div className={s.tplCardInfo}>
+                              <strong className={s.tplCardName}>{t.name}</strong>
+                              <span className={s.tplCardMeta}>
+                                {t.layout?.fields?.length || 0} field{t.layout?.fields?.length !== 1 ? "s" : ""}
+                                {t.layout?.formTitle ? ` · "${t.layout.formTitle}"` : ""}
+                              </span>
+                            </div>
+                            <div className={s.tplCardActions}>
+                              <button className={s.btnSm} onClick={() => applyFormTemplate(t)}>Use</button>
+                              <button className={s.removeBtn} disabled={deletingTplId === t.template_id}
+                                onClick={() => deleteFormTemplate(t.template_id)}>
+                                {deletingTplId === t.template_id ? "Deleting…" : "Delete"}
+                              </button>
+                            </div>
                           </div>
-                          <div className={s.tplCardActions}>
-                            <button className={s.btnSm} onClick={() => applyFormTemplate(t)}>Use</button>
-                            <button className={s.removeBtn} disabled={deletingTplId === t.template_id}
-                              onClick={() => deleteFormTemplate(t.template_id)}>
-                              {deletingTplId === t.template_id ? "Deleting…" : "Delete"}
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Save template row ── */}
+                  {showSaveTpl && (
+                    <div className={s.inlineForm}>
+                      <input className={s.input} placeholder="Template name e.g. Standard Scholarship Form"
+                        value={tplName} onChange={e => setTplName(e.target.value)} />
+                      <button className={s.btnSm} disabled={savingTpl} onClick={saveFormTemplate}>
+                        {savingTpl ? "Saving…" : "Save"}
+                      </button>
+                      <button className={s.removeBtn} onClick={() => { setShowSaveTpl(false); setTplName(""); }}>
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+
+
+                    <div className={s.fieldWrapFull}>
+                      <label className={s.label}>Form title</label>
+                      <input className={s.input} placeholder="e.g. Academic Excellence Application" value={formTitle} onChange={e => setFormTitle(e.target.value)} />
+                    </div>
+                    <div className={s.fieldWrapFull}>
+                      <label className={s.label}>Terms &amp; conditions</label>
+                      <textarea className={s.textarea} placeholder="Enter the terms applicants must agree to…" value={terms} onChange={e => setTerms(e.target.value)} />
+                    </div>
+                  </section>
+
+                  <section className={s.card}>
+                    <div className={s.cardHead}>
+                      <div>
+                        <h3 className={s.cardTitle}>Form fields</h3>
+                        <p className={s.cardHint}>Questions applicants answer, in the order shown.</p>
+                      </div>
+                      <span className={s.countPill}>{fields.length} field{fields.length !== 1 ? "s" : ""}</span>
+                    </div>
+
+                    {fields.length === 0 && (
+                      <div className={s.emptyBox}>No fields yet — add your first one below.</div>
+                    )}
+
+                    {fields.map((f, i) =>
+                      editingFieldIndex === i ? (
+                        <div key={i} className={`${s.builder} ${s.builderEditing}`}>
+                          <div className={s.builderTitle}>Editing field {i + 1}</div>
+                          <div className={s.builderRow}>
+                            <div className={s.fieldWrap}>
+                              <label className={s.label}>Field label</label>
+                              <input className={s.input} placeholder="e.g. GPA" value={fieldLabel} onChange={e => setFieldLabel(e.target.value)} />
+                            </div>
+                            <div className={s.fieldWrap}>
+                              <label className={s.label}>Type</label>
+                              <select className={s.input} value={fieldType} onChange={e => setFieldType(e.target.value)}>
+                                <option value="text">Text</option>
+                                <option value="number">Number</option>
+                                <option value="date">Date</option>
+                                <option value="file">File</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className={s.builderFoot}>
+                            <label className={s.switch}>
+                              <input type="checkbox" checked={isRequired} onChange={() => setIsRequired(!isRequired)} />
+                              <span className={s.switchTrack} aria-hidden="true" />
+                              Required
+                            </label>
+                            <div className={s.builderBtns}>
+                              <button type="button" className={s.removeBtn} onClick={cancelFieldEdit}>Cancel</button>
+                              <button type="button" className={s.btnSm} onClick={addField}>Save changes</button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div key={i} className={s.fieldRow}>
+                          <span className={s.fieldIdx}>{i + 1}</span>
+                          <div className={s.fieldInfo}>
+                            <strong className={s.fieldName}>{f.label}</strong>
+                            <span className={s.typePill}>{f.type}</span>
+                            {f.required && <span className={s.reqPill}>Required</span>}
+                          </div>
+                          <div className={s.fieldBtns}>
+                            <button type="button" className={s.btnGhostSm} disabled={editingFieldIndex !== null} onClick={() => startEditField(i)}>
+                              Edit
+                            </button>
+                            <button type="button" className={s.removeBtn} disabled={editingFieldIndex !== null} onClick={() => removeField(i)}>
+                              Remove
                             </button>
                           </div>
                         </div>
-                      ))
+                      )
                     )}
-                  </div>
-                )}
 
-                {/* ── Save template row ── */}
-                {showSaveTpl && (
-                  <div className={s.inlineForm}>
-                    <input className={s.input} placeholder="Template name e.g. Standard Scholarship Form"
-                      value={tplName} onChange={e => setTplName(e.target.value)} />
-                    <button className={s.btnSm} disabled={savingTpl} onClick={saveFormTemplate}>
-                      {savingTpl ? "Saving…" : "Save"}
-                    </button>
-                    <button className={s.removeBtn} onClick={() => { setShowSaveTpl(false); setTplName(""); }}>
-                      Cancel
-                    </button>
-                  </div>
-                )}
-
-                <div className={s.fieldWrapFull}>
-                  <label className={s.label}>Form title</label>
-                  <input className={s.input} placeholder="e.g. Academic Excellence Application" value={formTitle} onChange={e => setFormTitle(e.target.value)} />
-                </div>
-                <div className={s.fieldWrapFull}>
-                  <label className={s.label}>Terms &amp; Conditions</label>
-                  <textarea className={s.textarea} placeholder="Enter terms here…" value={terms} onChange={e => setTerms(e.target.value)} />
-                </div>
-
-                <h4 className={s.reqGroupTitle}>Form Fields</h4>
-                {fields.map((f, i) =>
-                  editingFieldIndex === i ? (
-                    <div key={i} className={s.fieldBuilder} style={{ outline: "2px solid currentColor", outlineOffset: "2px" }}>
-                      <div className={s.fieldWrap}>
-                        <label className={s.label}>Field label</label>
-                        <input className={s.input} placeholder="e.g. GPA" value={fieldLabel} onChange={e => setFieldLabel(e.target.value)} />
+                    {editingFieldIndex === null && (
+                      <div className={s.builder}>
+                        <div className={s.builderTitle}>Add a field</div>
+                        <div className={s.builderRow}>
+                          <div className={s.fieldWrap}>
+                            <label className={s.label}>Field label</label>
+                            <input className={s.input} placeholder="e.g. GPA" value={fieldLabel} onChange={e => setFieldLabel(e.target.value)} />
+                          </div>
+                          <div className={s.fieldWrap}>
+                            <label className={s.label}>Type</label>
+                            <select className={s.input} value={fieldType} onChange={e => setFieldType(e.target.value)}>
+                              <option value="text">Text</option>
+                              <option value="number">Number</option>
+                              <option value="date">Date</option>
+                              <option value="file">File</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className={s.builderFoot}>
+                          <label className={s.switch}>
+                            <input type="checkbox" checked={isRequired} onChange={() => setIsRequired(!isRequired)} />
+                            <span className={s.switchTrack} aria-hidden="true" />
+                            Required
+                          </label>
+                          <button type="button" className={s.btnSm} onClick={addField}>+ Add field</button>
+                        </div>
                       </div>
-                      <div className={s.fieldWrap} style={{ maxWidth: "140px", flex: "0 0 140px" }}>
-                        <label className={s.label}>Type</label>
-                        <select className={s.input} value={fieldType} onChange={e => setFieldType(e.target.value)}>
-                          <option value="text">Text</option>
-                          <option value="number">Number</option>
-                          <option value="date">Date</option>
-                          <option value="file">File</option>
-                        </select>
-                      </div>
-                      <div className={s.checkRow}>
-                        <label className={s.checkItem}>
-                          <input type="checkbox" checked={isRequired} onChange={() => setIsRequired(!isRequired)} />
-                          Required
-                        </label>
-                        <button className={s.addBtn} onClick={addField}>Save changes</button>
-                        <button className={s.removeBtn} onClick={cancelFieldEdit}>Cancel</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div key={i} className={s.fieldPreview} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
-                      <span><strong>{f.label}</strong> ({f.type}){f.required ? " *" : ""}</span>
-                      <div style={{ display: "flex", flexDirection: "row", gap: "8px", flexWrap: "nowrap", alignItems: "center" }}>
-                        <button
-                          type="button"
-                          className={s.btnSm}
-                          disabled={editingFieldIndex !== null}
-                          onClick={() => startEditField(i)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className={s.removeBtn}
-                          disabled={editingFieldIndex !== null}
-                          onClick={() => removeField(i)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  )
-                )}
-
-                {editingFieldIndex === null && (
-                  <div className={s.fieldBuilder}>
-                    <div className={s.fieldWrap}>
-                      <label className={s.label}>Field label</label>
-                      <input className={s.input} placeholder="e.g. GPA" value={fieldLabel} onChange={e => setFieldLabel(e.target.value)} />
-                    </div>
-                    <div className={s.fieldWrap} style={{ maxWidth: "140px", flex: "0 0 140px" }}>
-                      <label className={s.label}>Type</label>
-                      <select className={s.input} value={fieldType} onChange={e => setFieldType(e.target.value)}>
-                        <option value="text">Text</option>
-                        <option value="number">Number</option>
-                        <option value="date">Date</option>
-                        <option value="file">File</option>
-                      </select>
-                    </div>
-                    <div className={s.checkRow}>
-                      <label className={s.checkItem}>
-                        <input type="checkbox" checked={isRequired} onChange={() => setIsRequired(!isRequired)} />
-                        Required
-                      </label>
-                      <button type="button" className={s.addBtn} onClick={addField}>+ Add field</button>
-                    </div>
-                  </div>
-                )}
-              </section>
+                    )}
+                  </section>
+                </>
+              )}
             </div>
 
             <div className={s.modalFooter}>
-              <button className={s.btnSecondary} onClick={closeModal} disabled={saving}>Cancel</button>
-              <button className={s.btnPrimary} onClick={editMode ? updateScholarship : createScholarship} disabled={saving}>
-                {saving ? "Saving…" : editMode ? "Update" : "Save Scholarship"}
-              </button>
+              <span className={s.footSummary}>
+                {selectedReq.length} requirement{selectedReq.length !== 1 ? "s" : ""} · {fields.length} form field{fields.length !== 1 ? "s" : ""}
+              </span>
+              <div className={s.footBtns}>
+                {tab !== "info" && (
+                  <Button variant="ghost" onClick={() => setTab(tab === "form" ? "reqs" : "info")} disabled={saving}>Back</Button>
+                )}
+                {tab !== "form" && (
+                  <Button variant="secondary" onClick={() => setTab(tab === "info" ? "reqs" : "form")} disabled={saving}>Next</Button>
+                )}
+                <Button variant="primary" onClick={editMode ? updateScholarship : createScholarship} loading={saving}>
+                  {editMode ? "Update" : "Save Scholarship"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

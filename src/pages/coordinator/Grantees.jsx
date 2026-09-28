@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Modal from "@/components/ui/Modal";
+import NumberInput from "@/components/ui/NumberInput";
 import Papa from "papaparse";
 import { useNavigate } from "react-router-dom";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
@@ -1116,9 +1117,9 @@ const endRow =
                   value={regStatus}
                   onChange={(e) => setRegStatus(e.target.value)}
                 />
-                <input
+                <NumberInput
                   className={styles.search}
-                  type="number"
+                  min={1}
                   placeholder="Registrar year level"
                   value={regYearLevel}
                   onChange={(e) => setRegYearLevel(e.target.value)}
@@ -1276,7 +1277,7 @@ const endRow =
                 <input className={styles.search} placeholder="Course"
                   value={newStudent.course}
                   onChange={(e) => setNewStudent(s => ({ ...s, course: e.target.value }))} />
-                <input className={styles.search} type="number" placeholder="Year level"
+                <NumberInput className={styles.search} min={1} placeholder="Year level"
                   value={newStudent.year_level}
                   onChange={(e) => setNewStudent(s => ({ ...s, year_level: e.target.value }))} />
                 <input className={styles.search} placeholder="Contact number"
@@ -1361,7 +1362,7 @@ const endRow =
                   <option value="1st Semester">1st Semester</option>
                   <option value="2nd Semester">2nd Semester</option>
                 </select>
-                <input className={styles.search} type="number" placeholder="Amount released"
+                <NumberInput className={styles.search} min={0} placeholder="Amount released"
                   value={r.amount_released}
                   onChange={(e) => updateReleaseRow(r.key, "amount_released", e.target.value)} />
                 <input className={styles.search} type="date" value={r.release_date}
