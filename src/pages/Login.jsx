@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { hasAcceptedTerms, setAcceptedTerms } from "../lib/termsConsent";
 import { supabase, persistRememberMe, clearRememberMe } from "../lib/supabase";
 import { useNavigate, Link } from "react-router-dom";
 import styles from "@/styles/Auth.module.css";
@@ -16,7 +17,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showTerms, setShowTerms] = useState(false);
-  const [accepted, setAccepted] = useState(false);
+  const [accepted, setAccepted] = useState(hasAcceptedTerms);
   const [remember, setRemember] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const navigate = useNavigate();
@@ -247,7 +248,7 @@ export default function Login() {
               <input
                 type="checkbox"
                 checked={accepted}
-                onChange={(e) => setAccepted(e.target.checked)}
+                onChange={(e) => { setAccepted(e.target.checked); setAcceptedTerms(e.target.checked); }}
               />
               <span>
                 I agree to the{" "}
