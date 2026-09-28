@@ -454,8 +454,10 @@ export default function Dashboard() {
   return (
     <div className={`page-shell ${s.page}`}>
       <div className={`page-header ${s.header}`}>
-        <h1 className="page-title">Scholarship Dashboard</h1>
-        <p className="page-subtitle">Browse open scholarships and track which ones you qualify for.</p>
+        <div>
+          <h1 className="page-title">Scholarship Dashboard</h1>
+          <p className="page-subtitle">Browse open scholarships and track which ones you qualify for.</p>
+        </div>
       </div>
 
       {/* stats */}

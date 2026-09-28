@@ -388,3 +388,15 @@ input[type="password"]::-ms-clear { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .expand-pop { transition: none; transform: none; }
 }
+
+/* Header actions (Generate Report, Announcements, Add…) always sit at the
+   right edge of the page header — even when the header wraps on narrow
+   screens. Works for a bare <Button> or a wrapper with several buttons. */
+.page-header > :last-child:not(:first-child) { margin-left: auto; }
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}

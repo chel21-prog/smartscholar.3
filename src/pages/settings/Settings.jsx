@@ -324,10 +324,12 @@ const [showCurrent, setShowCurrent] = useState(false);
   return (
     <div className={`page-shell ${styles.page}`}>
       <div className={`page-header ${styles.header}`}>
-        <h1 className="page-title">Settings</h1>
-        <p className="page-subtitle">
-          Manage your account and security.
-        </p>
+        <div>
+          <h1 className="page-title">Settings</h1>
+          <p className="page-subtitle">
+            Manage your account and security.
+          </p>
+        </div>
       </div>
 
       {/* ACCOUNT INFO — always visible, not a popup */}

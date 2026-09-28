@@ -9,6 +9,7 @@
   border: 1px solid var(--border);
   cursor: pointer;
   background: var(--surface);
+  color: var(--navy-600);
   font-size: 17px;
   position: relative;
   display: flex;
@@ -19,8 +20,11 @@
 }
 
 .bell:hover {
-  background: var(--ink-50);
+  background: var(--navy-50);
+  color: var(--navy-700);
 }
+
+.icon { display: block; }
 
 .badge {
   position: absolute;

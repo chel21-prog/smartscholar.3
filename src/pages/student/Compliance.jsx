@@ -159,10 +159,12 @@ export default function Compliance() {
   return (
     <div className={`page-shell ${styles.page}`}>
       <div className={`page-header ${styles.header}`}>
-        <h1 className="page-title">Compliance Requirements</h1>
-        <p className="page-subtitle">
-          Upload the required documents for each active scholarship grant.
-        </p>
+        <div>
+          <h1 className="page-title">Compliance Requirements</h1>
+          <p className="page-subtitle">
+            Upload the required documents for each active scholarship grant.
+          </p>
+        </div>
       </div>
 
       {rows.length === 0 ? (

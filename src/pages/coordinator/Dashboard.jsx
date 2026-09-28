@@ -14,6 +14,8 @@ import Button from "@/components/ui/Button";
 
 // ─── stable style objects defined outside the component ──────────────────────
 const st = {
+  periodBar:   { display:"flex", alignItems:"center", gap:16, flexWrap:"wrap", alignSelf:"flex-start", padding:"8px 14px", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, boxShadow:"var(--shadow-sm)", flexShrink:0 },
+  periodTitle: { fontSize:11, fontWeight:700, letterSpacing:".5px", textTransform:"uppercase", color:"var(--text-secondary)" },
   headerRight: { display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" },
   title:       { margin:0, fontSize:21, fontWeight:700, color:"var(--text-primary)" },
   periodItem:  { display:"flex", alignItems:"center", gap:6 },
@@ -949,26 +951,31 @@ export default function CoordinatorDashboard() {
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">Overview of scholarship applications, grantees, and the current academic period.</p>
         </div>
-        <div style={st.headerRight}>
-          <div style={st.periodItem}>
-            <label style={{fontSize:13,color:"var(--text-secondary)"}}>AY</label>
-            <input style={st.periodInput} value={form.academic_year}
-              onChange={e=>setForm({...form,academic_year:e.target.value})}
-              onBlur={saveAcademic} />
-          </div>
-          <div style={st.periodItem}>
-            <label style={{fontSize:13,color:"var(--text-secondary)"}}>Semester</label>
-            <select style={st.periodInput} value={form.semester} onChange={e=>saveSemester(e.target.value)}>
-              <option>1st Semester</option>
-              <option>2nd Semester</option>
-            </select>
-          </div>
+        <div className="page-header-actions">
           <Button variant="primary" onClick={()=>setShowAnnouncement(true)}>
             Announcements
           </Button>
           <Button variant="secondary" onClick={()=>{setReportReturnTo(null); openReportModal();}}>
             Generate Report
           </Button>
+        </div>
+      </div>
+
+      {/* ── academic period ── */}
+      <div style={st.periodBar}>
+        <span style={st.periodTitle}>Academic period</span>
+        <div style={st.periodItem}>
+          <label style={{fontSize:13,color:"var(--text-secondary)"}}>AY</label>
+          <input style={st.periodInput} value={form.academic_year}
+            onChange={e=>setForm({...form,academic_year:e.target.value})}
+            onBlur={saveAcademic} />
+        </div>
+        <div style={st.periodItem}>
+          <label style={{fontSize:13,color:"var(--text-secondary)"}}>Semester</label>
+          <select style={st.periodInput} value={form.semester} onChange={e=>saveSemester(e.target.value)}>
+            <option>1st Semester</option>
+            <option>2nd Semester</option>
+          </select>
         </div>
       </div>
 

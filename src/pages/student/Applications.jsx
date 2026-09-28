@@ -217,10 +217,12 @@ export default function Applications() {
   return (
     <div className={`page-shell ${styles.page}`}>
       <div className={`page-header ${styles.header}`}>
-        <h1 className="page-title">My Applications</h1>
-        <p className="page-subtitle">
-          Track the status of every scholarship you've applied to.
-        </p>
+        <div>
+          <h1 className="page-title">My Applications</h1>
+          <p className="page-subtitle">
+            Track the status of every scholarship you've applied to.
+          </p>
+        </div>
       </div>
 
       {applications.length === 0 ? (

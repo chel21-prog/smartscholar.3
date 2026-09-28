@@ -386,10 +386,12 @@ export default function Profile() {
   return (
     <div className={`page-shell ${styles.page}`}>
       <div className={`page-header ${styles.header}`}>
-        <h1 className="page-title">Student Profile</h1>
-        <p className="page-subtitle">
-          Keep your details current — scholarship eligibility is checked against this information.
-        </p>
+        <div>
+          <h1 className="page-title">Student Profile</h1>
+          <p className="page-subtitle">
+            Keep your details current — scholarship eligibility is checked against this information.
+          </p>
+        </div>
       </div>
 
       {showReminder && (
