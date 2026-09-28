@@ -7,6 +7,7 @@ import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import { getCached, setCached } from "@/lib/dataCache";
+import Button from "@/components/ui/Button";
 import s from "./Scholarships.module.css";
 
 // ─── helpers ────────────────────────────────────────────────
@@ -451,12 +452,12 @@ export default function Scholarships() {
         </div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
           <button className={s.btnPrimary} onClick={() => setOpen(true)}>Add Scholarship</button>
-          <button
+          <Button
+            variant="secondary"
             onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "scholarships", returnTo: "/coordinator/scholarships" } } })}
-            style={{ padding:"9px 16px", background:"var(--teal-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
           >
             Generate Report
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -754,12 +755,12 @@ export default function Scholarships() {
                 <div className={s.formSectionHead}>
                   <h3 className={s.sectionTitle}>Application Form</h3>
                   <div className={s.tplActions}>
-                    <button className={s.tplBtn} onClick={() => { setShowTplPicker(v => !v); setShowSaveTpl(false); }}>
+                    <Button variant="secondary" size="sm" onClick={() => { setShowTplPicker(v => !v); setShowSaveTpl(false); }}>
                       Load template
-                    </button>
-                    <button className={s.tplBtnSecondary} onClick={() => { setShowSaveTpl(v => !v); setShowTplPicker(false); }}>
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => { setShowSaveTpl(v => !v); setShowTplPicker(false); }}>
                       Save as template
-                    </button>
+                    </Button>
                   </div>
                 </div>
 

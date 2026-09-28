@@ -205,6 +205,11 @@
   gap: 2px;
 }
 
+.forgotBtn {
+  align-self: flex-start;
+  margin-top: 6px;
+}
+
 .pwError {
   background: var(--danger-50);
   border: 1px solid var(--danger-100);

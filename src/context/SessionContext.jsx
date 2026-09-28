@@ -68,16 +68,30 @@ export function SessionProvider({ children }) {
     // actually clear the session; everything else updates quietly
     // in the background without disrupting whatever the user is doing,
     // and without ever treating a failed background fetch as a logout.
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
         setState({ loading: false, authUser: null, profile: null });
         return;
       }
 
       if (event === "SIGNED_IN") {
-        setState((s) => ({ ...s, loading: true }));
-        refresh();
-        return;
+        // supabase-js re-emits SIGNED_IN every time the browser tab
+        // regains focus (it re-validates the stored session). Treating
+        // that as a real login flipped the app to `loading: true`, which
+        // made RoleGuard swap the whole page for a loading screen and
+        // unmount it — so switching to your email to copy a reset code
+        // and coming back wiped whatever you were doing (open modal,
+        // half-filled form) and dropped you back on a fresh page. Only a
+        // genuinely different/new user should show the loading state;
+        // the same user re-announcing themselves refreshes quietly.
+        const isSameUser =
+          session?.user?.id && session.user.id === authUserIdRef.current;
+
+        if (!isSameUser) {
+          setState((s) => ({ ...s, loading: true }));
+          refresh();
+          return;
+        }
       }
 
       // TOKEN_REFRESHED, USER_UPDATED, etc. — update quietly, and only

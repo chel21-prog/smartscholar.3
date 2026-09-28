@@ -45,13 +45,13 @@
 
 .addBtn {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 7px 12px; background: var(--gold-50);
-  color: var(--gold-700); border: 1px solid var(--gold-100);
+  padding: 7px 12px; background: var(--navy-100);
+  color: var(--text-primary); border: 1px solid var(--navy-100);
   border-radius: var(--radius-sm); font-size: var(--text-xs);
   font-weight: 600; cursor: pointer; align-self: flex-start;
   transition: background-color var(--duration-fast);
 }
-.addBtn:hover { background: var(--gold-100); }
+.addBtn:hover { background: var(--border-strong); }
 
 .removeBtn {
   padding: 5px 10px; background: var(--danger-50); color: var(--danger-700);
@@ -323,34 +323,6 @@
   gap: var(--space-2);
   flex-wrap: wrap;
 }
-
-.tplBtn {
-  padding: 7px 12px;
-  background: var(--navy-50);
-  color: var(--navy-700);
-  border: 1px solid var(--navy-100);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color var(--duration-fast);
-}
-.tplBtn:hover { background: var(--navy-100); }
-
-.tplBtnSecondary {
-  padding: 7px 12px;
-  background: var(--gold-50);
-  color: var(--gold-700);
-  border: 1px solid var(--gold-100);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color var(--duration-fast);
-}
-.tplBtnSecondary:hover { background: var(--gold-100); }
 
 /* Template picker dropdown */
 .tplPicker {

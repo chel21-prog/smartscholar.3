@@ -609,9 +609,9 @@ export default function AnnouncementModal({ open, onClose, types }) {
 
           <div className={styles.sectionRow}>
             <p className={styles.sectionLabel}>Saved templates</p>
-            <button className={styles.linkBtn} onClick={resetToDefaults} disabled={resetting}>
+            <Button variant="ghost" size="sm" onClick={resetToDefaults} disabled={resetting}>
               {resetting ? "Resetting…" : "Reset to defaults"}
-            </button>
+            </Button>
           </div>
 
           {loading ? (

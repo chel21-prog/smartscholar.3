@@ -321,9 +321,9 @@
     border:none;
     border-radius:12px;
 
-    background:var(--navy-500);
+    background:var(--navy-600);
 
-    color:var(--text-primary);
+    color:#fff;
 
     cursor:pointer;
 

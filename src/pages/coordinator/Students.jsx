@@ -6,6 +6,7 @@ import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import { getCached, setCached } from "@/lib/dataCache";
+import Button from "@/components/ui/Button";
 import s from "./Students.module.css";
 const STATUS_OPTIONS = ["Enrolled", "Graduated", "Dropped", "Inactive"];
 const CACHE_KEY = "coordinator-students";
@@ -202,8 +203,6 @@ const loadAcademicSettings = async () => {
   // RESET FORM
   setOpenGrant(false);
   setSelectedScholarship("");
-  setAcademicYear("");
-  setSemester("1st");
   setSelectedStudent(null);
 };
 
@@ -259,12 +258,12 @@ const paginatedStudents = filteredStudents.slice(
       Manage student records, enrollment status, and scholarship assignments.
     </p>
   </div>
-  <button
+  <Button
+    variant="secondary"
     onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "students", returnTo: "/coordinator/students" } } })}
-    style={{ padding:"9px 16px", background:"var(--teal-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 }}
   >
     Generate Report
-  </button>
+  </Button>
 </div>
 
 <div className={s.statsRow}>

@@ -10,6 +10,7 @@ import PageLoader from "@/components/ui/PageLoader";
 import { getCached, setCached } from "@/lib/dataCache";
 import { getReportSecurity } from "@/lib/reportSecurity";
 import { useToast } from "@/context/ToastContext";
+import Button from "@/components/ui/Button";
 
 // ─── stable style objects defined outside the component ──────────────────────
 const st = {
@@ -38,9 +39,6 @@ const st = {
   modalBody:   { flex:1, overflowY:"auto", padding:"18px 22px", display:"flex", flexDirection:"column", gap:14 },
   modalFoot:   { display:"flex", justifyContent:"flex-end", gap:8, padding:"14px 22px", borderTop:"1px solid var(--border)", flexShrink:0 },
   closeBtn:    { width:30, height:30, border:"none", borderRadius:8, background:"var(--surface-muted)", color:"var(--text-secondary)", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" },
-  btnGreen:    { padding:"9px 16px", background:"var(--teal-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 },
-  btnRed:      { padding:"9px 16px", background:"var(--surface)", color:"var(--text-primary)", border:"1px solid var(--border-strong)", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 },
-  btnBlue:     { padding:"9px 16px", background:"var(--navy-600)", color:"#fff", border:"none", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:13 },
   btnSm:       { padding:"5px 10px", background:"var(--navy-600)", color:"#fff", border:"none", borderRadius:6, fontWeight:600, cursor:"pointer", fontSize:11 },
   sectionLabel:{ fontSize:11, fontWeight:700, color:"var(--text-secondary)", textTransform:"uppercase", letterSpacing:".5px", marginBottom:6 },
   // form elements inside the modal — defined here so they never re-create in JSX
@@ -966,12 +964,12 @@ export default function CoordinatorDashboard() {
               <option>2nd Semester</option>
             </select>
           </div>
-          <button style={st.btnGreen} onClick={()=>{setReportReturnTo(null); openReportModal();}}>
+          <Button variant="secondary" onClick={()=>{setReportReturnTo(null); openReportModal();}}>
             Generate Report
-          </button>
-          <button style={{...st.btnGreen, background:"var(--navy-700)"}} onClick={()=>setShowAnnouncement(true)}>
+          </Button>
+          <Button variant="primary" onClick={()=>setShowAnnouncement(true)}>
             Announcements
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -1119,7 +1117,7 @@ export default function CoordinatorDashboard() {
               </div>
             </div>
             <div style={st.modalFoot}>
-              <button style={st.btnRed} onClick={()=>setSelectedApp(null)}>Close</button>
+              <Button variant="ghost" onClick={()=>setSelectedApp(null)}>Close</Button>
             </div>
           </div>
         </div>
@@ -1362,10 +1360,9 @@ export default function CoordinatorDashboard() {
                     </div>
                   ))}
                 </div>
-                <button onClick={()=>setSignatories([...signatories,{label:"",name:"",position:""}])}
-                  style={{padding:"7px 14px",background:"var(--gold-50)",color:"var(--gold-700)",border:"1px solid var(--gold-100)",borderRadius:8,cursor:"pointer",fontWeight:600,fontSize:13}}>
+                <Button variant="secondary" size="sm" onClick={()=>setSignatories([...signatories,{label:"",name:"",position:""}])}>
                   Add Signatory
-                </button>
+                </Button>
               </div>
 
               {/* Live preview — one config-driven table for every report
@@ -1535,16 +1532,17 @@ export default function CoordinatorDashboard() {
                   No export password set up yet — add one in Settings to enable this
                 </span>
               )}
-              <button style={st.btnRed} onClick={closeReportModal} disabled={generating}>
+              <Button variant="ghost" onClick={closeReportModal} disabled={generating}>
                 Cancel
-              </button>
-              <button
-                style={{...st.btnBlue, opacity: generating||activeLoading||activeRecords.length===0 ? .55 : 1, cursor: generating||activeLoading||activeRecords.length===0 ? "not-allowed" : "pointer"}}
+              </Button>
+              <Button
+                variant="primary"
                 onClick={generatePDF}
                 disabled={generating||activeLoading||activeRecords.length===0}
+                loading={generating}
               >
                 {generating ? "Generating…" : `Export PDF  (${activeRecords.length} record${activeRecords.length!==1?"s":""})`}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

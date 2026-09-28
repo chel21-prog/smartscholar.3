@@ -8,6 +8,7 @@ import InfoTooltip from "@/components/ui/InfoTooltip";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import { getCached, setCached } from "@/lib/dataCache";
 import { useToast } from "@/context/ToastContext";
+import Button from "@/components/ui/Button";
 import styles from "./Grantees.module.css";
 
 const CACHE_KEY = "coordinator-grantees";
@@ -832,18 +833,18 @@ const endRow =
         </p>
     </div>
     <div className={styles.headerActions}>
-      <button
+      <Button
+        variant="secondary"
         onClick={() => navigate("/coordinator/dashboard", { state: { openReport: { type: "grantees", returnTo: "/coordinator/grantees" } } })}
-        className={styles.btnReport}
       >
         Generate Report
-      </button>
-      <button onClick={openAddGrantee} className={styles.btnPrimary}>
+      </Button>
+      <Button variant="primary" onClick={openAddGrantee}>
         + Add Historical Grantee
-      </button>
-      <button onClick={openImport} className={styles.btnSecondary}>
+      </Button>
+      <Button variant="ghost" onClick={openImport}>
         Import from File
-      </button>
+      </Button>
     </div>
 </div>
     

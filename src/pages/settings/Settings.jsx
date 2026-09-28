@@ -7,6 +7,7 @@ import { Field, Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import LegalNotice from "@/components/ui/LegalNotice";
+import ForgotPasswordFlow from "@/components/ui/ForgotPasswordFlow";
 import { EyeIcon, EyeOffIcon } from "@/components/ui/EyeIcons";
 import { useToast } from "@/context/ToastContext";
 import { getReportSecurity, saveReportSecurity, generateStrongPassword } from "@/lib/reportSecurity";
@@ -77,27 +78,8 @@ export default function Settings() {
 const [showCurrent, setShowCurrent] = useState(false);
 
   // ── Forgot current password, from inside Settings itself ────────────
-  const [resetRequesting, setResetRequesting] = useState(false);
-  const [resetRequested, setResetRequested] = useState(false);
-  const [resetReqError, setResetReqError] = useState("");
-
-  const sendPasswordReset = async () => {
-    setResetReqError("");
-    setResetRequesting(true);
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-
-    setResetRequesting(false);
-
-    if (error) {
-      setResetReqError(error.message);
-      return;
-    }
-
-    setResetRequested(true);
-  };
+  // (the actual request/verify flow now lives in the shared
+  // ForgotPasswordFlow component, opened as its own modal below)
 
   // Which settings feature's popup is open — null, "security", "report", or "legal"
   const [openModal, setOpenModal] = useState(null);
@@ -405,11 +387,7 @@ const [showCurrent, setShowCurrent] = useState(false);
       {/* SECURITY */}
       <Modal
         open={openModal === "security"}
-        onClose={() => {
-          closeModal();
-          setResetRequested(false);
-          setResetReqError("");
-        }}
+        onClose={closeModal}
         title="Security"
         size="md"
       >
@@ -441,25 +419,15 @@ const [showCurrent, setShowCurrent] = useState(false);
     </button>
   </div>
 
-  {resetRequested ? (
-    <p className={styles.pwSuccess} role="status">
-      ✓ Check your email — we sent a reset link to <strong>{email}</strong>.
-    </p>
-  ) : (
-    <button
-      type="button"
-      onClick={sendPasswordReset}
-      disabled={resetRequesting || !email}
-      style={{ background: "none", border: "none", color: "var(--teal-600)", fontSize: 12, cursor: "pointer", padding: 0, marginTop: 6, textDecoration: "underline", alignSelf: "flex-start" }}
-    >
-      {resetRequesting ? "Sending…" : "Forgot your current password? Send a reset link"}
-    </button>
-  )}
-  {resetReqError && (
-    <p className={styles.pwError} role="alert">
-      {resetReqError}
-    </p>
-  )}
+  <Button
+    type="button"
+    variant="ghost"
+    size="sm"
+    onClick={() => { closeModal(); setOpenModal("forgotPassword"); }}
+    className={styles.forgotBtn}
+  >
+    Forgot your current password?
+  </Button>
 </Field>
           <Field label="New password">
             <div className={styles.passwordField}>
@@ -640,6 +608,18 @@ const [showCurrent, setShowCurrent] = useState(false);
         <Button variant="danger" onClick={clearCache} loading={clearingCache}>
           Clear cache now
         </Button>
+      </Modal>
+
+      {/* FORGOT CURRENT PASSWORD — email-code flow, shared with Login.jsx */}
+      <Modal open={openModal === "forgotPassword"} onClose={closeModal} title="Reset password" size="sm">
+        <ForgotPasswordFlow
+          lockedEmail={email}
+          onCancel={closeModal}
+          onSuccess={() => {
+            closeModal();
+            toast.success("Password updated.");
+          }}
+        />
       </Modal>
 
       {/* DELETE ACCOUNT */}

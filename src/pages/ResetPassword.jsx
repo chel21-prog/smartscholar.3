@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { signOutCurrentAccount } from "../lib/authSync";
-
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+import Button from "@/components/ui/Button";
+import { PASSWORD_REGEX } from "@/lib/passwordPolicy";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -14,12 +14,46 @@ export default function ResetPassword() {
   const [error,     setError]     = useState("");
   const [success,   setSuccess]   = useState(false);
   const [ready,     setReady]     = useState(false);
+  const [linkExpired, setLinkExpired] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setReady(true);
+    let active = true;
+    let becameReady = false;
+
+    // Supabase's client parses the recovery link and fires
+    // PASSWORD_RECOVERY during its own startup (lib/supabase.js runs at
+    // module load, well before this component mounts) — so by the time
+    // this listener subscribes, the event has often already fired and
+    // been missed, leaving the page stuck on "Waiting for your reset
+    // link to be verified…" forever. Checking for an already-established
+    // session on mount closes that race: if the recovery link already
+    // did its job before we got here, there's a session waiting for us.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (active && session) {
+        becameReady = true;
+        setReady(true);
+      }
     });
-    return () => subscription.unsubscribe();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        becameReady = true;
+        setReady(true);
+      }
+    });
+
+    // If neither of the above ever fires — an expired or already-used
+    // link — don't leave the page stuck on "Waiting…" forever with no
+    // way out.
+    const timeout = setTimeout(() => {
+      if (active && !becameReady) setLinkExpired(true);
+    }, 8000);
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const handleSubmit = async (e) => {
@@ -48,8 +82,21 @@ export default function ResetPassword() {
         <img src="/logo.png" style={styles.logo} alt="SmartScholar" />
         <h2 style={styles.title}>Set new password</h2>
 
-        {!ready && !success && (
+        {!ready && !success && !linkExpired && (
           <p style={styles.hint}>Waiting for your reset link to be verified…</p>
+        )}
+
+        {linkExpired && !success && (
+          <div style={styles.errorBox}>
+            This reset link has expired or was already used. Go back to the
+            login page and request a new one.
+          </div>
+        )}
+
+        {linkExpired && !success && (
+          <Link to="/Login" style={styles.btnPrimaryLink}>
+            Back to login
+          </Link>
         )}
 
         {success && (
@@ -79,9 +126,9 @@ export default function ResetPassword() {
             </div>
             <p style={styles.hint}>At least 6 characters · one uppercase · one lowercase · one number</p>
             {error && <div style={styles.errorBox}>{error}</div>}
-            <button style={styles.btn} disabled={loading}>
-              {loading ? "Updating…" : "Update password"}
-            </button>
+            <Button type="submit" loading={loading} style={{ height: 44 }}>
+              Update password
+            </Button>
           </form>
         )}
       </div>
@@ -103,5 +150,5 @@ const styles = {
   hint: { margin: 0, fontSize: 12, color: "var(--text-secondary)" },
   errorBox: { background: "var(--danger-100)", border: "1px solid var(--danger-600)", borderRadius: "var(--radius-md)", padding: "10px 14px", color: "var(--danger-700)", fontSize: 13, fontWeight: 600 },
   successBox: { background: "var(--success-100)", border: "1px solid var(--teal-500)", borderRadius: "var(--radius-md)", padding: "12px 16px", color: "var(--success-700)", fontSize: 14, fontWeight: 600, textAlign: "center" },
-  btn: { height: 44, background: "var(--navy-700)", color: "#fff", border: "none", borderRadius: "var(--radius-md)", fontWeight: 700, fontSize: 15, cursor: "pointer" },
+  btnPrimaryLink: { display: "block", textAlign: "center", height: 44, lineHeight: "44px", background: "var(--navy-600)", color: "#fff", borderRadius: "var(--radius-md)", fontWeight: 700, fontSize: 15, textDecoration: "none" },
 };
