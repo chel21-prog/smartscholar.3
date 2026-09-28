@@ -1,6 +1,7 @@
 .btn {
   background: none;
   border: none;
+  border-radius: var(--radius-full); /* so the hover glow follows the pill shape */
   padding: 0;
   cursor: pointer;
   display: flex;

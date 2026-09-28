@@ -87,6 +87,7 @@
 .groupHeader {
   display: flex; align-items: center; justify-content: space-between;
   width: 100%; background: none; border: none; cursor: pointer;
+  border-radius: var(--radius-md); /* rounded hover glow */
   padding: var(--space-2) var(--space-3) 6px;
   color: var(--ink-400); font-size: 10.5px; font-weight: 700;
   letter-spacing: .7px; text-transform: uppercase;

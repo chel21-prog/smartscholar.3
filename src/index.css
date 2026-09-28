@@ -184,6 +184,9 @@ input[type="password"]::-ms-clear { display: none; }
   --glow-danger: 0 0 0 1px var(--danger-600), 0 0 16px rgba(248, 113, 113, .42);
 }
 
+/* any button without its own radius gets a soft one, so the glow is never a sharp rectangle */
+:where(button, [role="button"]) { border-radius: var(--radius-md); }
+
 /* cards */
 #root [class*="card_" i],
 #root [class*="panel_" i],
