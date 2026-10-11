@@ -11,6 +11,7 @@ import { TableActions } from "@/components/ui/Table";
 import { getCached, setCached } from "@/lib/dataCache";
 import { getReportSecurity } from "@/lib/reportSecurity";
 import { useToast } from "@/context/ToastContext";
+import { findRuleViolation } from "@/lib/scholarshipRules";
 import styles from "./CoordinatorApplications.module.css";
 
 const CACHE_KEY = "coordinator-applications";
@@ -170,7 +171,19 @@ const [sendNotification, setSendNotification] = useState(true);
   // =========================
   // APPROVE / REJECT
   // =========================
-  const openApproveModal = (application) => {
+  // "Who can apply" rule on the scholarship vs. what the student holds today
+  // (they may have been approved for another one since they applied).
+  const ruleBlockFor = async (application) =>
+    findRuleViolation(
+      supabase,
+      application.students.student_id,
+      application.scholarship_id,
+      application.students.users?.first_name || "This student"
+    );
+
+  const openApproveModal = async (application) => {
+    const blocked = await ruleBlockFor(application);
+    if (blocked) return toast.error(`Can't approve: ${blocked}`);
 
 setSelectedApplication(application);
 
@@ -220,6 +233,10 @@ Thank you.`
   const app = selectedApplication;
 
   if (!app) return;
+
+    const blocked = await ruleBlockFor(app);
+    if (blocked) return toast.error(`Can't approve: ${blocked}`);
+
     const { error } = await supabase
       .from("scholarship_applications")
       .update({ status: "Approved" })

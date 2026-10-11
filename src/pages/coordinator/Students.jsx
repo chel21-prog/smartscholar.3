@@ -8,6 +8,7 @@ import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import { getCached, setCached } from "@/lib/dataCache";
 import Button from "@/components/ui/Button";
+import { findRuleViolation } from "@/lib/scholarshipRules";
 import s from "./Students.module.css";
 const STATUS_OPTIONS = ["Enrolled", "Graduated", "Dropped", "Inactive"];
 const CACHE_KEY = "coordinator-students";
@@ -163,6 +164,15 @@ const loadAcademicSettings = async () => {
   const grantScholarship = async () => {
   if (!selectedStudent) return toast.error("No student selected");
   if (!selectedScholarship) return toast.error("Select scholarship");
+
+  // respect the scholarship's "who can apply" rule, same as a student application would
+  const blocked = await findRuleViolation(
+    supabase,
+    selectedStudent.student_id,
+    selectedScholarship,
+    selectedStudent.users?.first_name || "This student"
+  );
+  if (blocked) return toast.error(`Can't grant: ${blocked}`);
 
   // 1. CREATE APPLICATION FIRST (THIS IS THE FIX)
   const { data: application, error: appError } = await supabase

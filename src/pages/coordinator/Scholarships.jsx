@@ -10,6 +10,7 @@ import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import { getCached, setCached } from "@/lib/dataCache";
 import Button from "@/components/ui/Button";
+import { RULE_OPTIONS, RULE_OPEN, RULE_EXCLUDE, normalizeBlockedWith, describeRule } from "@/lib/scholarshipRules";
 import s from "./Scholarships.module.css";
 
 // ─── helpers ────────────────────────────────────────────────
@@ -52,6 +53,9 @@ export default function Scholarships() {
   const [deadline,       setDeadline]       = useState("");
   const [payoutFreq,     setPayoutFreq]     = useState("Semester");
   const [duration,       setDuration]       = useState("Until Graduation");
+  // who may apply, based on scholarships they already hold (lib/scholarshipRules.js)
+  const [appRule,      setAppRule]      = useState(RULE_OPEN);
+  const [blockedWith,  setBlockedWith]  = useState([]);
 
   // ── requirements ────────────────────────────────────────
   const [appReq,       setAppReq]      = useState([]);
@@ -85,7 +89,7 @@ export default function Scholarships() {
   const [tplName,          setTplName]          = useState("");
 
   // ── view modals data ────────────────────────────────────
-  const [viewRequirements, setViewRequirements] = useState({ application: [], eligibility: [] });
+  const [viewRequirements, setViewRequirements] = useState({ application: [], eligibility: [], rule: "" });
   const [formData,         setFormData]         = useState({ title: "", terms: "", fields: [] });
 
   // ── confirm popup ────────────────────────────────────────
@@ -272,6 +276,7 @@ export default function Scholarships() {
     setName(""); setSponsor(""); setDescription(""); setAmount("");
     setBudget(""); setSlots(""); setDeadline("");
     setPayoutFreq("Semester"); setDuration("Until Graduation");
+    setAppRule(RULE_OPEN); setBlockedWith([]);
     setSelectedReq([]);
     setFormTitle(""); setTerms(""); setFields([]);
     setFieldLabel(""); setFieldType("text"); setIsRequired(false); setEditingFieldIndex(null);
@@ -302,6 +307,8 @@ export default function Scholarships() {
     setSlots(sch.slots || ""); setDeadline(sch.submission_deadline || "");
     setPayoutFreq(sch.payout_frequency || "Semester");
     setDuration(sch.duration_type || "Until Graduation");
+    setAppRule(sch.application_rule || RULE_OPEN);
+    setBlockedWith(normalizeBlockedWith(sch.blocked_with));
 
     const { data: form } = await supabase.from("scholarship_application_forms")
       .select("*").eq("scholarship_id", sch.scholarship_id).single();
@@ -324,17 +331,33 @@ export default function Scholarships() {
 
   const [saving, setSaving] = useState(false);
 
+  // The rule columns come from supabase/scholarship_rules.sql. If that hasn't been run yet,
+  // saving still works (the rule just isn't stored) and the coordinator is told why.
+  const ruleFields = () => ({ application_rule: appRule, blocked_with: appRule === RULE_EXCLUDE ? blockedWith : [] });
+  const isMissingRuleColumn = (err) => /application_rule|blocked_with/i.test(err?.message || "");
+  const RULE_MIGRATION_MSG = "Saved, but the application rule wasn't stored. Run supabase/scholarship_rules.sql in Supabase first.";
+  const ruleProblem = () =>
+    appRule === RULE_EXCLUDE && blockedWith.length === 0
+      ? "Pick at least one scholarship that can't be held together with this one."
+      : null;
+
   const createScholarship = () => {
     if (saving) return;
     if (!name || !formTitle || !terms) return toast.error("Name, form title, and terms are required");
+    if (ruleProblem()) return toast.error(ruleProblem());
     askConfirm("Save this new scholarship?", doCreateScholarship);
   };
 
   const doCreateScholarship = async () => {
     setSaving(true);
-    const { data: sch, error } = await supabase.from("scholarships")
-      .insert({ scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: deadline, payout_frequency: payoutFreq, duration_type: duration, status: "Active" })
+    const baseRow = { scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: deadline, payout_frequency: payoutFreq, duration_type: duration, status: "Active" };
+    let { data: sch, error } = await supabase.from("scholarships")
+      .insert({ ...baseRow, ...ruleFields() })
       .select().single();
+    if (error && isMissingRuleColumn(error)) {
+      ({ data: sch, error } = await supabase.from("scholarships").insert(baseRow).select().single());
+      if (!error && appRule !== RULE_OPEN) toast.error(RULE_MIGRATION_MSG);
+    }
     if (error) { toast.error(error.message); setSaving(false); return; }
 
     if (selectedReq.length) {
@@ -363,15 +386,21 @@ export default function Scholarships() {
   const updateScholarship = () => {
     if (saving) return;
     if (!editingId) return toast.error("No scholarship selected");
+    if (ruleProblem()) return toast.error(ruleProblem());
     askConfirm("Save changes to this scholarship?", doUpdateScholarship);
   };
 
   const doUpdateScholarship = async () => {
     setSaving(true);
 
-    const { error } = await supabase.from("scholarships")
-      .update({ scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: deadline, payout_frequency: payoutFreq, duration_type: duration })
+    const baseRow = { scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: deadline, payout_frequency: payoutFreq, duration_type: duration };
+    let { error } = await supabase.from("scholarships")
+      .update({ ...baseRow, ...ruleFields() })
       .eq("scholarship_id", editingId);
+    if (error && isMissingRuleColumn(error)) {
+      ({ error } = await supabase.from("scholarships").update(baseRow).eq("scholarship_id", editingId));
+      if (!error && appRule !== RULE_OPEN) toast.error(RULE_MIGRATION_MSG);
+    }
     if (error) { toast.error(error.message); setSaving(false); return; }
 
     await supabase.from("scholarship_requirements").delete().eq("scholarship_id", editingId);
@@ -415,7 +444,9 @@ export default function Scholarships() {
     const { data } = await supabase.from("scholarship_requirements")
       .select("application_requirements(requirement_name),eligibility_requirements(requirement_name)")
       .eq("scholarship_id", id);
+    const sch = list.find(x => x.scholarship_id === id);
     setViewRequirements({
+      rule: sch ? describeRule(sch, list) : "",
       application: data?.filter(r => r.application_requirements).map(r => r.application_requirements.requirement_name) || [],
       eligibility: data?.filter(r => r.eligibility_requirements).map(r => r.eligibility_requirements.requirement_name) || [],
     });
@@ -591,6 +622,8 @@ export default function Scholarships() {
               <button className={s.closeBtn} onClick={closeModal}><Icon name="close" size={14} /></button>
             </div>
             <div className={s.modalBody}>
+              <h3 className={s.sectionLabel}>Who can apply</h3>
+              <div className={s.listItem}>{viewRequirements.rule || "Open to everyone"}</div>
               <h3 className={s.sectionLabel}>Application Requirements</h3>
               {viewRequirements.application.length === 0
                 ? <p className={s.empty}>None</p>
@@ -742,6 +775,49 @@ export default function Scholarships() {
                         </select>
                       </div>
                     </div>
+                  </section>
+
+
+                  <section className={s.card}>
+                    <h3 className={s.cardTitle}>Who can apply</h3>
+                    <div className={s.ruleGroup} role="radiogroup" aria-label="Application rule">
+                      {RULE_OPTIONS.map(opt => (
+                        <label key={opt.value} className={appRule === opt.value ? s.ruleOptionActive : s.ruleOption}>
+                          <input
+                            type="radio"
+                            name="application_rule"
+                            value={opt.value}
+                            checked={appRule === opt.value}
+                            onChange={() => setAppRule(opt.value)}
+                          />
+                          <span>
+                            <span className={s.ruleLabel}>{opt.label}</span>
+                            <span className={s.ruleHint}>{opt.hint}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+
+                    {appRule === RULE_EXCLUDE && (
+                      <div className={s.ruleList}>
+                        {list.filter(x => x.scholarship_id !== editingId).length === 0 ? (
+                          <p className={s.ruleHint}>There are no other scholarships to pick from yet.</p>
+                        ) : list.filter(x => x.scholarship_id !== editingId).map(x => {
+                          const id = String(x.scholarship_id);
+                          const checked = blockedWith.includes(id);
+                          return (
+                            <label key={id} className={s.ruleCheck}>
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => setBlockedWith(prev => checked ? prev.filter(v => v !== id) : [...prev, id])}
+                              />
+                              <span>{x.scholarship_name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
                   </section>
                 </>
               )}

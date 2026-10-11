@@ -8,6 +8,7 @@ import uiStyles from "@/components/ui/ui.module.css";
 import PageLoader from "@/components/ui/PageLoader";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { getCached, setCached } from "@/lib/dataCache";
+import { checkApplicationRule, fetchActiveGrants, findRuleViolation } from "@/lib/scholarshipRules";
 import s from "./Dashboard.module.css";
 
 const CACHE_KEY = "student-dashboard";
@@ -18,6 +19,8 @@ export default function Dashboard() {
   const [requirementsMap,setRequirementsMap] = useState(cached?.requirementsMap || []);
   const [eligibilityDefs,setEligibilityDefs] = useState(cached?.eligibilityDefs || []); // id -> requirement_name lookup
   const [studentReq,     setStudentReq]     = useState(cached?.studentReq || []);
+  // scholarships this student currently holds — drives each scholarship's "who can apply" rule
+  const [activeGrants,   setActiveGrants]   = useState(cached?.activeGrants || []);
   const [studentId,      setStudentId]      = useState(cached?.studentId || null);
   const [studentProfile, setStudentProfile] = useState(cached?.studentProfile || null); // { course, year_level }
   const [loading,        setLoading]        = useState(!cached);
@@ -89,13 +92,14 @@ export default function Dashboard() {
       setStudentId(sid);
       setStudentProfile(profile);
 
-      const [{ data: appData }, { data: scholData }, { data: reqMap }, { data: studData }, { data: eligDefs }] =
+      const [{ data: appData }, { data: scholData }, { data: reqMap }, { data: studData }, { data: eligDefs }, grantsData] =
         await Promise.all([
           supabase.from("scholarship_applications").select("*").eq("student_id", sid),
           supabase.from("scholarships").select("*"),
           supabase.from("scholarship_requirements").select("*"),
           supabase.from("student_eligibility_profile").select("*").eq("student_id", sid),
           supabase.from("eligibility_requirements").select("eligibility_requirement_id, requirement_name"),
+          fetchActiveGrants(supabase, sid),
         ]);
 
       setApplications(appData    || []);
@@ -103,6 +107,7 @@ export default function Dashboard() {
       setRequirementsMap(reqMap  || []);
       setStudentReq(studData     || []);
       setEligibilityDefs(eligDefs || []);
+      setActiveGrants(grantsData || []);
 
       setCached(CACHE_KEY, {
         studentId: sid,
@@ -112,6 +117,7 @@ export default function Dashboard() {
         requirementsMap: reqMap || [],
         studentReq: studData || [],
         eligibilityDefs: eligDefs || [],
+        activeGrants: grantsData || [],
       });
     } catch (err) { console.error(err); }
     setLoading(false);
@@ -125,6 +131,9 @@ export default function Dashboard() {
 
   // ── eligibility ─────────────────────────────────────────
   const getApplication = (id) => applications.find((a) => a.scholarship_id === id);
+
+  // the coordinator's "who can apply" rule for this scholarship, vs. what this student holds
+  const ruleFor = (scholarship) => checkApplicationRule(scholarship, activeGrants, scholarships);
 
   const isEligible = (scholarship) => {
     const required = requirementsMap
@@ -141,7 +150,8 @@ export default function Dashboard() {
     const required = requirementsMap.filter(
       (r) => r.scholarship_id === scholarship.scholarship_id && r.eligibility_requirement_id
     );
-    return required.flatMap((r) => {
+    const ruleReason = ruleFor(scholarship).reason;
+    const shortfalls = required.flatMap((r) => {
       const rec = studentReq.find((s) => s.eligibility_requirement_id === r.eligibility_requirement_id);
       const def = eligibilityDefs.find((d) => d.eligibility_requirement_id === r.eligibility_requirement_id);
       const name = def?.requirement_name || "Requirement";
@@ -149,6 +159,7 @@ export default function Dashboard() {
       if (rec.status !== "Compliant") return [`${name} — ${rec.status}`];
       return [];
     });
+    return ruleReason ? [ruleReason, ...shortfalls] : shortfalls;
   };
 
   // ── auto-fill application form from saved profile ──────────
@@ -271,6 +282,11 @@ export default function Dashboard() {
     setSubmitting(true);
     setFormError("");
 
+    // Re-check the coordinator's "who can apply" rule against what the student holds
+    // right now (the list on screen may be stale, e.g. approved in another tab).
+    const violation = await findRuleViolation(supabase, studentId, selectedScholarship.scholarship_id);
+    if (violation) { setFormError(violation); setSubmitting(false); return; }
+
     // 1. Create the application row first to get an application_id
     const { data: app, error: appError } = await supabase
       .from("scholarship_applications")
@@ -335,8 +351,9 @@ export default function Dashboard() {
     load();
   };
 
-  const eligible    = scholarships.filter(isEligible);
-  const notEligible = scholarships.filter((sc) => !isEligible(sc));
+  const canApplyTo  = (sc) => isEligible(sc) && ruleFor(sc).allowed;
+  const eligible    = scholarships.filter(canApplyTo);
+  const notEligible = scholarships.filter((sc) => !canApplyTo(sc));
 
   // ── recommendations ──────────────────────────────────────
   // Two things make a scholarship worth suggesting: how much it's
@@ -407,7 +424,8 @@ export default function Dashboard() {
     return remaining !== null && remaining < nominal;
   };
 
-  const candidates = scholarships.filter((sc) => !getApplication(sc.scholarship_id));
+  // blocked-by-rule scholarships can't be applied to, so they're never recommended
+  const candidates = scholarships.filter((sc) => !getApplication(sc.scholarship_id) && ruleFor(sc).allowed);
   const maxValue = Math.max(1, ...candidates.map(totalValue));
 
   const scored = candidates.map((sc) => {
@@ -664,7 +682,9 @@ export default function Dashboard() {
                       <td>
                         {app
                           ? <Badge status={app.status} />
-                          : <Button size="sm" variant="primary" onClick={() => openApply(sc)}>Apply</Button>
+                          : ruleFor(sc).allowed
+                            ? <Button size="sm" variant="primary" onClick={() => openApply(sc)}>Apply</Button>
+                            : <Button size="sm" variant="ghost" disabled>Not available</Button>
                         }
                       </td>
                     </tr>

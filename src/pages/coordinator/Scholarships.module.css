@@ -465,3 +465,25 @@
   .footBtns { justify-content: flex-end; }
   .tab { padding: 12px var(--space-3); }
 }
+
+/* ── who can apply (application rule) ── */
+.ruleGroup { display: flex; flex-direction: column; gap: var(--space-2); }
+.ruleOption, .ruleOptionActive {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4); cursor: pointer;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--surface); transition: background-color var(--duration-fast), border-color var(--duration-fast);
+}
+.ruleOption:hover { background: var(--surface-muted); }
+.ruleOptionActive { border-color: var(--navy-500); background: var(--navy-50); }
+.ruleOption input, .ruleOptionActive input { margin-top: 3px; accent-color: var(--navy-600); }
+.ruleLabel { display: block; font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); }
+.ruleHint  { display: block; margin: 2px 0 0; font-size: var(--text-xs); color: var(--text-secondary); }
+.ruleList {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-2);
+  margin-top: var(--space-3); padding: var(--space-3);
+  border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-muted);
+  max-height: 180px; overflow-y: auto;
+}
+.ruleCheck { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--text-primary); cursor: pointer; }
+.ruleCheck input { accent-color: var(--navy-600); }
