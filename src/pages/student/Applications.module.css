@@ -70,3 +70,6 @@
   flex-direction: column;
   gap: var(--space-4);
 }
+
+.statusNote { margin: var(--space-2) 0 0; font-size: var(--text-xs); color: var(--text-secondary); }
+.modalIntro { margin: 0 0 var(--space-4); font-size: var(--text-sm); line-height: 1.5; color: var(--text-secondary); }

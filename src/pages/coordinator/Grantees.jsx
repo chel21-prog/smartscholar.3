@@ -10,6 +10,12 @@ import TableSkeleton from "@/components/ui/TableSkeleton";
 import { getCached, setCached } from "@/lib/dataCache";
 import { useToast } from "@/context/ToastContext";
 import Button from "@/components/ui/Button";
+import { Field, Textarea } from "@/components/ui/Input";
+import { closePendingIfFull } from "@/lib/scholarshipSlots";
+import {
+  endScholarship, notifyStudent, terminationText,
+  revokeMessage, cancellationApprovedMessage, cancellationDeclinedMessage,
+} from "@/lib/scholarshipCancellation";
 import styles from "./Grantees.module.css";
 
 const CACHE_KEY = "coordinator-grantees";
@@ -84,6 +90,16 @@ const [scholarshipFilter, setScholarshipFilter] = useState("All");
 const [semesterFilter, setSemesterFilter] = useState("All");
 const [yearFilter, setYearFilter] = useState("All");
   const [currentUserId, setCurrentUserId] = useState(null);
+
+  // ── Revoke a scholarship / review a student's cancellation request ──
+  const [revokeTarget, setRevokeTarget] = useState(null);
+  const [revokeReason, setRevokeReason] = useState("");
+  const [revokeMessageText, setRevokeMessageText] = useState(null); // null = follow the default template
+  const [savingRevoke, setSavingRevoke] = useState(false);
+  const [cancelRequests, setCancelRequests] = useState([]);
+  const [reviewTarget, setReviewTarget] = useState(null); // { request, row }
+  const [reviewRemarks, setReviewRemarks] = useState("");
+  const [savingReview, setSavingReview] = useState(false);
 
   // ── verification modal ────────────────────────────────────
   const [verifyTarget, setVerifyTarget] = useState(null); // the row being verified
@@ -309,6 +325,9 @@ const [yearFilter, setYearFilter] = useState("All");
 
     if (granteeError) { toast.error(granteeError.message); setSavingGrantee(false); return; }
 
+    // a manual grant can use the last slot too
+    if (granteeStatus === "Active") await closePendingIfFull(supabase, granteeScholarshipId);
+
     // ── optional past releases, so the payout schedule reflects reality ──
     if (releaseRows.length > 0) {
       const { error: releaseError } = await supabase.from("fund_releases").insert(
@@ -497,6 +516,7 @@ const [yearFilter, setYearFilter] = useState("All");
 
     const succeeded = [];
     const failed = [];
+    const touchedScholarships = new Set();
 
     for (const row of importReadyRows) {
       let studentId = row.studentMatch?.student_id;
@@ -554,7 +574,10 @@ const [yearFilter, setYearFilter] = useState("All");
       }
 
       succeeded.push(row.rowNumber);
+      if (row.status === "Active") touchedScholarships.add(row.scholarship_id);
     }
+
+    for (const sid of touchedScholarships) await closePendingIfFull(supabase, sid);
 
     setImporting(false);
     setImportResults({ succeeded: succeeded.length, failed });
@@ -592,6 +615,7 @@ const [yearFilter, setYearFilter] = useState("All");
       source,
 
       students (
+        user_id,
         school_id,
         course,
         year_level,
@@ -632,6 +656,7 @@ const [yearFilter, setYearFilter] = useState("All");
     return {
       grantee_id: g.grantee_id,
       student_id: g.student_id,
+      student_user_id: g.students?.user_id ?? null,
       school_id: g.students?.school_id ?? "N/A",
       student_name: `${first} ${last}`.trim() || "Unknown",
       course: g.students?.course ?? "N/A",
@@ -655,7 +680,126 @@ const [yearFilter, setYearFilter] = useState("All");
   setRows(formatted);
   setCached(CACHE_KEY, formatted);
   setLoading(false);
+  loadRequests();
 };
+
+  // Pending cancellation requests from students. If the table doesn't exist yet
+  // (supabase/scholarship_cancellation.sql not run) this just shows no requests.
+  const loadRequests = async () => {
+    const { data, error } = await supabase
+      .from("scholarship_cancellation_requests")
+      .select("request_id, grantee_id, student_id, reason, status, created_at")
+      .eq("status", "Pending")
+      .order("created_at", { ascending: true });
+    setCancelRequests(error ? [] : data || []);
+  };
+
+  const pendingGranteeIds = new Set(cancelRequests.map((r) => String(r.grantee_id)));
+
+  const openRevoke = (row) => {
+    setRevokeTarget(row);
+    setRevokeReason("");
+    setRevokeMessageText(null);
+  };
+  const closeRevoke = () => { if (!savingRevoke) setRevokeTarget(null); };
+  const revokeText = revokeMessageText ?? (revokeTarget ? revokeMessage(revokeTarget.scholarship_name, revokeReason) : "");
+
+  const submitRevoke = async () => {
+    if (!revokeTarget || savingRevoke) return;
+    if (!revokeReason.trim()) return toast.error("Enter a reason before revoking this scholarship.");
+    if (!revokeText.trim()) return toast.error("Write the message the student will receive.");
+
+    setSavingRevoke(true);
+    const { error } = await endScholarship(supabase, {
+      grantee: revokeTarget,
+      reasonText: terminationText("revoke", revokeReason),
+      verifiedBy: currentUserId,
+    });
+    if (error) {
+      toast.error(error.message);
+      setSavingRevoke(false);
+      return;
+    }
+
+    // a pending cancellation request for this same scholarship is now moot
+    await supabase
+      .from("scholarship_cancellation_requests")
+      .update({
+        status: "Approved",
+        coordinator_remarks: "The scholarship was revoked by the coordinator.",
+        reviewed_by: currentUserId,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("grantee_id", revokeTarget.grantee_id)
+      .eq("status", "Pending");
+
+    const notified = await notifyStudent(supabase, revokeTarget.student_user_id, "Your scholarship was revoked", revokeText);
+    if (notified) toast.success("Scholarship revoked and the student was notified.");
+    else toast.error("Scholarship revoked, but the student could not be notified.");
+
+    setSavingRevoke(false);
+    setRevokeTarget(null);
+    load();
+  };
+
+  const openReview = (request) => {
+    const row = rows.find((r) => String(r.grantee_id) === String(request.grantee_id)) || null;
+    setReviewTarget({ request, row });
+    setReviewRemarks("");
+  };
+  const closeReview = () => { if (!savingReview) setReviewTarget(null); };
+
+  const submitReview = async (decision) => {
+    if (!reviewTarget || savingReview) return;
+    const { request, row } = reviewTarget;
+    if (decision === "Declined" && !reviewRemarks.trim()) {
+      return toast.error("Tell the student why the request was declined.");
+    }
+    if (decision === "Approved" && !row) {
+      return toast.error("Couldn't find that scholarship award. Refresh the page and try again.");
+    }
+
+    setSavingReview(true);
+
+    if (decision === "Approved") {
+      const { error } = await endScholarship(supabase, {
+        grantee: row,
+        reasonText: terminationText("cancel", request.reason),
+        verifiedBy: currentUserId,
+      });
+      if (error) {
+        toast.error(error.message);
+        setSavingReview(false);
+        return;
+      }
+    }
+
+    const { error: requestError } = await supabase
+      .from("scholarship_cancellation_requests")
+      .update({
+        status: decision,
+        coordinator_remarks: reviewRemarks.trim() || null,
+        reviewed_by: currentUserId,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("request_id", request.request_id);
+    if (requestError) toast.error(requestError.message);
+
+    const name = row?.scholarship_name || "scholarship";
+    const approved = decision === "Approved";
+    const notified = await notifyStudent(
+      supabase,
+      row?.student_user_id,
+      approved ? "Scholarship cancellation approved" : "Scholarship cancellation declined",
+      approved ? cancellationApprovedMessage(name, reviewRemarks) : cancellationDeclinedMessage(name, reviewRemarks)
+    );
+    if (notified) toast.success(approved ? "Scholarship ended and the student was notified." : "Request declined and the student was notified.");
+    else toast.error("Saved, but the student could not be notified.");
+
+    setSavingReview(false);
+    setReviewTarget(null);
+    load();
+  };
 
   const openVerify = async (row) => {
     setVerifyTarget(row);
@@ -989,6 +1133,31 @@ const endRow =
   </div>
 </div>
 
+{cancelRequests.length > 0 && (
+  <section className={styles.requestsPanel} aria-label="Cancellation requests">
+    <h2 className={styles.requestsTitle}>
+      Cancellation requests <span className={styles.requestsCount}>{cancelRequests.length}</span>
+    </h2>
+    <div className={styles.requestsList}>
+      {cancelRequests.map((rq) => {
+        const row = rows.find((r) => String(r.grantee_id) === String(rq.grantee_id));
+        return (
+          <div key={rq.request_id} className={styles.requestRow}>
+            <div className={styles.requestMain}>
+              <strong>{row?.student_name || "Unknown student"}</strong>
+              <span className={styles.requestMeta}>
+                {row?.scholarship_name || "Scholarship"} · requested {rq.created_at ? new Date(rq.created_at).toLocaleDateString() : "recently"}
+              </span>
+              <span className={styles.requestReason}>{rq.reason}</span>
+            </div>
+            <Button size="sm" variant="primary" onClick={() => openReview(rq)}>Review</Button>
+          </div>
+        );
+      })}
+    </div>
+  </section>
+)}
+
 <SearchFilterBar
   search={search}
   onSearchChange={(v) => { setSearch(v); setCurrentPage(1); }}
@@ -1090,6 +1259,9 @@ const endRow =
           >
             {s.status}
           </span>
+          {pendingGranteeIds.has(String(s.grantee_id)) && (
+            <span className={styles.requestChip}>Cancel requested</span>
+          )}
         </td>
 
         <td className={styles.td}>
@@ -1125,9 +1297,14 @@ const endRow =
   )}
 </td>
 <td className={`${styles.td} ${styles.actionCell}`}>
-  <Button size="sm" variant={s.verification_result === "Verified" ? "secondary" : "primary"} onClick={() => openVerify(s)}>
-    {s.verification_result === "Verified" ? "Re-verify" : "Verify"}
-  </Button>
+  <div className={styles.rowActions}>
+    <Button size="sm" variant={s.verification_result === "Verified" ? "secondary" : "primary"} onClick={() => openVerify(s)}>
+      {s.verification_result === "Verified" ? "Re-verify" : "Verify"}
+    </Button>
+    {s.status === "Active" && (
+      <Button size="sm" variant="danger" onClick={() => openRevoke(s)}>Revoke</Button>
+    )}
+  </div>
 </td>
 
       </tr>
@@ -1744,6 +1921,86 @@ const endRow =
                 ))}
               </div>
             )}
+          </div>
+        )}
+      </Modal>
+
+      {/* REVOKE A SCHOLARSHIP */}
+      <Modal
+        open={!!revokeTarget}
+        onClose={closeRevoke}
+        title="Revoke scholarship"
+        size="md"
+        footer={
+          <>
+            <Button variant="ghost" onClick={closeRevoke} disabled={savingRevoke}>Cancel</Button>
+            <Button variant="danger" onClick={submitRevoke} loading={savingRevoke}>Revoke scholarship</Button>
+          </>
+        }
+      >
+        {revokeTarget && (
+          <div className={styles.verifySection}>
+            <p className={styles.description}>
+              <strong>{revokeTarget.student_name}</strong> will lose <strong>{revokeTarget.scholarship_name}</strong>.
+              Payouts stop right away and the student is notified.
+            </p>
+            <Field label="Reason" required hint="Saved on the record and shown to the cashier.">
+              {({ id }) => (
+                <Textarea
+                  id={id}
+                  rows={3}
+                  value={revokeReason}
+                  onChange={(e) => setRevokeReason(e.target.value)}
+                  placeholder="e.g. GWA fell below the required 2.0"
+                />
+              )}
+            </Field>
+            <Field label="Message to the student" hint="This is what appears in their notifications. Edit it if you like.">
+              {({ id }) => (
+                <Textarea
+                  id={id}
+                  rows={6}
+                  value={revokeText}
+                  onChange={(e) => setRevokeMessageText(e.target.value)}
+                />
+              )}
+            </Field>
+          </div>
+        )}
+      </Modal>
+
+      {/* REVIEW A STUDENT'S CANCELLATION REQUEST */}
+      <Modal
+        open={!!reviewTarget}
+        onClose={closeReview}
+        title="Cancellation request"
+        size="md"
+        footer={
+          <>
+            <Button variant="ghost" onClick={closeReview} disabled={savingReview}>Close</Button>
+            <Button variant="secondary" onClick={() => submitReview("Declined")} disabled={savingReview}>Decline request</Button>
+            <Button variant="danger" onClick={() => submitReview("Approved")} loading={savingReview}>Approve and end scholarship</Button>
+          </>
+        }
+      >
+        {reviewTarget && (
+          <div className={styles.verifySection}>
+            <p className={styles.description}>
+              <strong>{reviewTarget.row?.student_name || "The student"}</strong> asked to cancel{" "}
+              <strong>{reviewTarget.row?.scholarship_name || "their scholarship"}</strong>.
+            </p>
+            <h4 className={styles.verifySectionTitle}>Their reason</h4>
+            <p className={styles.requestReasonFull}>{reviewTarget.request.reason}</p>
+            <Field label="Note to the student" hint="Optional when approving, required when declining. It is sent with the notification.">
+              {({ id }) => (
+                <Textarea
+                  id={id}
+                  rows={3}
+                  value={reviewRemarks}
+                  onChange={(e) => setReviewRemarks(e.target.value)}
+                />
+              )}
+            </Field>
           </div>
         )}
       </Modal>

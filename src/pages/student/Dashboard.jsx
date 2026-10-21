@@ -9,6 +9,7 @@ import PageLoader from "@/components/ui/PageLoader";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { getCached, setCached } from "@/lib/dataCache";
 import { checkApplicationRule, fetchActiveGrants, findRuleViolation } from "@/lib/scholarshipRules";
+import { fetchOccupiedMap, findSlotViolation, isFull, slotsFullReason } from "@/lib/scholarshipSlots";
 import s from "./Dashboard.module.css";
 
 const CACHE_KEY = "student-dashboard";
@@ -21,6 +22,10 @@ export default function Dashboard() {
   const [studentReq,     setStudentReq]     = useState(cached?.studentReq || []);
   // scholarships this student currently holds — drives each scholarship's "who can apply" rule
   const [activeGrants,   setActiveGrants]   = useState(cached?.activeGrants || []);
+  // every award this student has ever had (so a revoked one doesn't block applying again)
+  const [allGrants,     setAllGrants]     = useState(cached?.allGrants || []);
+  // scholarship_id -> number of active grantees, for the slot limit
+  const [occupiedMap,   setOccupiedMap]   = useState(cached?.occupiedMap || {});
   const [studentId,      setStudentId]      = useState(cached?.studentId || null);
   const [studentProfile, setStudentProfile] = useState(cached?.studentProfile || null); // { course, year_level }
   const [loading,        setLoading]        = useState(!cached);
@@ -92,7 +97,7 @@ export default function Dashboard() {
       setStudentId(sid);
       setStudentProfile(profile);
 
-      const [{ data: appData }, { data: scholData }, { data: reqMap }, { data: studData }, { data: eligDefs }, grantsData] =
+      const [{ data: appData }, { data: scholData }, { data: reqMap }, { data: studData }, { data: eligDefs }, grantsData, { data: everyGrant }, occupied] =
         await Promise.all([
           supabase.from("scholarship_applications").select("*").eq("student_id", sid),
           supabase.from("scholarships").select("*"),
@@ -100,6 +105,8 @@ export default function Dashboard() {
           supabase.from("student_eligibility_profile").select("*").eq("student_id", sid),
           supabase.from("eligibility_requirements").select("eligibility_requirement_id, requirement_name"),
           fetchActiveGrants(supabase, sid),
+          supabase.from("grantees").select("grantee_id, application_id, scholarship_id, status").eq("student_id", sid),
+          fetchOccupiedMap(supabase),
         ]);
 
       setApplications(appData    || []);
@@ -108,6 +115,8 @@ export default function Dashboard() {
       setStudentReq(studData     || []);
       setEligibilityDefs(eligDefs || []);
       setActiveGrants(grantsData || []);
+      setAllGrants(everyGrant || []);
+      setOccupiedMap(occupied || {});
 
       setCached(CACHE_KEY, {
         studentId: sid,
@@ -118,6 +127,8 @@ export default function Dashboard() {
         studentReq: studData || [],
         eligibilityDefs: eligDefs || [],
         activeGrants: grantsData || [],
+        allGrants: everyGrant || [],
+        occupiedMap: occupied || {},
       });
     } catch (err) { console.error(err); }
     setLoading(false);
@@ -130,10 +141,30 @@ export default function Dashboard() {
   };
 
   // ── eligibility ─────────────────────────────────────────
-  const getApplication = (id) => applications.find((a) => a.scholarship_id === id);
+  // An application only "counts" while it is live. Once the scholarship it led to was revoked
+  // or otherwise ended (grantee Inactive), or it was cancelled because the slots filled up,
+  // the student is free to apply again.
+  const isEnded = (a) => {
+    if (a.status === "Cancelled") return true;
+    if (a.status !== "Approved") return false;
+    const grant = allGrants.find((g) => String(g.application_id) === String(a.application_id));
+    return grant?.status === "Inactive";
+  };
+  const getApplication = (id) =>
+    applications
+      .filter((a) => a.scholarship_id === id && !isEnded(a))
+      .sort((a, b) => new Date(b.application_date || 0) - new Date(a.application_date || 0))[0];
 
   // the coordinator's "who can apply" rule for this scholarship, vs. what this student holds
-  const ruleFor = (scholarship) => checkApplicationRule(scholarship, activeGrants, scholarships);
+  // ...plus the slot limit: once every slot is taken nobody new can apply
+  const ruleFor = (scholarship) => {
+    const rule = checkApplicationRule(scholarship, activeGrants, scholarships);
+    if (!rule.allowed) return rule;
+    if (isFull(scholarship, occupiedMap[String(scholarship.scholarship_id)] || 0) && !getApplication(scholarship.scholarship_id)) {
+      return { allowed: false, reason: slotsFullReason(scholarship) };
+    }
+    return rule;
+  };
 
   const isEligible = (scholarship) => {
     const required = requirementsMap
@@ -150,8 +181,7 @@ export default function Dashboard() {
     const required = requirementsMap.filter(
       (r) => r.scholarship_id === scholarship.scholarship_id && r.eligibility_requirement_id
     );
-    const ruleReason = ruleFor(scholarship).reason;
-    const shortfalls = required.flatMap((r) => {
+    return required.flatMap((r) => {
       const rec = studentReq.find((s) => s.eligibility_requirement_id === r.eligibility_requirement_id);
       const def = eligibilityDefs.find((d) => d.eligibility_requirement_id === r.eligibility_requirement_id);
       const name = def?.requirement_name || "Requirement";
@@ -159,7 +189,6 @@ export default function Dashboard() {
       if (rec.status !== "Compliant") return [`${name} — ${rec.status}`];
       return [];
     });
-    return ruleReason ? [ruleReason, ...shortfalls] : shortfalls;
   };
 
   // ── auto-fill application form from saved profile ──────────
@@ -287,6 +316,10 @@ export default function Dashboard() {
     const violation = await findRuleViolation(supabase, studentId, selectedScholarship.scholarship_id);
     if (violation) { setFormError(violation); setSubmitting(false); return; }
 
+    // Slots may have filled up since this page loaded.
+    const slotBlock = await findSlotViolation(supabase, selectedScholarship.scholarship_id);
+    if (slotBlock) { setFormError(slotBlock); setSubmitting(false); load(); return; }
+
     // 1. Create the application row first to get an application_id
     const { data: app, error: appError } = await supabase
       .from("scholarship_applications")
@@ -351,9 +384,11 @@ export default function Dashboard() {
     load();
   };
 
-  const canApplyTo  = (sc) => isEligible(sc) && ruleFor(sc).allowed;
-  const eligible    = scholarships.filter(canApplyTo);
-  const notEligible = scholarships.filter((sc) => !canApplyTo(sc));
+  // Rule-blocked scholarships (the coordinator's "who can apply" rule vs what the student
+  // holds) are a hard "can't apply". Everything else splits by the soft requirements check.
+  const restricted  = scholarships.filter((sc) => !ruleFor(sc).allowed);
+  const eligible    = scholarships.filter((sc) => ruleFor(sc).allowed && isEligible(sc));
+  const notEligible = scholarships.filter((sc) => ruleFor(sc).allowed && !isEligible(sc));
 
   // ── recommendations ──────────────────────────────────────
   // Two things make a scholarship worth suggesting: how much it's
@@ -523,6 +558,20 @@ export default function Dashboard() {
             </span>
           </div>
         </div>
+        <div className={`${s.statCard} ${s.statClickable}`}>
+          <span role="link" tabIndex={0} className={s.statLink} aria-label="Cannot apply — jump to list"
+            onClick={() => goToSection("restricted-scholarships")} onKeyDown={cardKey("restricted-scholarships")} />
+          <span className={s.statGo} aria-hidden="true">↓</span>
+          <div className={`${s.statNum} ${s.statWarn}`}>{restricted.length}</div>
+          <div className={s.statLblRow}>
+            <span className={s.statLbl}>{"Can't apply"}</span>
+            <span className={s.statInfoSlot}>
+              <InfoTooltip label="Cannot apply" align="left">
+                Scholarships you can't apply to right now because of a scholarship office rule, for example one that only allows students who don't already hold another scholarship.
+              </InfoTooltip>
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* recommendations */}
@@ -682,9 +731,7 @@ export default function Dashboard() {
                       <td>
                         {app
                           ? <Badge status={app.status} />
-                          : ruleFor(sc).allowed
-                            ? <Button size="sm" variant="primary" onClick={() => openApply(sc)}>Apply</Button>
-                            : <Button size="sm" variant="ghost" disabled>Not available</Button>
+                          : <Button size="sm" variant="primary" onClick={() => openApply(sc)}>Apply</Button>
                         }
                       </td>
                     </tr>
@@ -695,6 +742,44 @@ export default function Dashboard() {
           </TableWrap>
         )}
       </section>
+
+      {/* can't apply right now: blocked by a scholarship office rule */}
+      {restricted.length > 0 && (
+        <section id="restricted-scholarships" className={s.section}>
+          <h2 className={s.sectionTitle}><span className={s.dotWarn} /> {"Can't apply right now"}</h2>
+          <p className={s.sectionNote}>
+            The scholarship office limits who can apply to these. Each one shows what's in the way, and it
+            opens up again once that changes (for example when a scholarship you hold ends, or when a full scholarship has a slot freed up).
+          </p>
+          <TableWrap>
+            <Table>
+              <thead><tr><th data-pin>Name</th><th>Amount</th><th className={uiStyles.colOptional}>Frequency</th><th>Deadline</th><th></th></tr></thead>
+              <tbody>
+                {restricted.map((sc) => {
+                  const app = getApplication(sc.scholarship_id);
+                  return (
+                    <tr key={sc.scholarship_id}>
+                      <td data-pin className={s.nameCell}>
+                        {sc.scholarship_name}
+                        <span className={s.ruleReason}>{ruleFor(sc).reason}</span>
+                      </td>
+                      <td>{"\u20B1"}{Number(sc.amount || 0).toLocaleString()}</td>
+                      <td className={uiStyles.colOptional}>{sc.payout_frequency || "-"}</td>
+                      <td>{sc.submission_deadline || "-"}</td>
+                      <td>
+                        {app
+                          ? <Badge status={app.status} />
+                          : <Button size="sm" variant="ghost" disabled>Not available</Button>
+                        }
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+          </TableWrap>
+        </section>
+      )}
 
       {/* ── Apply modal ─────────────────────────────────────
           Rendered directly here — NOT via the shared Modal component.

@@ -288,3 +288,8 @@
   .sortToggle { justify-content: space-between; }
   .sortBtn, .sortBtnActive { flex: 1; text-align: center; }
 }
+
+/* "Can't apply": blocked by a scholarship office rule */
+.statWarn { color: var(--warning-600); }
+.dotWarn { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--warning-600); }
+.ruleReason { display: block; margin-top: 2px; font-size: var(--text-xs); font-weight: 400; color: var(--text-secondary); white-space: normal; }

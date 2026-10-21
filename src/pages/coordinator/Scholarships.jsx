@@ -1,3 +1,4 @@
+import { closePendingIfFull } from "@/lib/scholarshipSlots";
 import Icon from "@/components/ui/Icon";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -402,6 +403,9 @@ export default function Scholarships() {
       if (!error && appRule !== RULE_OPEN) toast.error(RULE_MIGRATION_MSG);
     }
     if (error) { toast.error(error.message); setSaving(false); return; }
+
+    // lowering the slot count can leave the scholarship full — cancel pending applications if so
+    await closePendingIfFull(supabase, editingId);
 
     await supabase.from("scholarship_requirements").delete().eq("scholarship_id", editingId);
     if (selectedReq.length) {
