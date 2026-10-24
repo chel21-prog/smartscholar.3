@@ -14,6 +14,7 @@ import { useToast } from "@/context/ToastContext";
 import { getReportSecurity, saveReportSecurity, generateStrongPassword } from "@/lib/reportSecurity";
 import { clearAllCached } from "@/lib/dataCache";
 import styles from "./Settings.module.css";
+import { SkeletonText } from "@/components/ui/Skeleton";
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
 
@@ -524,7 +525,7 @@ const [showCurrent, setShowCurrent] = useState(false);
           </p>
 
           {reportSecLoading ? (
-            <p className={styles.logoutHint}>Loading…</p>
+            <SkeletonText lines={2} />
           ) : !reportSec?.password ? (
             <div className={styles.passwordSection}>
               <p className={styles.logoutHint}>No password has been set yet.</p>

@@ -98,7 +98,7 @@
 /* active link (NavLink auto adds .active) - the gold left rail is the
    one signature brand touch carried into the persistent navigation. */
 .nav a.active {
-  background: rgba(195, 158, 88, 0.12);
+  background: rgba(126, 196, 184, 0.22);
   color: var(--white);
   font-weight: 700;
   border-left-color: var(--gold-500);
@@ -175,6 +175,6 @@
   position: fixed;
   inset: 0;
 
-  background: rgba(10, 21, 32, 0.55);
+  background: rgba(45, 53, 72, 0.42);
   z-index: 90;
 }

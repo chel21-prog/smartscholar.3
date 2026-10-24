@@ -25,7 +25,7 @@ export default function RoleGuard({ role, children }) {
   const { loading, authUser, profile } = useSession();
 
   if (loading) {
-    return <PageLoader label="Checking your account…" />;
+    return <PageLoader label="Checking your account…" variant="screen" />;
   }
 
   if (!authUser || !profile) {

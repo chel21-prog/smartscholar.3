@@ -13,6 +13,7 @@ const ROUTE_FOR_TYPE = {
   "Application":   "/student/applications",
   "Approval":      "/student/applications",
   "Compliance":    "/student/compliance",
+  "Scholarship":   "/student/applications",
   "Fund Release":  "/student/dashboard",
   "Finance":       "/student/dashboard",
   "Concern":       "/student/concerns",

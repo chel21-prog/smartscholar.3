@@ -5,7 +5,7 @@ import { Card, Badge, EmptyState } from "@/components/ui/Card";
 import StatCard from "@/components/ui/StatCard";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
-import { Field, Input } from "@/components/ui/Input";
+import { Field, Input, Textarea } from "@/components/ui/Input";
 import PageLoader from "@/components/ui/PageLoader";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useToast } from "@/context/ToastContext";
@@ -27,6 +27,11 @@ export default function Applications() {
   const [formMeta, setFormMeta] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
+  // asking the coordinator to end an approved scholarship
+  const [endTarget, setEndTarget] = useState(null);
+  const [endReason, setEndReason] = useState("");
+  const [sendingEnd, setSendingEnd] = useState(false);
+  const studentIdRef = useRef(null);
   const requestToken = useRef(0);
   const { askConfirm, confirmDialog } = useConfirm();
   const toast = useToast();
@@ -55,6 +60,8 @@ export default function Applications() {
         .eq("user_id", userRow.user_id)
         .single();
 
+      studentIdRef.current = studentRow.student_id;
+
       const { data } = await supabase
         .from("scholarship_applications")
         .select(`
@@ -67,8 +74,29 @@ export default function Applications() {
         .eq("student_id", studentRow.student_id)
         .order("application_date", { ascending: false });
 
-      setApplications(data || []);
-      setCached(CACHE_KEY, data || []);
+      // For approved applications: the award itself (is it still active?) and the
+      // latest cancellation request. The requests table is optional — if it isn't
+      // set up yet this just comes back empty.
+      const [{ data: grants }, { data: requests }] = await Promise.all([
+        supabase.from("grantees")
+          .select("grantee_id, application_id, status, termination_reason")
+          .eq("student_id", studentRow.student_id),
+        supabase.from("scholarship_cancellation_requests")
+          .select("request_id, grantee_id, reason, status, coordinator_remarks, created_at")
+          .eq("student_id", studentRow.student_id)
+          .order("created_at", { ascending: false }),
+      ]);
+
+      const merged = (data || []).map((a) => {
+        const grant = (grants || []).find((g) => String(g.application_id) === String(a.application_id)) || null;
+        const cancelRequest = grant
+          ? (requests || []).find((r) => String(r.grantee_id) === String(grant.grantee_id)) || null
+          : null;
+        return { ...a, grant, cancelRequest };
+      });
+
+      setApplications(merged);
+      setCached(CACHE_KEY, merged);
     } catch (err) {
       console.error(err);
       toast.error("Couldn't load your applications. Please try refreshing the page.");
@@ -127,6 +155,35 @@ export default function Applications() {
     } finally {
       setCancellingId(null);
     }
+  };
+
+  const openEnd = (app) => { setEndTarget(app); setEndReason(""); };
+  const closeEnd = () => { if (!sendingEnd) setEndTarget(null); };
+
+  const sendEndRequest = async () => {
+    if (!endTarget?.grant || sendingEnd) return;
+    if (endReason.trim().length < 5) { toast.error("Tell the coordinator why you want to cancel."); return; }
+
+    setSendingEnd(true);
+    const { error } = await supabase
+      .from("scholarship_cancellation_requests")
+      .insert({
+        grantee_id: endTarget.grant.grantee_id,
+        student_id: studentIdRef.current,
+        reason: endReason.trim(),
+      });
+    setSendingEnd(false);
+
+    if (error) {
+      if (error.code === "23505") toast.error("You already have a request waiting for review.");
+      else if (/scholarship_cancellation_requests/i.test(error.message)) toast.error("Cancellation requests aren't set up yet. Please contact the scholarship office.");
+      else toast.error(error.message);
+      return;
+    }
+
+    toast.success("Request sent. The coordinator will review it and you'll be notified.");
+    setEndTarget(null);
+    load();
   };
 
   const editApplication = async (app) => {
@@ -272,10 +329,35 @@ export default function Applications() {
 
               <Badge status={a.status} />
 
+              {a.status === "Cancelled" && (
+                <p className={styles.statusNote}>
+                  Cancelled automatically because all slots were filled. You can apply again if a slot opens up.
+                </p>
+              )}
+              {a.grant?.status === "Inactive" && (
+                <p className={styles.statusNote}>
+                  This scholarship has ended{a.grant.termination_reason ? `: ${a.grant.termination_reason}` : "."}
+                </p>
+              )}
+              {a.grant?.status === "Active" && a.cancelRequest?.status === "Pending" && (
+                <p className={styles.statusNote}>Cancellation requested. Waiting for the coordinator to review it.</p>
+              )}
+              {a.grant?.status === "Active" && a.cancelRequest?.status === "Declined" && (
+                <p className={styles.statusNote}>
+                  Your last cancellation request was declined{a.cancelRequest.coordinator_remarks ? `: ${a.cancelRequest.coordinator_remarks}` : "."}
+                </p>
+              )}
+
               <div className={styles.actions}>
                 <Button size="sm" variant="secondary" onClick={() => viewAnswers(a)}>
                   View
                 </Button>
+
+                {a.status === "Approved" && a.grant?.status === "Active" && a.cancelRequest?.status !== "Pending" && (
+                  <Button size="sm" variant="secondary" onClick={() => openEnd(a)}>
+                    Request cancellation
+                  </Button>
+                )}
 
                 {a.status === "Pending" && (
                   <>
@@ -318,6 +400,40 @@ export default function Applications() {
         )}
       </Modal>
 
+      {/* REQUEST TO CANCEL AN APPROVED SCHOLARSHIP */}
+      <Modal
+        open={!!endTarget}
+        onClose={closeEnd}
+        title="Request to cancel scholarship"
+        size="md"
+        footer={
+          <>
+            <Button variant="ghost" onClick={closeEnd} disabled={sendingEnd}>Keep scholarship</Button>
+            <Button variant="primary" onClick={sendEndRequest} loading={sendingEnd}>Send request</Button>
+          </>
+        }
+      >
+        {endTarget && (
+          <>
+            <p className={styles.modalIntro}>
+              You're asking to give up <strong>{endTarget.scholarships?.scholarship_name}</strong>. The coordinator
+              has to approve this, and your scholarship and payouts continue until they do.
+            </p>
+            <Field label="Why do you want to cancel?" required>
+              {({ id }) => (
+                <Textarea
+                  id={id}
+                  rows={4}
+                  value={endReason}
+                  onChange={(e) => setEndReason(e.target.value)}
+                  placeholder="e.g. I'm transferring to another school"
+                />
+              )}
+            </Field>
+          </>
+        )}
+      </Modal>
+
       {/* EDIT MODAL */}
       <Modal
         open={!!editApp}
@@ -336,7 +452,7 @@ export default function Applications() {
         }
       >
         {!formMeta ? (
-          <PageLoader label="Loading application…" />
+          <PageLoader label="Loading application…" size="sm" />
         ) : (
           <>
             {formMeta.form_title && (

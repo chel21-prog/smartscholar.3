@@ -50,7 +50,7 @@
 
 /* ── apply modal ── */
 .overlay {
-  position:fixed; inset:0; background:rgba(10,21,32,.55);
+  position:fixed; inset:0; background:rgba(45,53,72,.42);
   -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); display:flex; align-items:center;
   justify-content:center; padding:var(--space-5); z-index:1000;
 }
@@ -288,3 +288,8 @@
   .sortToggle { justify-content: space-between; }
   .sortBtn, .sortBtnActive { flex: 1; text-align: center; }
 }
+
+/* "Can't apply": blocked by a scholarship office rule */
+.statWarn { color: var(--warning-600); }
+.dotWarn { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--warning-600); }
+.ruleReason { display: block; margin-top: 2px; font-size: var(--text-xs); font-weight: 400; color: var(--text-secondary); white-space: normal; }

@@ -214,7 +214,7 @@
 .overlay{
     position:fixed;
     inset:0;
-    background:rgba(10,21,32,.55);
+    background:rgba(45,53,72,.42);
 
     display:flex;
     justify-content:center;

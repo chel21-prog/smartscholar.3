@@ -194,6 +194,15 @@ export default function Compliance() {
               value={rows.reduce((n, r) => n + Object.values(r.requirements).filter((req) => !req.file_url).length, 0)}
               explain="Requirements still waiting on a file from you."
             />
+            <StatCard
+              label="Completion"
+              value={(() => {
+                const all = rows.reduce((n, r) => n + Object.values(r.requirements).length, 0);
+                const done = rows.reduce((n, r) => n + Object.values(r.requirements).filter((req) => req.file_url).length, 0);
+                return all ? `${Math.round((done / all) * 100)}%` : "0%";
+              })()}
+              explain="Submitted requirements ÷ all requirements across your active grants."
+            />
           </div>
 
           {rows.map((r) => (

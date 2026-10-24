@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import { Field, Input, Textarea } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/Card";
 import styles from "./AnnouncementModal.module.css";
+import { Skeleton, SkeletonText } from "@/components/ui/Skeleton";
 
 // ── Target definitions ────────────────────────────────────────────────────
 // Each target has a label, description, and a resolver function that
@@ -616,7 +617,7 @@ export default function AnnouncementModal({ open, onClose, types }) {
           </div>
 
           {loading ? (
-            <p className={styles.typeHint}>Loading templates…</p>
+            <SkeletonText lines={3} />
           ) : visibleTemplates.length === 0 ? (
             <EmptyState title="No templates yet" description="Start from scratch and save it as a template to see it here." />
           ) : (
@@ -762,7 +763,7 @@ export default function AnnouncementModal({ open, onClose, types }) {
               <div className={styles.previewHead}>
                 <p className={styles.previewLabel}><span className={styles.pulseDot} />Live preview</p>
                 <span className={[styles.countPill, previewCount === 0 && !previewLoading ? styles.countPillZero : ""].join(" ")}>
-                  {previewLoading ? "Counting…" : `${previewCount} recipient${previewCount !== 1 ? "s" : ""}`}
+                  {previewLoading ? <Skeleton width={72} height={12} /> : `${previewCount} recipient${previewCount !== 1 ? "s" : ""}`}
                 </span>
               </div>
 
@@ -778,7 +779,7 @@ export default function AnnouncementModal({ open, onClose, types }) {
                     </>
                   ) : (
                     <p className={styles.notifEmpty}>
-                      {previewLoading ? "Finding recipients…" : "Nobody matches this audience yet — adjust the filters above."}
+                      {previewLoading ? <SkeletonText lines={2} /> : "Nobody matches this audience yet — adjust the filters above."}
                     </p>
                   )}
                 </div>

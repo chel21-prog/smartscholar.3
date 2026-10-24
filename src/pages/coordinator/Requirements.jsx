@@ -328,6 +328,11 @@ export default function Requirements() {
           value={formTemplates.length}
           explain="Saved application form templates available for reuse."
         />
+        <StatCard
+          label="Total Requirements"
+          value={appReq.length + eligReq.length}
+          explain="Application requirements plus eligibility requirements."
+        />
       </div>
 
       <div className={styles.grid}>

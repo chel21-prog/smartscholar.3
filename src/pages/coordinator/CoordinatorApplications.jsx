@@ -12,7 +12,9 @@ import { getCached, setCached } from "@/lib/dataCache";
 import { getReportSecurity } from "@/lib/reportSecurity";
 import { useToast } from "@/context/ToastContext";
 import { findRuleViolation } from "@/lib/scholarshipRules";
+import { closePendingIfFull, findSlotViolation } from "@/lib/scholarshipSlots";
 import styles from "./CoordinatorApplications.module.css";
+import { SkeletonForm } from "@/components/ui/Skeleton";
 
 const CACHE_KEY = "coordinator-applications";
 
@@ -109,6 +111,7 @@ const [sendNotification, setSendNotification] = useState(true);
     Pending: styles.statusPending,
     Approved: styles.statusApproved,
     Rejected: styles.statusRejected,
+    Cancelled: styles.statusRejected,
   };
   const StatusBadge = ({ status }) => (
     <span className={`${styles.statusBadge} ${STATUS_TONE[status] || ""}`}>{status}</span>
@@ -184,6 +187,8 @@ const [sendNotification, setSendNotification] = useState(true);
   const openApproveModal = async (application) => {
     const blocked = await ruleBlockFor(application);
     if (blocked) return toast.error(`Can't approve: ${blocked}`);
+    const full = await findSlotViolation(supabase, application.scholarship_id);
+    if (full) return toast.error(`Can't approve: ${full}`);
 
 setSelectedApplication(application);
 
@@ -236,6 +241,8 @@ Thank you.`
 
     const blocked = await ruleBlockFor(app);
     if (blocked) return toast.error(`Can't approve: ${blocked}`);
+    const full = await findSlotViolation(supabase, app.scholarship_id);
+    if (full) return toast.error(`Can't approve: ${full}`);
 
     const { error } = await supabase
       .from("scholarship_applications")
@@ -254,6 +261,11 @@ Thank you.`
       academic_year: app.academic_year,
       semester: app.semester,
     });
+
+    // That may have used the last slot: cancel everyone still pending and tell them why.
+    const closed = await closePendingIfFull(supabase, app.scholarship_id);
+    if (closed > 0) toast.success(`All slots are now filled. ${closed} pending application${closed === 1 ? " was" : "s were"} cancelled and the student${closed === 1 ? " was" : "s were"} notified.`);
+
     if (sendNotification) {
   const { error: notifError } = await supabase
   .from("notifications")
@@ -692,7 +704,7 @@ const paginated = filtered.slice(
             <div className={styles.modalBody}>
 
               {loadingAppDetail ? (
-                <p className={styles.detailLoading}>Loading application details…</p>
+                <SkeletonForm fields={6} />
               ) : (
                 <>
                   <section className={styles.detailSection}>

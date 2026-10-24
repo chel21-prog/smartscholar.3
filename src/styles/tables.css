@@ -146,7 +146,7 @@
    pinned column looks exactly like any other column. */
 #root [data-scrolled] table:not([data-plain]) td[data-pin],
 #root [data-scrolled] table:not([data-plain]) thead th[data-pin] {
-  box-shadow: 1px 0 0 var(--border), 6px 0 8px -6px rgba(11, 31, 58, .25);
+  box-shadow: 1px 0 0 var(--border), 6px 0 8px -6px rgba(76, 93, 140, .22);
 }
 
 @media (max-width: 640px) {
@@ -156,3 +156,7 @@
   #root table:not([data-plain]) th[data-pin],
   #root table:not([data-plain]) td[data-pin] { max-width: 130px; }
 }
+
+
+/* aligned digits in every table */
+table { font-variant-numeric: tabular-nums; }

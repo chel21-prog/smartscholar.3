@@ -312,6 +312,11 @@ export default function Grantees() {
           value={pendingCount}
           explain="Total Grantees minus Released — grantees who haven't had a fund release yet."
         />
+        <StatCard
+          label="Total Released"
+          value={`₱${rows.reduce((sum, g) => sum + (g.fund_releases || []).filter((fr) => fr.status === "Released").reduce((n, fr) => n + Number(fr.amount_released || 0), 0), 0).toLocaleString()}`}
+          explain="Total amount released across every grantee's fund releases."
+        />
       </div>
 
       <SearchFilterBar

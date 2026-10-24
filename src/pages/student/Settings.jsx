@@ -33,7 +33,7 @@ export default function Settings() {
 }
 
 const card = {
-  background: "white",
+  background: "var(--surface)",
   padding: 20,
   borderRadius: 10,
   maxWidth: 300,

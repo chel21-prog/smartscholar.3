@@ -23,7 +23,7 @@ const styles = {
     flex: 1,
     marginLeft: "230px",
     padding: 20,
-    background: "#f4f6f8",
+    background: "var(--page-bg)",
     minHeight: "100vh",
     overflowY: "auto",
     transition: "all 0.3s ease",

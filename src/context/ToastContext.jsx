@@ -89,7 +89,7 @@ function ToastViewport({ toasts, onDismiss }) {
             lineHeight: 1.4,
             background:
               t.variant === "error"   ? "var(--danger-600)"  :
-              t.variant === "success" ? "var(--success-600)" :
+              t.variant === "success" ? "var(--teal-700)" :
               "var(--navy-700)",
           }}
         >

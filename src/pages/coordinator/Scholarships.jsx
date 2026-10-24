@@ -1,3 +1,4 @@
+import { closePendingIfFull } from "@/lib/scholarshipSlots";
 import Icon from "@/components/ui/Icon";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -403,6 +404,9 @@ export default function Scholarships() {
     }
     if (error) { toast.error(error.message); setSaving(false); return; }
 
+    // lowering the slot count can leave the scholarship full — cancel pending applications if so
+    await closePendingIfFull(supabase, editingId);
+
     await supabase.from("scholarship_requirements").delete().eq("scholarship_id", editingId);
     if (selectedReq.length) {
       const { error: reqErr } = await supabase.from("scholarship_requirements").insert(
@@ -511,6 +515,11 @@ export default function Scholarships() {
           label="Total Slots"
           value={list.reduce((sum, sch) => sum + (Number(sch.slots) || 0), 0)}
           explain="Sum of the slot counts across every scholarship."
+        />
+        <StatCard
+          label="Total Budget"
+          value={`₱${list.reduce((sum, sch) => sum + (Number(sch.total_budget) || 0), 0).toLocaleString()}`}
+          explain="Sum of the total budget across every scholarship."
         />
       </div>
 

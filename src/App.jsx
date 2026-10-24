@@ -22,7 +22,7 @@ const ROLE_HOME = {
 function SmartRedirect() {
   const { loading, authUser, profile } = useSession();
 
-  if (loading) return <PageLoader label="Signing you in…" />;
+  if (loading) return <PageLoader label="Signing you in…" variant="screen" />;
 
   if (!authUser || !profile) return <Navigate to="/Login" replace />;
 

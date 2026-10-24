@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { SkeletonForm } from "./ui/Skeleton";
 
 export default function AcademicSettingsCard() {
   const [settings, setSettings] = useState(null);
@@ -32,7 +33,7 @@ export default function AcademicSettingsCard() {
     fetchSettings();
   }
 
-  if (!settings) return <p>Loading...</p>;
+  if (!settings) return <div className="p-4"><SkeletonForm fields={2} /></div>;
 
   return (
     <div className="p-4 border rounded">

@@ -377,3 +377,42 @@
     align-self: flex-start; padding: 0; border: none; background: none; border-radius: 0;
     color: var(--teal-600); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;
 }
+
+/* ── revoke action + student cancellation requests ── */
+.rowActions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: nowrap; }
+/* sits under the status text */
+.requestChip {
+  display: block; width: fit-content; margin-top: 3px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+  padding: 2px 8px; border-radius: 999px;
+  background: var(--warning-100); color: var(--warning-700);
+}
+.requestsPanel {
+  background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--warning-600);
+  border-radius: var(--radius-md); padding: var(--space-3) var(--space-4);
+  display: flex; flex-direction: column; gap: var(--space-2); flex-shrink: 0;
+}
+.requestsTitle { margin: 0; font-size: var(--text-sm); font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); }
+.requestsCount { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--warning-100); color: var(--warning-700); }
+.requestsList { display: flex; flex-direction: column; max-height: 190px; overflow-y: auto; }
+.requestRow {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  padding: var(--space-2) 0; border-top: 1px solid var(--border);
+}
+.requestRow:first-child { border-top: none; }
+.requestMain { display: flex; flex-direction: column; min-width: 0; gap: 1px; font-size: var(--text-sm); }
+.requestMeta { font-size: var(--text-xs); color: var(--text-secondary); }
+.requestReason {
+  font-size: var(--text-xs); color: var(--text-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.requestReasonFull {
+  margin: 0; padding: var(--space-3); border-radius: var(--radius-md);
+  background: var(--surface-muted); font-size: var(--text-sm); white-space: pre-wrap;
+}
+
+/* Action column stays in view while the wide table scrolls sideways, so Verify / Revoke
+   are never hidden off the right edge. Cells already have opaque backgrounds, so the
+   scrolled content slides underneath cleanly. */
+.table thead th:last-child { right: 0; z-index: 3; box-shadow: -1px 0 0 var(--border); }
+.actionCell { position: sticky; right: 0; z-index: 1; box-shadow: -1px 0 0 var(--border); }

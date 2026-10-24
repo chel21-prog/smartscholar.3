@@ -102,7 +102,7 @@
 }
 .navLink {
   display: flex; align-items: center; gap: 10px; text-decoration: none;
-  color: #b8c8d8; padding: 10px var(--space-3);
+  color: #c9d2e6; padding: 10px var(--space-3);
   border-radius: var(--radius-md); border-left: 3px solid transparent;
   font-size: var(--text-sm); font-weight: 500;
   transition: background-color var(--duration-fast) var(--ease-out),
@@ -114,7 +114,7 @@
 .navLink:hover { background: rgba(255,255,255,.06); color: #fff; transform: translateX(2px); }
 .navLink:hover .navIcon { opacity: 1; }
 .active {
-  background: rgba(13,158,140,.16); color: #fff;
+  background: rgba(126,196,184,.22); color: #fff;
   font-weight: 700; border-left-color: var(--teal-600);
 }
 .active .navIcon { opacity: 1; color: var(--teal-500); }
@@ -142,7 +142,7 @@
   display: flex; align-items: center; justify-content: center;
   transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
 }
-.logoutBtn:hover { background: rgba(220,38,38,.16); color: #f5a3a3; }
+.logoutBtn:hover { background: rgba(235,154,154,.2); color: #f6c1c1; }
 
 /* ---- Mobile ---- */
 .closeBtn { display: none; }
@@ -159,7 +159,7 @@
   }
   .sidebar.show {
     transform: translateX(0);
-    box-shadow: 12px 0 40px rgba(0,0,0,.35);
+    box-shadow: 12px 0 40px rgba(52,67,106,.3);
   }
 
   .navLink { padding: 12px var(--space-3); font-size: var(--text-md); }
@@ -177,7 +177,7 @@
 
 .backdrop {
   position: fixed; inset: 0;
-  background: rgba(10,21,32,.55);
+  background: rgba(45,53,72,.42);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
   z-index: 90;

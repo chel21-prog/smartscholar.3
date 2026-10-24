@@ -10,6 +10,7 @@ import { getCached, setCached } from "@/lib/dataCache";
 import { getReportSecurity } from "@/lib/reportSecurity";
 import { useToast } from "@/context/ToastContext";
 import Button from "@/components/ui/Button";
+import TableSkeleton from "@/components/ui/TableSkeleton";
 
 // ─── stable style objects defined outside the component ──────────────────────
 const st = {
@@ -23,7 +24,7 @@ const st = {
   infoRow:     { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 6px", borderBottom:"1px solid var(--border)" },
   cardContent: { flex:1, overflow:"auto", paddingRight:6, scrollbarWidth:"thin" },
   countBadge:  { borderRadius:20, padding:"2px 9px", fontSize:12, fontWeight:600, color:"#fff" },
-  overlay:     { position:"fixed", inset:0, background:"rgba(10,21,32,.55)", backdropFilter:"blur(2px)", display:"flex", justifyContent:"center", alignItems:"center", zIndex:9999, padding:14 },
+  overlay:     { position:"fixed", inset:0, background:"rgba(45,53,72,.42)", backdropFilter:"blur(2px)", display:"flex", justifyContent:"center", alignItems:"center", zIndex:9999, padding:14 },
   modal:       { background:"var(--surface)", width:"100%", maxWidth:800, maxHeight:"90vh", overflowY:"auto", borderRadius:14, boxShadow:"var(--shadow-xl)", border:"1px solid var(--border)", display:"flex", flexDirection:"column" },
   modalHead:   { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 22px", borderBottom:"1px solid var(--border)", flexShrink:0 },
   modalTitle:  { margin:0, fontSize:17, fontWeight:700, color:"var(--text-primary)" },
@@ -1419,8 +1420,8 @@ export default function CoordinatorDashboard() {
                         <tbody>
                           {activeLoading ? (
                             <tr>
-                              <td colSpan={colSpan} style={{...st.previewTd, textAlign:"center", color:"var(--text-secondary)", padding:28}}>
-                                Loading…
+                              <td colSpan={colSpan} style={{...st.previewTd, padding:"14px 16px"}}>
+                                <TableSkeleton columns={Math.min(colSpan, 6)} rows={5} />
                               </td>
                             </tr>
                           ) : activeRecords.length === 0 ? (

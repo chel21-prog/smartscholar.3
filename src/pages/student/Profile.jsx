@@ -382,7 +382,7 @@ export default function Profile() {
     );
   };
 
-  if (loading) return <PageLoader label="Loading your profile…" />;
+  if (loading) return <PageLoader label="Loading your profile…" variant="form" />;
 
   return (
     <div className={`page-shell ${styles.page}`}>

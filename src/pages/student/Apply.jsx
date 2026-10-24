@@ -29,7 +29,7 @@ export default function Apply() {
 
   return (
     <div className="page-shell">
-      <div style={{ background: "#eef2ff", padding: 15, marginBottom: 20 }}>
+      <div style={{ background: "var(--navy-50)", padding: 15, marginBottom: 20 }}>
   <h3>Current Academic Period</h3>
 
   <p><b>Academic Year:</b> {academic?.academic_year}</p>
@@ -54,7 +54,7 @@ export default function Apply() {
 }
 
 const card = {
-  background: "white",
+  background: "var(--surface)",
   padding: 15,
   margin: 10,
 };

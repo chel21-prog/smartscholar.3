@@ -71,11 +71,12 @@ body {
 h1, h2, h3, h4 {
   font-family: var(--font-sans);
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
   margin: 0;
 }
-h1 { font-size: var(--text-2xl); line-height: var(--leading-tight); }
-h2 { font-size: var(--text-xl);  line-height: var(--leading-tight); }
+h1 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.015em; font-size: var(--text-3xl); line-height: var(--leading-tight); }
+h2 { font-size: var(--text-xl);  line-height: var(--leading-tight); font-weight: 600; }
 h3 { font-size: var(--text-md);  }
 
 p  { margin: 0; }
@@ -173,15 +174,15 @@ input[type="password"]::-ms-clear { display: none; }
    Scoped under #root to out-rank the per-page module styles.
    ============================================================ */
 :root {
-  --glow-teal:   0 0 0 1px var(--teal-600), 0 0 16px rgba(13, 158, 140, .28);
-  --glow-navy:   0 0 0 1px var(--navy-600), 0 0 14px rgba(35, 79, 136, .35);
-  --glow-danger: 0 0 0 1px var(--danger-600), 0 0 14px rgba(220, 38, 38, .35);
+  --glow-teal:   0 0 0 1px var(--teal-600), 0 0 16px rgba(90, 170, 157, .30);
+  --glow-navy:   0 0 0 1px var(--navy-600), 0 0 14px rgba(84, 114, 168, .32);
+  --glow-danger: 0 0 0 1px var(--danger-600), 0 0 14px rgba(191, 75, 75, .30);
   --shadow-glow-navy: var(--glow-navy); /* referenced by the cashier page, was never defined */
 }
 [data-theme="dark"] {
-  --glow-teal:   0 0 0 1px var(--teal-600), 0 0 18px rgba(20, 184, 166, .38);
-  --glow-navy:   0 0 0 1px var(--navy-600), 0 0 16px rgba(96, 140, 210, .42);
-  --glow-danger: 0 0 0 1px var(--danger-600), 0 0 16px rgba(248, 113, 113, .42);
+  --glow-teal:   0 0 0 1px var(--teal-600), 0 0 18px rgba(126, 196, 184, .36);
+  --glow-navy:   0 0 0 1px var(--navy-600), 0 0 16px rgba(150, 174, 222, .38);
+  --glow-danger: 0 0 0 1px var(--danger-600), 0 0 16px rgba(235, 154, 154, .38);
 }
 
 /* any button without its own radius gets a soft one, so the glow is never a sharp rectangle */

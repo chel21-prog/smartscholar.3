@@ -38,7 +38,7 @@ export default function ProfileGuard({ children }) {
   }, [sessionLoading, profile]);
 
   if (sessionLoading || checking) {
-    return <PageLoader label="Checking your profile…" />;
+    return <PageLoader label="Checking your profile…" variant="screen" />;
   }
 
   if (missingFields && missingFields.length > 0) {

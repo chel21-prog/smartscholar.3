@@ -292,6 +292,11 @@ const paginatedStudents = filteredStudents.slice(
     value={students.filter((st) => st.status === "Graduated").length}
     explain='Count of students whose status is exactly "Graduated".'
   />
+  <StatCard
+    label="Dropped / Inactive"
+    value={students.filter((st) => st.status === "Dropped" || st.status === "Inactive").length}
+    explain='Count of students whose status is "Dropped" or "Inactive".'
+  />
 </div>
 
 <SearchFilterBar

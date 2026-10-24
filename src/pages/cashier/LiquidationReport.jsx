@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/context/ToastContext";
 import { formatPeso, formatDate } from "@/lib/format";
 import styles from "./LiquidationReport.module.css";
+import TableSkeleton from "@/components/ui/TableSkeleton";
 
 const TODAY = new Date().toISOString().split("T")[0];
 
@@ -329,7 +330,7 @@ export default function LiquidationReport() {
             </thead>
             <tbody>
               {loadingRows ? (
-                <tr><td colSpan={6} className={styles.empty}>Loading…</td></tr>
+                <tr><td colSpan={6} style={{ padding: "14px 16px" }}><TableSkeleton columns={6} rows={5} /></td></tr>
               ) : rows.length === 0 ? (
                 <tr><td colSpan={6} className={styles.empty}>
                   {scholarshipId ? "No releases found in this reporting window." : "Select a scholarship to see disbursements."}

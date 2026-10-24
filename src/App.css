@@ -185,7 +185,7 @@
 
 body {
   margin: 0;
-  font-family: Inter, Arial, sans-serif;
-  background: #f4f6f8;
-  color: #1f2937;
+  font-family: var(--font-sans);
+  background: var(--page-bg);
+  color: var(--text-primary);
 }
