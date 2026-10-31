@@ -11,13 +11,15 @@ import { getReportSecurity } from "@/lib/reportSecurity";
 import { useToast } from "@/context/ToastContext";
 import Button from "@/components/ui/Button";
 import TableSkeleton from "@/components/ui/TableSkeleton";
+import { Panel, BarChart, Gauge, Donut, MeterRow, ActivityTable, DeadlineList, EmptyHint, TONE } from "@/components/ui/DashCharts";
+import dash from "@/components/ui/DashCharts.module.css";
 
 // ─── stable style objects defined outside the component ──────────────────────
 const st = {
-  periodBar:   { display:"flex", alignItems:"center", gap:16, flexWrap:"wrap", alignSelf:"flex-start", padding:"8px 14px", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, boxShadow:"var(--shadow-sm)", flexShrink:0 },
+  periodBar:   { display:"flex", alignItems:"center", gap:16, flexWrap:"wrap", alignSelf:"flex-start", padding:"8px 16px", background:"var(--surface)", border:"1px solid var(--glass-border)", borderRadius:999, boxShadow:"var(--shadow-sm)", flexShrink:0 },
   periodTitle: { fontSize:11, fontWeight:700, letterSpacing:".5px", textTransform:"uppercase", color:"var(--text-secondary)" },
   periodItem:  { display:"flex", alignItems:"center", gap:6 },
-  periodInput: { padding:"5px 9px", border:"1px solid var(--border-strong)", borderRadius:6, fontSize:13, minWidth:130, background:"var(--surface)", color:"var(--text-primary)" },
+  periodInput: { padding:"5px 12px", border:"1px solid var(--border-strong)", borderRadius:999, fontSize:13, minWidth:130, background:"var(--surface)", color:"var(--text-primary)" },
   infoCard:    { background:"var(--surface)", borderRadius:10, padding:10, boxShadow:"var(--shadow-sm)", border:"1px solid var(--border)", minHeight:220, maxHeight:260, display:"flex", flexDirection:"column" },
   infoTitleRow:{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12, padding:"0 6px" },
   infoTitleTxt:{ margin:0, fontSize:15, fontWeight:600, color:"var(--text-primary)" },
@@ -722,7 +724,7 @@ export default function CoordinatorDashboard() {
       },
       headStyles: {
         fillColor:   NAVY,
-       
+        
         fontStyle:   "bold",
         fontSize:    7.5,
         cellPadding: { top: 6, bottom: 6, left: 5, right: 5 },
@@ -902,6 +904,43 @@ export default function CoordinatorDashboard() {
   const pendingCount      = applications.filter(a=>a.status==="Pending").length;
   const totalScholarships = scholarStats.length;
 
+  // ── chart data (derived from what is already loaded; no extra queries) ──
+  const approvedCount = applications.filter(a=>a.status==="Approved").length;
+  const rejectedCount = applications.filter(a=>a.status==="Rejected").length;
+  const otherCount    = Math.max(0, totalApplicants - approvedCount - pendingCount - rejectedCount);
+  const acceptancePct = totalApplicants ? Math.round(approvedCount/totalApplicants*100) : 0;
+
+  // applications per calendar month, last 6 months (oldest first)
+  const monthlyApps = (() => {
+    const now = new Date();
+    return Array.from({length:6},(_,i)=>{
+      const d = new Date(now.getFullYear(), now.getMonth()-(5-i), 1);
+      const value = applications.filter(a=>{
+        const x = new Date(a.application_date);
+        return x.getMonth()===d.getMonth() && x.getFullYear()===d.getFullYear();
+      }).length;
+      return { label: d.toLocaleString("en",{month:"short"}), value };
+    });
+  })();
+
+  const recentRows = applications.slice(0,6).map(a=>({
+    id: a.application_id,
+    name: `${a.students?.users?.first_name||""} ${a.students?.users?.last_name||""}`.trim(),
+    scholarship: a.scholarships?.scholarship_name,
+    date: a.application_date ? new Date(a.application_date).toLocaleDateString("en",{day:"numeric",month:"short"}) : "—",
+    status: a.status,
+  }));
+
+  const deadlineItems = upcomingDeadlines.map(d=>{
+    const days = Math.ceil((new Date(d.submission_deadline) - new Date()) / 86400000);
+    return {
+      name: d.scholarship_name,
+      dateLabel: new Date(d.submission_deadline).toLocaleDateString("en",{day:"numeric",month:"short",year:"numeric"}),
+      left: days < 0 ? "Closed" : days === 0 ? "Today" : days === 1 ? "1 day left" : `${days} days left`,
+      tone: days <= 3 ? "bad" : days <= 14 ? "warn" : "neutral",
+    };
+  });
+
   // Shared "Columns to include" checklist — same look for every report
   // type, just fed a different label map + state pair each time.
   const renderColumnPicker = (labels, state, setState) => (
@@ -990,77 +1029,50 @@ export default function CoordinatorDashboard() {
         ))}
       </div>
 
-      {/* ── info grid ── */}
-      <div className="card-grid">
-        <div data-glow style={st.infoCard}>
-          <div style={st.infoTitleRow}>
-            <h3 style={st.infoTitleTxt}>Scholarship Slots</h3>
-            <InfoTooltip label="Scholarship Slots">
-              For each scholarship, occupied slots ÷ total slots. Badge turns red at full capacity, amber at 80%+ full, green otherwise.
-            </InfoTooltip>
-          </div>
-          <div style={st.cardContent}>
-            {scholarStats.map(s=>(
-              <div key={s.scholarship_id} style={st.infoRow}>
-                <span style={{fontSize:13,color:"var(--text-primary)"}}>{s.scholarship_name}</span>
-                <span style={{...st.countBadge, background:s.occupied>=s.slots?"var(--danger-600)":s.occupied>=s.slots*.8?"var(--gold-600)":"var(--teal-700)"}}>
-                  {s.occupied}/{s.slots}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* ── charts row ── */}
+      <div className={dash.rowA}>
+        <Panel title="Applications overview"
+          action={<InfoTooltip label="Applications overview">Number of applications submitted in each of the last 6 calendar months, by application date. The busiest month is highlighted.</InfoTooltip>}>
+          {totalApplicants ? <BarChart data={monthlyApps} /> : <EmptyHint>No applications yet.</EmptyHint>}
+        </Panel>
 
-        <div data-glow style={st.infoCard}>
-          <div style={st.infoTitleRow}>
-            <h3 style={st.infoTitleTxt}>Upcoming Deadlines</h3>
-            <InfoTooltip label="Upcoming Deadlines">
-              Scholarships whose submission deadline is still ahead, listed by soonest submission_deadline first.
-            </InfoTooltip>
-          </div>
-          <div style={st.cardContent}>
-            {upcomingDeadlines.map((d,i)=>(
-              <div key={i} style={st.infoRow}>
-                <span style={{fontSize:13,color:"var(--text-primary)"}}>{d.scholarship_name}</span>
-                <span style={{fontSize:12,color:"var(--text-secondary)"}}>{new Date(d.submission_deadline).toLocaleDateString()}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Panel title="Acceptance rate"
+          action={<InfoTooltip label="Acceptance rate">Applications with status "Approved" ÷ total applications × 100, rounded to the nearest whole percent.</InfoTooltip>}>
+          <Gauge value={acceptancePct} caption={`${approvedCount} approved of ${totalApplicants}`} />
+        </Panel>
 
-        <div data-glow style={st.infoCard}>
-          <div style={st.infoTitleRow}>
-            <h3 style={st.infoTitleTxt}>Recent Activity</h3>
-            <InfoTooltip label="Recent Activity">
-              The 5 most recently loaded applications, showing each applicant's current status.
-            </InfoTooltip>
-          </div>
-          <div style={st.cardContent}>
-            {applications.slice(0,5).map(a=>(
-              <div key={a.application_id} style={st.infoRow}>
-                <span style={{fontSize:13,color:"var(--text-primary)"}}>{a.students?.users?.first_name} {a.students?.users?.last_name}</span>
-                <span style={{fontSize:12,color:"var(--text-secondary)"}}>{a.status}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Panel title="Application status"
+          action={<InfoTooltip label="Application status">Total = all applications loaded. Each slice is the count of applications with that exact status.</InfoTooltip>}>
+          <Donut centerValue={totalApplicants} centerLabel="Applications"
+            segments={[
+              { label:"Approved", value:approvedCount, color:TONE.blue },
+              { label:"Pending",  value:pendingCount,  color:TONE.peach },
+              { label:"Rejected", value:rejectedCount, color:TONE.coral },
+              ...(otherCount ? [{ label:"Other", value:otherCount, color:"var(--ink-300)" }] : []),
+            ]} />
+        </Panel>
+      </div>
 
-        <div data-glow style={st.infoCard}>
-          <div style={st.infoTitleRow}>
-            <h3 style={st.infoTitleTxt}>Summary</h3>
-            <InfoTooltip label="Summary">
-              Total = all applications loaded. Approved/Pending/Rejected = count of applications with that exact status.
-            </InfoTooltip>
-          </div>
-          <div style={st.cardContent}>
-            {[["Total",totalApplicants],["Approved",applications.filter(a=>a.status==="Approved").length],["Pending",pendingCount],["Rejected",applications.filter(a=>a.status==="Rejected").length]].map(([l,v])=>(
-              <div key={l} style={st.infoRow}>
-                <span style={{fontSize:13,color:"var(--text-primary)"}}>{l}</span>
-                <strong style={{color:"var(--text-primary)"}}>{v}</strong>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* ── activity row ── */}
+      <div className={dash.rowB}>
+        <Panel title="Recent activity" bodyClass={dash.listBody}
+          action={<InfoTooltip label="Recent activity">The 6 most recently loaded applications, showing each applicant's current status.</InfoTooltip>}>
+          <ActivityTable rows={recentRows} />
+        </Panel>
+
+        <Panel title="Scholarship slots" bodyClass={dash.listBody}
+          action={<InfoTooltip label="Scholarship slots">For each scholarship, occupied slots ÷ total slots. The bar turns coral at full capacity and peach at 80%+ full.</InfoTooltip>}>
+          {scholarStats.length
+            ? <div style={{overflow:"auto",scrollbarWidth:"thin"}}>{scholarStats.map(s=>(
+                <MeterRow key={s.scholarship_id} label={s.scholarship_name} value={s.occupied} max={s.slots} />
+              ))}</div>
+            : <EmptyHint>No scholarships yet.</EmptyHint>}
+        </Panel>
+
+        <Panel title="Upcoming deadlines" bodyClass={dash.listBody}
+          action={<InfoTooltip label="Upcoming deadlines">Active scholarships whose submission deadline is still ahead, soonest first. Red = 3 days or less, amber = 2 weeks or less.</InfoTooltip>}>
+          <DeadlineList items={deadlineItems} />
+        </Panel>
       </div>
 
       {/* ── Report modal ── */}

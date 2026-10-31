@@ -144,6 +144,8 @@
   --hero-text-soft: #484D63;
   --hero-icon:      #3F54A0;
   --hero-glow-1: rgba(246,247,251,.60);
+  --hero-chip-bg:     rgba(246,247,251,.55);
+  --hero-chip-border: rgba(246,247,251,.70);
   --hero-glow-2: rgba(111,134,207,.30);
 
   --grad-brand: linear-gradient(135deg, var(--navy-600) 0%, var(--navy-700) 100%);
@@ -311,6 +313,8 @@
   --hero-text-soft: #C9CEE6;
   --hero-icon:      #FE9093;
   --hero-glow-1: rgba(254,144,147,.32);
+  --hero-chip-bg:     rgba(246,247,251,.07);
+  --hero-chip-border: rgba(246,247,251,.10);
   --hero-glow-2: rgba(131,160,221,.30);
 
   --glass-bg:     rgba(30,33,50,.72);
