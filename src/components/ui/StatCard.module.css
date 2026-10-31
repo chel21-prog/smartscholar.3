@@ -84,7 +84,7 @@
   letter-spacing: normal;
   padding: 10px 12px;
   border-radius: 8px;
-  box-shadow: var(--shadow-xl, 0 10px 30px rgba(76,93,140,.18));
+  box-shadow: var(--shadow-xl, 0 10px 30px rgba(5,38,89,.18));
   opacity: 0;
   transform: translateY(-4px);
   pointer-events: none;
@@ -171,7 +171,7 @@
   transition: transform var(--duration-fast) var(--ease-out);
 }
 .clickable:hover .goHint,
-.clickable:focus-within .goHint { color: var(--navy-600); }
+.clickable:focus-within .goHint { color: var(--link); }
 .clickable:hover .goText,
 .clickable:focus-within .goText { opacity: 1; transform: none; }
 .clickable:hover .goArrow,

@@ -40,7 +40,7 @@
 }
 
 .viewLink {
-  color: var(--navy-600);
+  color: var(--link);
   font-size: var(--text-xs);
   font-weight: 600;
   text-decoration: none;

@@ -5,7 +5,7 @@
 .overlay{
     position:fixed;
     inset:0;
-    background:rgba(45,53,72,.42);
+    background:var(--overlay);
     -webkit-backdrop-filter:blur(3px);
     backdrop-filter:blur(3px);
     display:flex;
@@ -294,7 +294,7 @@
 
 .moneyRemaining{
 
-    color:var(--navy-600);
+    color: var(--link);
 
     font-weight:700;
 
@@ -348,7 +348,7 @@
 .pagination { flex-shrink: 0; }
 
 .successText { color: var(--success-600); }
-.primaryText { color: var(--navy-600); }
+.primaryText { color: var(--link); }
 
 /* ===========================================
    TABLE EXTRAS
@@ -512,7 +512,7 @@
 
 .warningHint {
     font-size: 12px;
-    color: var(--warning-700);
+    color: var(--warning-text);
     background: var(--warning-50);
     border: 1px solid var(--warning-100);
     border-radius: 10px;
@@ -561,7 +561,7 @@
 /* payout warnings (cashier can still release, but is told why to be careful) */
 .warnBanner {
     margin: 0; padding: 10px 12px; font-size: 12px; line-height: 1.5;
-    color: var(--warning-700); background: var(--warning-50);
+    color: var(--warning-text); background: var(--warning-50);
     border: 1px solid var(--warning-100); border-left: 3px solid var(--gold-600);
     border-radius: 10px;
 }

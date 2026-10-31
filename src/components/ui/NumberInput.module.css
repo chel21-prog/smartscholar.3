@@ -62,7 +62,7 @@
   color: var(--teal-600);
 }
 .step:active:not(:disabled) {
-  background: var(--teal-600);
+  background: var(--teal-700);
   color: #fff;
 }
 .step:disabled { opacity: .35; cursor: not-allowed; }

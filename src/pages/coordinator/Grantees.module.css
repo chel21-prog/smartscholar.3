@@ -254,7 +254,7 @@
 .vfChips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .vfChip {
     padding: 3px 10px; border-radius: var(--radius-full);
-    background: var(--navy-100); color: var(--navy-700);
+    background: var(--navy-100); color: var(--navy-text);
     font-size: 12px; font-weight: 600;
 }
 
@@ -304,16 +304,16 @@
 .vfChoiceTitle { font-size: 14px; font-weight: 700; }
 .vfChoiceDesc { font-size: 12px; line-height: 1.4; color: var(--text-secondary); }
 
-.vfEligible.vfOn   { border-color: var(--teal-600);   background: var(--success-50); }
+.vfEligible.vfOn   { border-color: var(--success-600);   background: var(--success-50); }
 .vfMismatch.vfOn   { border-color: var(--gold-600);   background: var(--warning-50); }
 .vfIneligible.vfOn { border-color: var(--danger-600); background: var(--danger-50); }
-.vfEligible.vfOn   .vfChoiceIcon { background: var(--teal-600);   border-color: var(--teal-600);   color: #fff; }
-.vfMismatch.vfOn   .vfChoiceIcon { background: var(--gold-600);   border-color: var(--gold-600);   color: #fff; }
+.vfEligible.vfOn   .vfChoiceIcon { background: var(--success-700);   border-color: var(--success-700);   color: #fff; }
+.vfMismatch.vfOn   .vfChoiceIcon { background: var(--gold-700);   border-color: var(--gold-700);   color: #fff; }
 .vfIneligible.vfOn .vfChoiceIcon { background: var(--danger-600); border-color: var(--danger-600); color: #fff; }
 
 .vfNote {
     margin: 0; padding: 10px 12px; font-size: 12px; line-height: 1.5;
-    background: var(--warning-50); color: var(--warning-700);
+    background: var(--warning-50); color: var(--warning-text);
     border: 1px solid var(--warning-100); border-radius: var(--radius-md);
 }
 
@@ -353,13 +353,13 @@
 }
 .vfSegBtn + .vfSegBtn { border-left: 1px solid var(--border-strong); }
 .vfSegBtn:hover { background: var(--surface-muted); color: var(--text-primary); }
-.vfSegOk,  .vfSegOk:hover  { background: var(--teal-600); color: #fff; }
-.vfSegBad, .vfSegBad:hover { background: var(--gold-600); color: #fff; }
+.vfSegOk,  .vfSegOk:hover  { background: var(--success-700); color: #fff; }
+.vfSegBad, .vfSegBad:hover { background: var(--gold-700); color: #fff; }
 
 .vfChoiceTop { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px; }
 .vfSuggested {
     padding: 1px 8px; border-radius: var(--radius-full);
-    background: var(--navy-100); color: var(--navy-700);
+    background: var(--navy-100); color: var(--navy-text);
     font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
 }
 
@@ -385,7 +385,7 @@
   display: block; width: fit-content; margin-top: 3px;
   font-size: 11px; font-weight: 600; white-space: nowrap;
   padding: 2px 8px; border-radius: 999px;
-  background: var(--warning-100); color: var(--warning-700);
+  background: var(--warning-100); color: var(--warning-text);
 }
 .requestsPanel {
   background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--warning-600);
@@ -393,7 +393,7 @@
   display: flex; flex-direction: column; gap: var(--space-2); flex-shrink: 0;
 }
 .requestsTitle { margin: 0; font-size: var(--text-sm); font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); }
-.requestsCount { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--warning-100); color: var(--warning-700); }
+.requestsCount { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--warning-100); color: var(--warning-text); }
 .requestsList { display: flex; flex-direction: column; max-height: 190px; overflow-y: auto; }
 .requestRow {
   display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);

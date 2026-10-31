@@ -21,7 +21,7 @@
   color:var(--text-secondary); pointer-events:none;
   transition:transform var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
 }
-.statClickable:hover .statGo, .statClickable:focus-within .statGo { color:var(--navy-600); transform:translateY(3px); }
+.statClickable:hover .statGo, .statClickable:focus-within .statGo { color: var(--link); transform:translateY(3px); }
 
 /* section highlight after a card jump */
 .sectionFlash { animation: sectionFlash 1.6s ease-out; border-radius:var(--radius-lg); }
@@ -50,7 +50,7 @@
 
 /* ── apply modal ── */
 .overlay {
-  position:fixed; inset:0; background:rgba(45,53,72,.42);
+  position:fixed; inset:0; background:var(--overlay);
   -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); display:flex; align-items:center;
   justify-content:center; padding:var(--space-5); z-index:1000;
 }
@@ -85,7 +85,7 @@
   display:flex; flex-direction:column; gap:2px;
   background:var(--navy-50); border:1px solid var(--navy-100);
   border-radius:var(--radius-md); padding:var(--space-3) var(--space-4);
-  font-size:var(--text-sm); color:var(--navy-700);
+  font-size:var(--text-sm); color: var(--navy-text);
 }
 .fieldList { display:flex; flex-direction:column; gap:var(--space-4); }
 .fieldItem { display:flex; flex-direction:column; gap:var(--space-1); }
@@ -107,7 +107,7 @@
 .errBlock {
   background:var(--danger-50); border:1px solid var(--danger-100);
   border-radius:var(--radius-md); padding:var(--space-3) var(--space-4);
-  color:var(--danger-700); font-size:var(--text-sm); margin:0;
+  color: var(--danger-text); font-size:var(--text-sm); margin:0;
 }
 .errInline { color:var(--danger-600); font-size:var(--text-sm); font-weight:600; margin:0; }
 
@@ -190,7 +190,7 @@
 .sortBtn:hover { color: var(--text-primary); }
 .sortBtnActive {
   background: var(--surface);
-  color: var(--navy-700);
+  color: var(--navy-text);
   box-shadow: var(--shadow-sm);
 }
 
@@ -223,7 +223,7 @@
 .recAmount {
   font-size: var(--text-xl);
   font-weight: 800;
-  color: var(--navy-700);
+  color: var(--navy-text);
 }
 
 .recAmountSub {
@@ -250,8 +250,8 @@
   text-transform: uppercase;
   letter-spacing: .3px;
 }
-.recBadgeGood { background: var(--success-100); color: var(--success-700); }
-.recBadgeWarn { background: var(--warning-100); color: var(--warning-700); }
+.recBadgeGood { background: var(--success-100); color: var(--success-text); }
+.recBadgeWarn { background: var(--warning-100); color: var(--warning-text); }
 
 .recName {
   margin: 0;

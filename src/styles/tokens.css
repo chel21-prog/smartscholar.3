@@ -1,33 +1,34 @@
 /* ============================================================
-   SmartScholar Design Tokens — Soft pastel, Light & Dark
-     Periwinkle slate — primary brand / structure
-     Sage            — secondary / positive / interactive accent
-     Apricot         — attention / pending accent
-     Rose            — danger only
-   Token names are unchanged (navy / teal / gold) so every component
-   picks the new palette up automatically. Button and status colors
-   are kept dark enough for white text / AA contrast.
-   ============================================================ */
+   SmartScholar Design Tokens - Light & Dark  (BLUE palette)
+   Anchors: #021024  #052659  #5483B3  #7DA0CA  #C1E8FF
+     #021024 sidebar + main text    #052659 primary buttons / headings
+     #5483B3 accents, focus, links  #7DA0CA soft accents
+     #C1E8FF light tints (chips, focus ring, selected)
+   Token names are unchanged, so every component follows along.
+   Status colors stay readable: green = success, amber = pending, rose = danger.
+   Text/background pairs are gated against WCAG AA (4.5:1); white text on every
+   filled button is >= 4.5:1. Dark mode swaps the fills and link/tint text tokens.
+   =========================================================== */
 
 :root {
   /* ---- Brand: Navy (primary) ---- */
-  --navy-950: #34436a;
-  --navy-900: #3c4d78;
-  --navy-800: #445786;
-  --navy-700: #4b6196;
-  --navy-600: #5472a8;
-  --navy-500: #6a88bd;
-  --navy-300: #aabfe0;
-  --navy-100: #e9eefa;
-  --navy-50:  #f5f8fd;
+  --navy-950: #021024;
+  --navy-900: #031B3F;
+  --navy-800: #04214D;
+  --navy-700: #0B3C85;
+  --navy-600: #052659;
+  --navy-500: #5483B3;
+  --navy-300: #7DA0CA;
+  --navy-100: #C1E8FF;
+  --navy-50:  #EAF6FF;
 
   /* ---- Brand: Teal (secondary / accent) ---- */
-  --teal-900: #2f6a62;
-  --teal-700: #367a70;
-  --teal-600: #5aaa9d;
-  --teal-500: #7ec4b8;
-  --teal-100: #e4f5f2;
-  --teal-50:  #f3faf8;
+  --teal-900: #0F3D6E;
+  --teal-700: #2F659F;
+  --teal-600: #5483B3;
+  --teal-500: #7DA0CA;
+  --teal-100: #DCEBF8;
+  --teal-50:  #EEF5FB;
 
   /* ---- Brand: Gold (tertiary / attention) ---- */
   --gold-700: #8c6320;
@@ -37,26 +38,26 @@
   --gold-50:  #fffaf3;
 
   /* ---- Neutrals (light mode) ---- */
-  --ink-900: #2d3548;
-  --ink-800: #394257;
-  --ink-700: #485169;
-  --ink-600: #5e667d;
-  --ink-500: #6b738b;
-  --ink-400: #8890a4;
-  --ink-300: #b2b8c8;
-  --ink-200: #dadee9;
-  --ink-100: #eceff5;
-  --ink-50:  #f7f8fc;
+  --ink-900: #021024;
+  --ink-800: #14274A;
+  --ink-700: #2B4163;
+  --ink-600: #43597C;
+  --ink-500: #5A6F91;
+  --ink-400: #8095B2;
+  --ink-300: #A7B9D0;
+  --ink-200: #CBD9EA;
+  --ink-100: #E3ECF6;
+  --ink-50:  #F4F8FC;
   --white:   #ffffff;
 
   /* ---- Semantic — remapped onto the 4-color palette ----
      success -> teal, warning -> gold, danger -> red, info -> teal.
      This keeps every existing Badge/StatCard/Button call working
      unchanged while collapsing the app onto 4 hues. */
-  --success-700: var(--teal-900);
-  --success-600: var(--teal-600);
-  --success-100: var(--teal-100);
-  --success-50:  var(--teal-50);
+  --success-700: #1F6B4F;
+  --success-600: #3E9A78;
+  --success-100: #DDF2E8;
+  --success-50:  #F0FAF5;
 
   --warning-700: var(--gold-700);
   --warning-600: var(--gold-600);
@@ -72,29 +73,40 @@
   --info-600: var(--teal-600);
   --info-100: var(--teal-100);
 
+  /* ---- Text colors that must flip in dark mode: on -100/-50 tinted fills, links, and
+     text on navy tints. (The -600/-700 tokens double as button FILLS, so they can't.) ---- */
+  --success-text: var(--success-700);
+  --info-text: var(--teal-900);
+  --warning-text: var(--gold-700);
+  --danger-text: var(--danger-700);
+  --link: var(--navy-600);
+  --navy-text: var(--navy-700);
+  --navy-strong: var(--navy-900);
+
   /* ---- Status text colors (statuses render as colored text only,
      no pill background). Dark mode overrides below for contrast. ---- */
-  --status-success: var(--teal-700);
+  --status-success: var(--success-700);
   --status-warning: var(--gold-700);
   --status-danger:  var(--danger-700);
   --status-info:    var(--teal-700);
-  --status-neutral: var(--ink-500);
+  --status-neutral: var(--ink-600);
 
   /* ---- Table row states (zebra + hover) ---- */
   --table-zebra: var(--ink-50);
-  --table-hover: var(--ink-50);
-  --table-head-bg:     #eff3fb;
+  --table-hover: #E4F1FC;
+  --table-head-bg:     #E3EFFA;
   --table-head-text:   var(--navy-700);
-  --table-head-border: #dbe3f3;
+  --table-head-border: #CBDDEE;
 
   /* ---- Semantic surfaces (light) ---- */
   --surface:       var(--white);
   --surface-muted: var(--ink-50);
-  --border:        #e3e7f0;
+  --border:        #D5E3F1;
   --border-strong: var(--ink-200);
   --text-primary:  var(--ink-900);
-  --text-secondary: var(--ink-500);
-  --page-bg:       #f2f4fa;
+  --text-secondary: var(--ink-600);
+  --overlay:       rgba(2,16,36,.50); /* scrim behind modals */
+  --page-bg:       #EDF5FC;
   --topbar-bg:     var(--white);
 
   /* ---- Typography ---- */
@@ -135,10 +147,10 @@
   --radius-full: 999px;
 
   /* ---- Shadows (light) — tinted navy instead of flat black ---- */
-  --shadow-sm: 0 1px 3px rgba(76,93,140,.07);
-  --shadow-md: 0 8px 22px rgba(76,93,140,.09);
-  --shadow-lg: 0 16px 38px rgba(76,93,140,.13);
-  --shadow-xl: 0 26px 60px rgba(76,93,140,.20);
+  --shadow-sm: 0 1px 2px rgba(5,38,89,.08);
+  --shadow-md: 0 6px 18px rgba(5,38,89,.10);
+  --shadow-lg: 0 14px 34px rgba(5,38,89,.14);
+  --shadow-xl: 0 24px 56px rgba(5,38,89,.20);
 
   /* ---- Motion ---- */
   --ease-out:     cubic-bezier(0.16,1,0.3,1);
@@ -164,60 +176,71 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --surface:        #1f2638;
-  --surface-muted:  #1a2132;
-  --border:         #2c3550;
-  --border-strong:  #394463;
-  --text-primary:   #eceff7;
-  --text-secondary: #9aa6c0;
-  --page-bg:        #161b2a;
-  --topbar-bg:      #1f2638;
+  --success-text: #9FE0BF;
+  --info-text: #A9CCEE;
+  --warning-text: #F1CE98;
+  --danger-text: #F2B0B0;
+  --link: #8DB4DE;
+  --navy-text: #AFCBEA;
+  --navy-strong: #E4F1FF;
+  --navy-700: #234F8A;
+  --navy-600: #2E62A6;
+  --navy-950: #010A17;
 
-  --ink-900: #eceff7;
-  --ink-800: #d6dcea;
-  --ink-700: #bcc6dc;
-  --ink-600: #a1afcb;
-  --ink-500: #8493b2;
-  --ink-400: #6d7c9c;
-  --ink-300: #4d5c7e;
-  --ink-200: #394463;
-  --ink-100: #2c3550;
-  --ink-50:  #1f2638;
+  --surface:        #071E3A;
+  --surface-muted:  #051730;
+  --border:         #123055;
+  --border-strong:  #1C4272;
+  --text-primary:   #E4F1FF;
+  --text-secondary: #9DB8D6;
+  --page-bg:        #031326;
+  --topbar-bg:      #071E3A;
+
+  --ink-900: #E4F1FF;
+  --ink-800: #D0E3F7;
+  --ink-700: #B6CFE9;
+  --ink-600: #9DB8D6;
+  --ink-500: #86A2C4;
+  --ink-400: #6A87AC;
+  --ink-300: #4D6B92;
+  --ink-200: #2A4A75;
+  --ink-100: #153157;
+  --ink-50:  #071E3A;
   --white:   #ffffff;
 
-  --navy-50:  #262f48;
-  --navy-100: #2d3858;
+  --navy-50:  #0A2749;
+  --navy-100: #0F3560;
 
-  --teal-50:  #1d2f2d;
-  --teal-100: #233e3a;
+  --teal-50:  #0B2742;
+  --teal-100: #103557;
 
   --gold-50:  #33291c;
   --gold-100: #413424;
 
-  --success-100: var(--teal-100);
-  --success-50:  var(--teal-50);
+  --success-100: #123A2C;
+  --success-50:  #0E2D23;
   --warning-100: var(--gold-100);
   --warning-50:  var(--gold-50);
   --danger-100:  #3d2427;
   --danger-50:   #2f1b1e;
   --info-100:    var(--teal-100);
 
-  --status-success: var(--teal-500);
+  --status-success: #74CDA0;
   --status-warning: var(--gold-500);
   --status-danger:  #eb9a9a;
   --status-info:    var(--teal-500);
   --status-neutral: var(--ink-500);
 
-  --table-zebra: #1b2234;
-  --table-hover: #2d3858;
-  --table-head-bg:     #2a3452;
-  --table-head-text:   #dfe6f6;
-  --table-head-border: #3c4a70;
+  --table-zebra: #051730;
+  --table-hover: #0F3560;
+  --table-head-bg:     #0C2A4F;
+  --table-head-text:   #DCEBFA;
+  --table-head-border: #1C4272;
 
-  --shadow-sm: 0 1px 2px rgba(8,10,20,.35);
-  --shadow-md: 0 6px 16px rgba(8,10,20,.42);
-  --shadow-lg: 0 14px 34px rgba(8,10,20,.5);
-  --shadow-xl: 0 24px 56px rgba(8,10,20,.6);
+  --shadow-sm: 0 1px 2px rgba(0,5,15,.40);
+  --shadow-md: 0 6px 16px rgba(0,5,15,.48);
+  --shadow-lg: 0 14px 34px rgba(0,5,15,.56);
+  --shadow-xl: 0 24px 56px rgba(0,5,15,.66);
 }
 
 /* ---- Global accessibility ---- */

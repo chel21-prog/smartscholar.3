@@ -1,6 +1,5 @@
 import Icon from "@/components/ui/Icon";
 import { useState } from "react";
-import { hasAcceptedTerms, setAcceptedTerms } from "../lib/termsConsent";
 import { supabase } from "../lib/supabase";
 import { useNavigate, Link } from "react-router-dom";
 import styles from "@/styles/Auth.module.css";
@@ -15,18 +14,12 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showTerms, setShowTerms] = useState(false);
-  const [accepted, setAccepted] = useState(hasAcceptedTerms);
 
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     
     e.preventDefault();
-
-    if (!accepted) {
-      setError("You must accept the Terms & Data Privacy Policy.");
-      return;
-    }
 
     setLoading(true);
     setError("");
@@ -208,23 +201,6 @@ export default function Signup() {
     </button>
 </div>
 
-            {/* TERMS */}
-            <label className={styles.checkbox}>
-              <input
-                type="checkbox"
-                checked={accepted}
-                onChange={(e) => { setAccepted(e.target.checked); setAcceptedTerms(e.target.checked); }}
-              />
-              <span>
-                I agree to the{" "}
-                <span
-                  onClick={() => setShowTerms(true)}
-                  className={styles.link}
-                >
-                  Terms & Data Privacy Policy
-                </span>
-              </span>
-            </label>
 
  <button className={styles.primaryButton} disabled={loading}>
               {loading ? "Creating account..." : "Sign Up"}
@@ -244,6 +220,13 @@ export default function Signup() {
   Continue with Google
 </button>
 
+            <p className={styles.consent}>
+              By continuing, you agree to our{" "}
+              <button type="button" className={styles.consentLink} onClick={() => setShowTerms(true)}>
+                Terms &amp; Data Privacy Policy
+              </button>
+              .
+            </p>
           </form>
 
           <div className={styles.signup}>

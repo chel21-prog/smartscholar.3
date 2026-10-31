@@ -32,7 +32,7 @@
 .triggerActive {
   border-color: var(--navy-500);
   background: var(--navy-50);
-  color: var(--navy-700);
+  color: var(--navy-text);
   font-weight: 600;
 }
 
@@ -83,7 +83,7 @@
 .optionHighlight { background: var(--surface-muted); }
 
 .optionSelected {
-  color: var(--navy-700);
+  color: var(--navy-text);
   font-weight: 600;
 }
 
@@ -94,5 +94,5 @@
   width: 14px;
   height: 14px;
   flex-shrink: 0;
-  color: var(--navy-600);
+  color: var(--link);
 }

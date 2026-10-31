@@ -9,7 +9,7 @@
   border: 1px solid var(--border);
   cursor: pointer;
   background: var(--surface);
-  color: var(--navy-600);
+  color: var(--link);
   font-size: 17px;
   position: relative;
   display: flex;
@@ -21,7 +21,7 @@
 
 .bell:hover {
   background: var(--navy-50);
-  color: var(--navy-700);
+  color: var(--navy-text);
 }
 
 .icon { display: block; }
@@ -82,7 +82,7 @@
 .clearAllBtn {
   background: none;
   border: none;
-  color: var(--navy-600);
+  color: var(--link);
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -165,7 +165,7 @@
 
 .deleteBtn:hover {
   background: var(--danger-100);
-  color: var(--danger-700);
+  color: var(--danger-text);
 }
 
 .itemMessage {
@@ -190,5 +190,5 @@
 .itemGoTo {
   font-size: 11px;
   font-weight: 700;
-  color: var(--navy-600);
+  color: var(--link);
 }

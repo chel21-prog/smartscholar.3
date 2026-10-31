@@ -52,10 +52,10 @@
   justify-content: center;
 }
 
-.tone-navy .tileIcon { background: var(--navy-50);  color: var(--navy-700); }
+.tone-navy .tileIcon { background: var(--navy-50);  color: var(--navy-text); }
 .tone-teal .tileIcon { background: var(--teal-50);  color: var(--teal-700); }
-.tone-gold .tileIcon { background: var(--gold-50);  color: var(--gold-700); }
-.tone-danger .tileIcon { background: var(--danger-50); color: var(--danger-700); }
+.tone-gold .tileIcon { background: var(--gold-50);  color: var(--warning-text); }
+.tone-danger .tileIcon { background: var(--danger-50); color: var(--danger-text); }
 
 .tileText {
   display: flex;
@@ -193,7 +193,7 @@
   border: 1px solid var(--danger-100);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
-  color: var(--danger-700);
+  color: var(--danger-text);
   font-size: var(--text-sm);
   font-weight: 600;
   margin: 0;
@@ -204,7 +204,7 @@
   border: 1px solid var(--success-100);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
-  color: var(--success-700);
+  color: var(--success-text);
   font-size: var(--text-sm);
   font-weight: 600;
   margin: 0;

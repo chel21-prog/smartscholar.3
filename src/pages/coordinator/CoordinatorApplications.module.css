@@ -155,7 +155,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(45,53,72,.42);
+  background: var(--overlay);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -510,7 +510,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .4px;
-  color: var(--navy-700);
+  color: var(--navy-text);
 }
 
 .modalTitle {
@@ -573,7 +573,7 @@
   flex-shrink: 0;
   font-size: var(--text-xs);
   font-weight: 700;
-  color: var(--navy-600);
+  color: var(--link);
   text-decoration: none;
   padding: 5px 10px;
   border: 1px solid var(--navy-200);

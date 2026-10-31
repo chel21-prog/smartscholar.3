@@ -73,8 +73,8 @@
   gap: 6px;
   padding: 4px 10px;
   border-radius: var(--radius-full);
-  background: var(--teal-50);
-  color: var(--teal-900);
+  background: var(--success-50);
+  color: var(--success-text);
   font-size: var(--text-xs);
   font-weight: 600;
   transition: background-color var(--duration-base) var(--ease-out),
@@ -83,13 +83,13 @@
 
 .onlineBadge[data-state="offline"] {
   background: var(--danger-100);
-  color: var(--danger-700);
+  color: var(--danger-text);
 }
 
 .onlineDot {
   width: 6px; height: 6px; border-radius: 50%;
-  background: var(--teal-600);
-  box-shadow: 0 0 0 3px var(--teal-100);
+  background: var(--success-600);
+  box-shadow: 0 0 0 3px var(--success-100);
   transition: background-color var(--duration-base) var(--ease-out),
     box-shadow var(--duration-base) var(--ease-out);
 }

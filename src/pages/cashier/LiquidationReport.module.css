@@ -46,7 +46,7 @@
   white-space: nowrap;
   border: 1px solid var(--border);
   background: var(--navy-50);
-  color: var(--navy-700);
+  color: var(--navy-text);
   padding: 0 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -76,7 +76,7 @@
 .warning {
   background: var(--danger-50);
   border: 1px solid var(--danger-100);
-  color: var(--danger-700);
+  color: var(--danger-text);
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 13px;

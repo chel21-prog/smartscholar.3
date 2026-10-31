@@ -85,7 +85,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(45,53,72,.42);
+  background: var(--overlay);
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
   display: flex;

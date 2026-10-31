@@ -32,7 +32,7 @@
 .category {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--navy-600);
+  color: var(--link);
   text-transform: uppercase;
   letter-spacing: .3px;
   margin: 0;
@@ -58,7 +58,7 @@
   align-self: flex-start;
   font-size: var(--text-xs);
   font-weight: 700;
-  color: var(--success-700);
+  color: var(--success-text);
   background: var(--success-50);
   border: 1px solid var(--success-100);
   padding: 3px 10px;

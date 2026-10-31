@@ -102,7 +102,7 @@
 }
 .navLink {
   display: flex; align-items: center; gap: 10px; text-decoration: none;
-  color: #c9d2e6; padding: 10px var(--space-3);
+  color: #A9C4E2; padding: 10px var(--space-3);
   border-radius: var(--radius-md); border-left: 3px solid transparent;
   font-size: var(--text-sm); font-weight: 500;
   transition: background-color var(--duration-fast) var(--ease-out),
@@ -114,7 +114,7 @@
 .navLink:hover { background: rgba(255,255,255,.06); color: #fff; transform: translateX(2px); }
 .navLink:hover .navIcon { opacity: 1; }
 .active {
-  background: rgba(126,196,184,.22); color: #fff;
+  background: rgba(125,160,202,.20); color: #fff;
   font-weight: 700; border-left-color: var(--teal-600);
 }
 .active .navIcon { opacity: 1; color: var(--teal-500); }
@@ -127,7 +127,7 @@
 }
 .footerAvatar {
   flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
-  background: var(--teal-600); color: #fff; font-size: 12px; font-weight: 700;
+  background: var(--teal-700); color: #fff; font-size: 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
 }
 .footerInfo { display: flex; flex-direction: column; min-width: 0; flex: 1; }
@@ -159,7 +159,7 @@
   }
   .sidebar.show {
     transform: translateX(0);
-    box-shadow: 12px 0 40px rgba(52,67,106,.3);
+    box-shadow: 12px 0 40px rgba(2,16,36,.35);
   }
 
   .navLink { padding: 12px var(--space-3); font-size: var(--text-md); }
@@ -177,7 +177,7 @@
 
 .backdrop {
   position: fixed; inset: 0;
-  background: rgba(45,53,72,.42);
+  background: var(--overlay);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
   z-index: 90;
