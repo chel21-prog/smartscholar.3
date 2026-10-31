@@ -151,5 +151,5 @@ const styles = {
   hint: { margin: 0, fontSize: 12, color: "var(--text-secondary)" },
   errorBox: { background: "var(--danger-100)", border: "1px solid var(--danger-600)", borderRadius: "var(--radius-md)", padding: "10px 14px", color: "var(--danger-700)", fontSize: 13, fontWeight: 600 },
   successBox: { background: "var(--success-100)", border: "1px solid var(--teal-500)", borderRadius: "var(--radius-md)", padding: "12px 16px", color: "var(--success-700)", fontSize: 14, fontWeight: 600, textAlign: "center" },
-  btnPrimaryLink: { display: "block", textAlign: "center", height: 44, lineHeight: "44px", background: "var(--navy-600)", color: "#fff", borderRadius: "var(--radius-md)", fontWeight: 700, fontSize: 15, textDecoration: "none" },
+  btnPrimaryLink: { display: "block", textAlign: "center", height: 44, lineHeight: "44px", background: "var(--navy-600)", color: "var(--paper)", borderRadius: "var(--radius-md)", fontWeight: 700, fontSize: 15, textDecoration: "none" },
 };

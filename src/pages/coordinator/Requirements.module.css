@@ -84,7 +84,7 @@
 
 .typeBtnActive{
     background:var(--navy-700);
-    color:#fff;
+    color:var(--paper);
     border:2px solid var(--navy-700);
 }
 
@@ -170,7 +170,7 @@
 
 .typeBtnActive{
     background:var(--navy-700);
-    color:#fff;
+    color:var(--paper);
     border:2px solid var(--navy-700);
 }
 

@@ -52,10 +52,12 @@ body {
   height: 100%;
   height: 100dvh;
   overflow: hidden; /* the shell always fits the screen — see PortalLayout */
-  background: var(--page-bg);
+  /* soft coral > peach > periwinkle wash; fixed so panels glide over it */
+  background: var(--page-gradient);
+  background-attachment: fixed;
+  background-color: var(--page-bg);
   color: var(--text-primary);
-  transition: background-color var(--duration-base) var(--ease-out),
-    color var(--duration-base) var(--ease-out);
+  transition: color var(--duration-base) var(--ease-out);
 }
 
 #root {
@@ -115,8 +117,8 @@ input[type="checkbox"]::after {
   content: "";
   width: 7px;
   height: 4px;
-  border-left: 1.5px solid #fff;
-  border-bottom: 1.5px solid #fff;
+  border-left: 1.5px solid var(--paper);
+  border-bottom: 1.5px solid var(--paper);
   transform: rotate(-45deg) scale(0);
   margin-top: -1px;
   transition: transform var(--duration-fast) var(--ease-out);
@@ -156,7 +158,7 @@ input[type="checkbox"]:disabled { opacity: .5; cursor: not-allowed; }
 #root select:focus,
 #root textarea:focus {
   outline: none;
-  border-color: var(--teal-600);
+  border-color: var(--navy-500);
   box-shadow: 0 0 0 3px var(--teal-100);
 }
 
@@ -174,15 +176,16 @@ input[type="password"]::-ms-clear { display: none; }
    Scoped under #root to out-rank the per-page module styles.
    ============================================================ */
 :root {
-  --glow-teal:   0 0 0 1px var(--teal-600), 0 0 16px rgba(84, 131, 179, .36);
-  --glow-navy:   0 0 0 1px var(--navy-600), 0 0 14px rgba(5, 38, 89, .34);
-  --glow-danger: 0 0 0 1px var(--danger-600), 0 0 14px rgba(191, 75, 75, .30);
+  /* soft: a faint periwinkle halo instead of a hard outlined ring */
+  --glow-teal:   0 0 0 1px rgba(131, 160, 221, .55), 0 8px 24px rgba(111, 134, 207, .20);
+  --glow-navy:   0 0 0 1px rgba(79, 103, 184, .50),  0 8px 22px rgba(79, 103, 184, .20);
+  --glow-danger: 0 0 0 1px rgba(192, 64, 90, .45),   0 8px 22px rgba(192, 64, 90, .16);
   --shadow-glow-navy: var(--glow-navy); /* referenced by the cashier page, was never defined */
 }
 [data-theme="dark"] {
-  --glow-teal:   0 0 0 1px var(--teal-600), 0 0 18px rgba(125, 160, 202, .40);
-  --glow-navy:   0 0 0 1px var(--navy-600), 0 0 16px rgba(125, 160, 202, .42);
-  --glow-danger: 0 0 0 1px var(--danger-600), 0 0 16px rgba(235, 154, 154, .38);
+  --glow-teal:   0 0 0 1px rgba(163, 183, 240, .45), 0 8px 26px rgba(131, 160, 221, .22);
+  --glow-navy:   0 0 0 1px rgba(163, 183, 240, .45), 0 8px 26px rgba(131, 160, 221, .22);
+  --glow-danger: 0 0 0 1px rgba(242, 154, 166, .45), 0 8px 24px rgba(242, 154, 166, .20);
 }
 
 /* any button without its own radius gets a soft one, so the glow is never a sharp rectangle */
@@ -201,7 +204,7 @@ input[type="password"]::-ms-clear { display: none; }
 #root [data-glow]:not([data-no-glow]):hover {
   position: relative;
   z-index: 20; /* lift the hovered card above the search / filter bar so its info tooltip isn't covered */
-  border-color: var(--teal-600) !important;
+  border-color: var(--teal-500) !important;
   box-shadow: var(--glow-teal) !important; /* !important: some boxes set their shadow inline */
 }
 
@@ -255,9 +258,9 @@ input[type="password"]::-ms-clear { display: none; }
 }
 
 /* sidebar / nav links */
-#root nav a:hover,
-#root [class*="navLink_"]:hover {
-  box-shadow: var(--glow-teal);
+#root nav a:hover:not([class*="active"]),
+#root [class*="navLink_"]:hover:not([class*="active"]) {
+  box-shadow: none; /* the soft tint hover in Sidebar.module.css is enough */
 }
 
 /* fields (focus glow is defined above) */
@@ -337,9 +340,9 @@ input[type="password"]::-ms-clear { display: none; }
   max-width: min(360px, calc(100vw - 16px));
   padding: 9px 13px 10px;
   background: var(--navy-900);
-  color: #fff;
+  color: var(--paper);
   border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .28), 0 0 0 1px rgba(255, 255, 255, .06);
+  box-shadow: 0 12px 32px rgba(40, 45, 90, .26), 0 0 0 1px rgba(246, 247, 251, .06);
   font-size: 12px;
   font-weight: 400;
   line-height: 1.55;
@@ -422,7 +425,7 @@ input[type="password"]::-ms-clear { display: none; }
   box-shadow: 0 0 0 3px var(--teal-100);
 }
 #root [data-numwrap]:focus-within {
-  border-color: var(--teal-600);
+  border-color: var(--navy-500);
   box-shadow: 0 0 0 3px var(--teal-100);
 }
 #root [data-stepper]:hover:not(:disabled) { box-shadow: none; }

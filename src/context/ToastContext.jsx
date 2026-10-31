@@ -84,7 +84,7 @@ function ToastViewport({ toasts, onDismiss }) {
             padding: "12px 16px",
             borderRadius: "var(--radius-lg)",
             boxShadow: "var(--shadow-lg)",
-            color: "#fff",
+            color: "var(--paper)",
             fontSize: "var(--text-sm)",
             lineHeight: 1.4,
             background:

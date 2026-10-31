@@ -88,7 +88,7 @@ export default function HelpGuide({ role }) {
         aria-label="Help guide for this page"
         aria-expanded={open}
       >
-        ?
+        Help
       </button>
 
       {open && pos && (

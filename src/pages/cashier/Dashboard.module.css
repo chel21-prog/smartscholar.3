@@ -5,7 +5,7 @@
   position: relative;
   padding: 10px 20px;
   background: var(--grad-brand);
-  color: #fff;
+  color: var(--paper);
   border: none;
   border-radius: 11px;
   font-weight: 700;
@@ -65,8 +65,8 @@
 .releaseTable th {
   text-align: left;
   padding: 10px 14px;
-  background: var(--navy-900);
-  color: #fff;
+  background: var(--table-head-bg);
+  color: var(--table-head-text);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;

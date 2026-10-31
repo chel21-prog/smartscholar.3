@@ -94,7 +94,7 @@
 
     font-weight:700;
 
-    color: white;
+    color: var(--paper);
 
     border-bottom:1px solid var(--border);
 

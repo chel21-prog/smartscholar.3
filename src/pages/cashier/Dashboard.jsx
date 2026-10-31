@@ -200,7 +200,7 @@ export default function CashierDashboard() {
 }
 
 const s = {
-  announceBtn: { padding:"10px 18px",background:"var(--navy-700)",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",whiteSpace:"nowrap" },
+  announceBtn: { padding:"10px 18px",background:"var(--navy-700)",color:"var(--paper)",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",whiteSpace:"nowrap" },
   card:        { background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:"var(--space-5)",boxShadow:"var(--shadow-sm)" },
   tableBox:    { background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:"var(--space-5)",boxShadow:"var(--shadow-sm)" },
 };

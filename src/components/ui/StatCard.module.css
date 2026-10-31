@@ -65,7 +65,7 @@
 .infoWrap:focus-visible .infoIcon {
   background: var(--navy-600);
   border-color: var(--navy-600);
-  color: #fff;
+  color: var(--paper);
   outline: none;
 }
 
@@ -76,7 +76,7 @@
   right: -6px;
   width: 220px;
   background: var(--navy-900);
-  color: #fff;
+  color: var(--paper);
   font-size: 12px;
   font-weight: 400;
   line-height: 1.5;
@@ -84,7 +84,7 @@
   letter-spacing: normal;
   padding: 10px 12px;
   border-radius: 8px;
-  box-shadow: var(--shadow-xl, 0 10px 30px rgba(5,38,89,.18));
+  box-shadow: var(--shadow-xl, 0 10px 30px rgba(40,45,90,.22));
   opacity: 0;
   transform: translateY(-4px);
   pointer-events: none;

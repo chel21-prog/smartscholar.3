@@ -59,10 +59,10 @@
 .step + .step { border-top: 1px solid var(--border); }
 .step:hover:not(:disabled) {
   background: var(--teal-100);
-  color: var(--teal-600);
+  color: var(--teal-700);
 }
 .step:active:not(:disabled) {
   background: var(--teal-700);
-  color: #fff;
+  color: var(--paper);
 }
 .step:disabled { opacity: .35; cursor: not-allowed; }

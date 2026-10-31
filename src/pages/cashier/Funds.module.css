@@ -188,8 +188,8 @@
 
     background:linear-gradient(
         90deg,
-        var(--navy-600),
-        var(--navy-700)
+        var(--teal-600),
+        var(--navy-600)
     );
 
 }
@@ -231,7 +231,7 @@
 
     background:var(--navy-900);
 
-    color:white;
+    color:var(--paper);
 
     text-transform:uppercase;
 
@@ -320,7 +320,7 @@
 
     background:var(--navy-600);
 
-    color:white;
+    color:var(--paper);
 
     padding:9px 16px;
 
@@ -379,7 +379,7 @@
 
 .progressMiniFill {
     height: 100%;
-    background: linear-gradient(90deg, var(--navy-600), var(--navy-700));
+    background: linear-gradient(90deg, var(--teal-600), var(--navy-600));
 }
 
 .actionCell {

@@ -23,7 +23,7 @@ const st = {
   infoTitleTxt:{ margin:0, fontSize:15, fontWeight:600, color:"var(--text-primary)" },
   infoRow:     { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 6px", borderBottom:"1px solid var(--border)" },
   cardContent: { flex:1, overflow:"auto", paddingRight:6, scrollbarWidth:"thin" },
-  countBadge:  { borderRadius:20, padding:"2px 9px", fontSize:12, fontWeight:600, color:"#fff" },
+  countBadge:  { borderRadius:20, padding:"2px 9px", fontSize:12, fontWeight:600, color:"var(--paper)" },
   overlay:     { position:"fixed", inset:0, background:"var(--overlay)", backdropFilter:"blur(2px)", display:"flex", justifyContent:"center", alignItems:"center", zIndex:9999, padding:14 },
   modal:       { background:"var(--surface)", width:"100%", maxWidth:800, maxHeight:"90vh", overflowY:"auto", borderRadius:14, boxShadow:"var(--shadow-xl)", border:"1px solid var(--border)", display:"flex", flexDirection:"column" },
   modalHead:   { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px 22px", borderBottom:"1px solid var(--border)", flexShrink:0 },
@@ -38,7 +38,7 @@ const st = {
   checkLabel:  { display:"flex", alignItems:"center", gap:6, padding:"7px 10px", border:"1px solid var(--border)", borderRadius:8, background:"var(--surface)", fontSize:13, color:"var(--text-primary)", cursor:"pointer" },
   previewWrap: { border:"1px solid var(--border)", borderRadius:10, overflowX:"auto", overflowY:"auto", maxHeight:260, background:"var(--surface)" },
   previewTable:{ width:"100%", borderCollapse:"collapse", fontSize:11, minWidth:560 },
-  previewTh:   { background:"var(--navy-900)", color:"#fff", padding:"8px 10px", textAlign:"left", fontWeight:600, fontSize:10, textTransform:"uppercase", letterSpacing:".3px", whiteSpace:"nowrap", position:"sticky", top:0, zIndex:1 },
+  previewTh:   { background:"var(--table-head-bg)", color:"var(--table-head-text)", padding:"8px 10px", textAlign:"left", fontWeight:600, fontSize:10, textTransform:"uppercase", letterSpacing:".3px", whiteSpace:"nowrap", position:"sticky", top:0, zIndex:1 },
   previewTd:   { padding:"7px 10px", borderBottom:"1px solid var(--border)", color:"var(--text-primary)", verticalAlign:"middle", whiteSpace:"nowrap" },
 };
 
@@ -722,7 +722,7 @@ export default function CoordinatorDashboard() {
       },
       headStyles: {
         fillColor:   NAVY,
-        textColor:   WHITE,
+       
         fontStyle:   "bold",
         fontSize:    7.5,
         cellPadding: { top: 6, bottom: 6, left: 5, right: 5 },
@@ -1003,7 +1003,7 @@ export default function CoordinatorDashboard() {
             {scholarStats.map(s=>(
               <div key={s.scholarship_id} style={st.infoRow}>
                 <span style={{fontSize:13,color:"var(--text-primary)"}}>{s.scholarship_name}</span>
-                <span style={{...st.countBadge, background:s.occupied>=s.slots?"var(--danger-600)":s.occupied>=s.slots*.8?"var(--gold-600)":"var(--teal-600)"}}>
+                <span style={{...st.countBadge, background:s.occupied>=s.slots?"var(--danger-600)":s.occupied>=s.slots*.8?"var(--gold-600)":"var(--teal-700)"}}>
                   {s.occupied}/{s.slots}
                 </span>
               </div>

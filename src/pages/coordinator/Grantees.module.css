@@ -115,7 +115,7 @@
 }
 
 .th {
-  background: var(--navy-900); color: #fff; text-align: left;
+  background: var(--table-head-bg); color: var(--table-head-text); text-align: left;
   font-size: var(--text-xs); font-weight: 600; letter-spacing: .3px;
   text-transform: uppercase; padding: var(--space-3) var(--space-4);
   white-space: nowrap;
@@ -135,7 +135,7 @@
     padding:8px 12px;
     border-radius:8px;
     background:var(--navy-600);
-    color:white;
+    color:var(--paper);
     text-decoration:none;
     margin-bottom:6px;
 }
@@ -245,7 +245,7 @@
 .vfAvatar {
     width: 46px; height: 46px; flex-shrink: 0; border-radius: 50%;
     display: grid; place-items: center;
-    background: var(--navy-600); color: #fff;
+    background: linear-gradient(135deg, var(--coral-300), var(--teal-500)); color: var(--navy-950);
     font-size: 18px; font-weight: 700;
 }
 .vfWhoText { min-width: 0; flex: 1; }
@@ -307,9 +307,9 @@
 .vfEligible.vfOn   { border-color: var(--success-600);   background: var(--success-50); }
 .vfMismatch.vfOn   { border-color: var(--gold-600);   background: var(--warning-50); }
 .vfIneligible.vfOn { border-color: var(--danger-600); background: var(--danger-50); }
-.vfEligible.vfOn   .vfChoiceIcon { background: var(--success-700);   border-color: var(--success-700);   color: #fff; }
-.vfMismatch.vfOn   .vfChoiceIcon { background: var(--gold-700);   border-color: var(--gold-700);   color: #fff; }
-.vfIneligible.vfOn .vfChoiceIcon { background: var(--danger-600); border-color: var(--danger-600); color: #fff; }
+.vfEligible.vfOn   .vfChoiceIcon { background: var(--success-700);   border-color: var(--success-700);   color: var(--paper); }
+.vfMismatch.vfOn   .vfChoiceIcon { background: var(--gold-700);   border-color: var(--gold-700);   color: var(--paper); }
+.vfIneligible.vfOn .vfChoiceIcon { background: var(--danger-600); border-color: var(--danger-600); color: var(--paper); }
 
 .vfNote {
     margin: 0; padding: 10px 12px; font-size: 12px; line-height: 1.5;
@@ -353,8 +353,8 @@
 }
 .vfSegBtn + .vfSegBtn { border-left: 1px solid var(--border-strong); }
 .vfSegBtn:hover { background: var(--surface-muted); color: var(--text-primary); }
-.vfSegOk,  .vfSegOk:hover  { background: var(--success-700); color: #fff; }
-.vfSegBad, .vfSegBad:hover { background: var(--gold-700); color: #fff; }
+.vfSegOk,  .vfSegOk:hover  { background: var(--success-700); color: var(--paper); }
+.vfSegBad, .vfSegBad:hover { background: var(--gold-700); color: var(--paper); }
 
 .vfChoiceTop { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px; }
 .vfSuggested {
@@ -375,7 +375,7 @@
 .vfNotifyHead input { margin-top: 2px; }
 .vfLinkBtn {
     align-self: flex-start; padding: 0; border: none; background: none; border-radius: 0;
-    color: var(--teal-600); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;
+    color: var(--link); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline;
 }
 
 /* ── revoke action + student cancellation requests ── */
@@ -411,8 +411,4 @@
   background: var(--surface-muted); font-size: var(--text-sm); white-space: pre-wrap;
 }
 
-/* Action column stays in view while the wide table scrolls sideways, so Verify / Revoke
-   are never hidden off the right edge. Cells already have opaque backgrounds, so the
-   scrolled content slides underneath cleanly. */
-.table thead th:last-child { right: 0; z-index: 3; box-shadow: -1px 0 0 var(--border); }
-.actionCell { position: sticky; right: 0; z-index: 1; box-shadow: -1px 0 0 var(--border); }
+/* The Action column scrolls with the rest of the table (it is no longer pinned). */

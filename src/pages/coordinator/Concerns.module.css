@@ -20,7 +20,7 @@
 
 .th {
   background: var(--navy-900);
-  color: white;
+  color: var(--paper);
   text-transform: uppercase;
   font-size: 12px;
   letter-spacing: .4px;
@@ -152,7 +152,7 @@
 .btnPrimary {
   border: none;
   background: var(--navy-600);
-  color: white;
+  color: var(--paper);
   padding: 9px 16px;
   border-radius: 10px;
   cursor: pointer;

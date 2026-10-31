@@ -56,7 +56,7 @@
 
 .th {
   background: var(--navy-900);
-  color: white;
+  color: var(--paper);
   text-transform: uppercase;
   font-size: 12px;
   letter-spacing: .4px;

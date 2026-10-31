@@ -3,15 +3,15 @@
   height: 100vh;
   position: fixed;
   top: 0; left: 0;
-  background: var(--navy-950);
-  color: var(--ink-200);
+  background: var(--sidebar-bg);
+  color: var(--nav-text);
   padding: var(--space-4) var(--space-3);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(255,255,255,.06);
+  border-right: 1px solid var(--sidebar-border);
   overflow-y: auto;
   scrollbar-width: thin; /* Firefox */
-  scrollbar-color: rgba(255,255,255,.25) transparent;
+  scrollbar-color: var(--ink-300) transparent;
   -ms-overflow-style: none; /* IE/Edge Legacy */
   z-index: 100;
   transition: transform var(--duration-base) var(--ease-out);
@@ -19,10 +19,10 @@
 .sidebar::-webkit-scrollbar { width: 6px; }
 .sidebar::-webkit-scrollbar-track { background: transparent; }
 .sidebar::-webkit-scrollbar-thumb {
-  background-color: rgba(255,255,255,.25);
+  background-color: var(--ink-300);
   border-radius: var(--radius-full);
 }
-.sidebar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,.4); }
+.sidebar::-webkit-scrollbar-thumb:hover { background-color: var(--ink-400); }
 
 /* ---- Logo ---- */
 .logoBox {
@@ -34,7 +34,8 @@
 .logo {
   position: relative;
   width: 76px; height: 76px; object-fit: contain;
-  border-radius: var(--radius-lg); background: #fff; padding: 8px;
+  border-radius: var(--radius-lg); background: var(--paper); padding: 8px;
+  box-shadow: var(--shadow-md);
   transition: transform var(--duration-base) var(--ease-out);
   z-index: 1;
 }
@@ -75,10 +76,10 @@
 
 .roleLabel {
   margin-top: var(--space-2); font-weight: 700; font-size: var(--text-sm);
-  color: #fff; letter-spacing: .3px; text-transform: capitalize;
+  color: var(--nav-text-strong); letter-spacing: .3px; text-transform: capitalize;
 }
 .subLabel {
-  margin-top: 2px; font-size: 10.5px; color: var(--ink-400);
+  margin-top: 2px; font-size: 10.5px; color: var(--ink-500);
   letter-spacing: .3px;
 }
 
@@ -89,11 +90,11 @@
   width: 100%; background: none; border: none; cursor: pointer;
   border-radius: var(--radius-md); /* rounded hover glow */
   padding: var(--space-2) var(--space-3) 6px;
-  color: var(--ink-400); font-size: 10.5px; font-weight: 700;
+  color: var(--nav-group-text); font-size: 10.5px; font-weight: 700;
   letter-spacing: .7px; text-transform: uppercase;
   transition: color var(--duration-fast) var(--ease-out);
 }
-.groupHeader:hover { color: var(--ink-200); }
+.groupHeader:hover { color: var(--nav-text-strong); }
 .groupChevron { transition: transform var(--duration-fast) var(--ease-out); flex-shrink: 0; }
 
 .nav {
@@ -102,8 +103,8 @@
 }
 .navLink {
   display: flex; align-items: center; gap: 10px; text-decoration: none;
-  color: #A9C4E2; padding: 10px var(--space-3);
-  border-radius: var(--radius-md); border-left: 3px solid transparent;
+  color: var(--nav-text); padding: 10px var(--space-3);
+  border-radius: var(--radius-full); border-left: 3px solid transparent;
   font-size: var(--text-sm); font-weight: 500;
   transition: background-color var(--duration-fast) var(--ease-out),
     color var(--duration-fast) var(--ease-out),
@@ -111,38 +112,42 @@
     transform var(--duration-fast) var(--ease-out);
 }
 .navIcon { flex-shrink: 0; opacity: .75; transition: opacity var(--duration-fast) var(--ease-out); }
-.navLink:hover { background: rgba(255,255,255,.06); color: #fff; transform: translateX(2px); }
+.navLink:hover { background: var(--nav-hover-bg); color: var(--nav-text-strong); transform: translateX(2px); }
 .navLink:hover .navIcon { opacity: 1; }
-.active {
-  background: rgba(125,160,202,.20); color: #fff;
-  font-weight: 700; border-left-color: var(--teal-600);
+/* active = the ink pill from the reference; a coral icon is the only pop */
+.active, .active:hover {
+  background: var(--nav-active-bg); color: var(--nav-active-text);
+  font-weight: 700; border-left-color: transparent;
+  box-shadow: 0 6px 16px rgba(29,32,48,.20);
+  transform: none;
 }
-.active .navIcon { opacity: 1; color: var(--teal-500); }
+.active .navIcon { opacity: 1; color: var(--nav-active-icon); }
 
 /* ---- Footer (avatar / name / role / sign out) ---- */
 .footer {
   display: flex; align-items: center; gap: 10px;
   margin-top: var(--space-4); padding-top: var(--space-4);
-  border-top: 1px solid rgba(255,255,255,.08);
+  border-top: 1px solid var(--border);
 }
 .footerAvatar {
   flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
-  background: var(--teal-700); color: #fff; font-size: 12px; font-weight: 700;
+  background: linear-gradient(135deg, var(--coral-300), var(--teal-500));
+  color: var(--navy-950); font-size: 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
 }
 .footerInfo { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .footerName {
-  color: #fff; font-size: 12.5px; font-weight: 600; line-height: 1.3;
+  color: var(--nav-text-strong); font-size: 12.5px; font-weight: 600; line-height: 1.3;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.footerRole { color: var(--ink-400); font-size: 11px; line-height: 1.3; }
+.footerRole { color: var(--ink-500); font-size: 11px; line-height: 1.3; }
 .logoutBtn {
   flex-shrink: 0; width: 30px; height: 30px; border-radius: var(--radius-md);
-  background: transparent; border: none; color: var(--ink-300); cursor: pointer;
+  background: transparent; border: none; color: var(--ink-500); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
 }
-.logoutBtn:hover { background: rgba(235,154,154,.2); color: #f6c1c1; }
+.logoutBtn:hover { background: var(--danger-100); color: var(--danger-text); }
 
 /* ---- Mobile ---- */
 .closeBtn { display: none; }
@@ -159,7 +164,9 @@
   }
   .sidebar.show {
     transform: translateX(0);
-    box-shadow: 12px 0 40px rgba(2,16,36,.35);
+    box-shadow: 12px 0 40px rgba(40,45,90,.22);
+    /* the drawer sits over page content, so it needs a solid surface, not glass */
+    background: var(--surface);
   }
 
   .navLink { padding: 12px var(--space-3); font-size: var(--text-md); }
@@ -168,11 +175,11 @@
     display: flex; align-items: center; justify-content: center;
     position: absolute; top: var(--space-3); right: var(--space-3);
     width: 34px; height: 34px; border-radius: 50%;
-    background: rgba(255,255,255,.08); border: none;
-    color: #fff; font-size: 15px; cursor: pointer;
+    background: var(--surface-muted); border: none;
+    color: var(--text-primary); font-size: 15px; cursor: pointer;
     transition: background-color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
   }
-  .closeBtn:hover { background: rgba(255,255,255,.16); transform: rotate(90deg); }
+  .closeBtn:hover { background: var(--border); transform: rotate(90deg); }
 }
 
 .backdrop {

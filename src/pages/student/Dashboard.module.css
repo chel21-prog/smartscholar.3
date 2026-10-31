@@ -113,7 +113,7 @@
 
 /* modal buttons */
 .btnPrimary {
-  padding:10px 20px; background:var(--navy-600); color:#fff;
+  padding:10px 20px; background:var(--navy-600); color:var(--paper);
   border:none; border-radius:var(--radius-md); font-weight:600;
   font-size:var(--text-sm); cursor:pointer;
   transition:background-color var(--duration-fast);

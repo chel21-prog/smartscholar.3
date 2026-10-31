@@ -90,8 +90,8 @@
 }
 .table { width: 100%; border-collapse: collapse; min-width: 720px; }
 .table th {
-  background: var(--navy-900);
-  color: #fff;
+  background: var(--table-head-bg);
+  color: var(--table-head-text);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: .3px;
@@ -106,7 +106,7 @@
 .generateBtn {
   border: none;
   background: var(--navy-600);
-  color: #fff;
+  color: var(--paper);
   padding: 11px 20px;
   border-radius: 10px;
   cursor: pointer;

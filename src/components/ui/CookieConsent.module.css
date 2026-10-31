@@ -43,7 +43,7 @@
   flex-shrink: 0;
   padding: 9px 18px;
   background: var(--navy-600);
-  color: #fff;
+  color: var(--paper);
   border: none;
   border-radius: var(--radius-md);
   font-weight: 600;

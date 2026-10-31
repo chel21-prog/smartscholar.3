@@ -1,113 +1,168 @@
 /* ============================================================
-   SmartScholar Design Tokens - Light & Dark  (BLUE palette)
-   Anchors: #021024  #052659  #5483B3  #7DA0CA  #C1E8FF
-     #021024 sidebar + main text    #052659 primary buttons / headings
-     #5483B3 accents, focus, links  #7DA0CA soft accents
-     #C1E8FF light tints (chips, focus ring, selected)
-   Token names are unchanged, so every component follows along.
-   Status colors stay readable: green = success, amber = pending, rose = danger.
-   Text/background pairs are gated against WCAG AA (4.5:1); white text on every
-   filled button is >= 4.5:1. Dark mode swaps the fills and link/tint text tokens.
+   SmartScholar Design Tokens - Light & Dark  (SOFT PASTEL palette)
+   Sampled from the "Orbit" dashboard reference:
+     coral  #FE9093   peach  #FFAF98   cream  #FAD8CB
+     periwinkle #83A0DD / #B0C3E8      sage   #DBE4CA
+     frosted card #F2F3F7              ink    #1D2030 (the black pill)
+
+   HOW COLOR IS USED (the rules, so the UI stays calm):
+     1. Surfaces are quiet: a pastel gradient page, frosted off-white cards,
+        hairline lavender borders. Almost everything you see is neutral.
+     2. ONE action color: periwinkle-indigo (--navy-600). Buttons, links,
+        focus, selected tabs. Never coral.
+     3. Coral is the accent: highlights, secondary data series, soft
+        "attention" moments. It is never a button fill with white text.
+     4. Ink (#1D2030) is reserved for the active nav pill, tooltips and
+        high-emphasis labels, like the black pill in the reference.
+     5. Status colors are muted (sage / peach-amber / rose) and render as
+        coloured text or soft tints, never saturated blocks.
+
+   Token names are unchanged from the previous theme, so every component
+   follows along. Text/background pairs are gated against WCAG AA (4.5:1);
+   white text on every filled button is >= 4.5:1.
+     --navy-*  = periwinkle-indigo + ink   (primary)
+     --teal-*  = soft periwinkle           (secondary / focus)
+     --gold-*  = peach-amber               (attention)
+     --coral-* = new, accent
    =========================================================== */
 
 :root {
-  /* ---- Brand: Navy (primary) ---- */
-  --navy-950: #021024;
-  --navy-900: #031B3F;
-  --navy-800: #04214D;
-  --navy-700: #0B3C85;
-  --navy-600: #052659;
-  --navy-500: #5483B3;
-  --navy-300: #7DA0CA;
-  --navy-100: #C1E8FF;
-  --navy-50:  #EAF6FF;
+  /* ---- Brand: Ink + Indigo (primary) ---- */
+  --navy-950: #1D2030;   /* ink: active nav pill, tooltips */
+  --navy-900: #262A3E;
+  --navy-800: #31364F;
+  --navy-700: #3F54A0;   /* primary hover, table-head text */
+  --navy-600: #4F67B8;   /* PRIMARY fill (white text 5.3:1) */
+  --navy-500: #6F86CF;
+  --navy-300: #A3B5E6;
+  --navy-100: #DCE4F8;   /* focus tint, selected chips */
+  --navy-50:  #EEF2FC;
 
-  /* ---- Brand: Teal (secondary / accent) ---- */
-  --teal-900: #0F3D6E;
-  --teal-700: #2F659F;
-  --teal-600: #5483B3;
-  --teal-500: #7DA0CA;
-  --teal-100: #DCEBF8;
-  --teal-50:  #EEF5FB;
+  /* ---- Brand: Periwinkle (secondary / soft accent) ---- */
+  --teal-900: #34447F;
+  --teal-700: #4A62B0;   /* secondary fill (white text 5.4:1) */
+  --teal-600: #83A0DD;   /* reference periwinkle: rings, dots, bars */
+  --teal-500: #B0C3E8;
+  --teal-100: #E4EBFA;
+  --teal-50:  #F1F5FC;
 
-  /* ---- Brand: Gold (tertiary / attention) ---- */
-  --gold-700: #8c6320;
-  --gold-600: #b78638;
-  --gold-500: #f1c27d;
-  --gold-100: #fdf1de;
-  --gold-50:  #fffaf3;
+  /* ---- Brand: Peach (tertiary / attention) ---- */
+  --gold-700: #8E531F;
+  --gold-600: #A55C25;
+  --gold-500: #FFAF98;   /* reference peach */
+  --gold-100: #FFEADF;
+  --gold-50:  #FFF6F0;
 
-  /* ---- Neutrals (light mode) ---- */
-  --ink-900: #021024;
-  --ink-800: #14274A;
-  --ink-700: #2B4163;
-  --ink-600: #43597C;
-  --ink-500: #5A6F91;
-  --ink-400: #8095B2;
-  --ink-300: #A7B9D0;
-  --ink-200: #CBD9EA;
-  --ink-100: #E3ECF6;
-  --ink-50:  #F4F8FC;
-  --white:   #ffffff;
+  /* ---- Accent: Coral (new) ---- */
+  --coral-700: #A8404F;  /* text on light (5.8:1) */
+  --coral-600: #E0707D;
+  --coral-500: #FE9093;  /* reference coral: data, highlights */
+  --coral-300: #FFC2C0;
+  --coral-100: #FFE3E3;
+  --coral-50:  #FFF3F2;
 
-  /* ---- Semantic — remapped onto the 4-color palette ----
-     success -> teal, warning -> gold, danger -> red, info -> teal.
-     This keeps every existing Badge/StatCard/Button call working
-     unchanged while collapsing the app onto 4 hues. */
-  --success-700: #1F6B4F;
-  --success-600: #3E9A78;
-  --success-100: #DDF2E8;
-  --success-50:  #F0FAF5;
+  /* ---- Neutrals (light mode): cool lavender-grey ---- */
+  --ink-900: #222536;
+  --ink-800: #343849;
+  --ink-700: #484D63;
+  --ink-600: #4F5570;
+  --ink-500: #5E6480;
+  --ink-400: #9298AD;
+  --ink-300: #B4B9CB;
+  --ink-200: #D2D6E3;
+  --ink-100: #E5E8F1;
+  --ink-50:  #F3F5FA;
+  --white:   #F6F7FB;   /* never pure white: softer on the eyes */
+  --paper:   #F6F7FB;   /* text/icons on filled buttons, switch thumbs, logo tiles */
+
+  /* ---- Semantic: muted so nothing shouts ---- */
+  --success-700: #3C6B4E;
+  --success-600: #36704F;
+  --success-100: #E1F0E6;
+  --success-50:  #F1F8F3;
 
   --warning-700: var(--gold-700);
   --warning-600: var(--gold-600);
   --warning-100: var(--gold-100);
   --warning-50:  var(--gold-50);
 
-  --danger-700: #9c3d3d;
-  --danger-600: #bf4b4b;
-  --danger-100: #fbe8e8;
-  --danger-50:  #fef6f6;
+  --danger-700: #A83A4C;
+  --danger-600: #C0405A;
+  --danger-100: #FDE4E8;
+  --danger-50:  #FEF3F5;
 
   --info-700: var(--teal-900);
-  --info-600: var(--teal-600);
+  --info-600: var(--teal-700);
   --info-100: var(--teal-100);
 
-  /* ---- Text colors that must flip in dark mode: on -100/-50 tinted fills, links, and
-     text on navy tints. (The -600/-700 tokens double as button FILLS, so they can't.) ---- */
+  /* ---- Text colors that must flip in dark mode ---- */
   --success-text: var(--success-700);
   --info-text: var(--teal-900);
   --warning-text: var(--gold-700);
   --danger-text: var(--danger-700);
-  --link: var(--navy-600);
-  --navy-text: var(--navy-700);
+  --link: #4358A6;
+  --navy-text: #3A4F9A;
   --navy-strong: var(--navy-900);
 
-  /* ---- Status text colors (statuses render as colored text only,
-     no pill background). Dark mode overrides below for contrast. ---- */
+  /* ---- Status text colors (statuses render as coloured text; table
+     pills tint themselves from currentColor). ---- */
   --status-success: var(--success-700);
   --status-warning: var(--gold-700);
   --status-danger:  var(--danger-700);
   --status-info:    var(--teal-700);
   --status-neutral: var(--ink-600);
 
-  /* ---- Table row states (zebra + hover) ---- */
-  --table-zebra: var(--ink-50);
-  --table-hover: #E4F1FC;
-  --table-head-bg:     #E3EFFA;
+  /* ---- Table row states ---- */
+  --table-zebra: #ECEFF6;
+  --table-hover: #E1E8F5;
+  --table-head-bg:     #E3E8F2;   /* sampled: reference table header row */
   --table-head-text:   var(--navy-700);
-  --table-head-border: #CBDDEE;
+  --table-head-border: #D3DAE8;
 
   /* ---- Semantic surfaces (light) ---- */
-  --surface:       var(--white);
-  --surface-muted: var(--ink-50);
-  --border:        #D5E3F1;
-  --border-strong: var(--ink-200);
+  --surface:       #F2F4F9;   /* frosted card on the blue-grey backdrop, never pure white */
+  --surface-muted: #E7EBF3;
+  --border:        #DADFEA;
+  --border-strong: #C6CDDF;
   --text-primary:  var(--ink-900);
   --text-secondary: var(--ink-600);
-  --overlay:       rgba(2,16,36,.50); /* scrim behind modals */
-  --page-bg:       #EDF5FC;
-  --topbar-bg:     var(--white);
+  --overlay:       rgba(34,37,54,.38); /* scrim behind modals */
+  --page-bg:       #D6DAE2;   /* solid fallback under the backdrop */
+  --topbar-bg:     var(--surface);
+
+  /* ---- Page backdrop: the reference's calm cool blue-grey, with a faint
+     light bloom top-left and a periwinkle haze bottom-right ---- */
+  --page-gradient:
+    radial-gradient(900px 600px at 12% 0%,    rgba(236,239,245,.55) 0%, rgba(236,239,245,0) 62%),
+    radial-gradient(900px 700px at 100% 100%, rgba(170,190,235,.38) 0%, rgba(170,190,235,0) 64%),
+    linear-gradient(160deg, #D2D7DF 0%, #D9DDE5 52%, #D2D9E8 100%);
+
+  /* ---- Auth hero panel (full-strength reference wash; text colors are
+     tokens so dark mode flips them without special selectors) ---- */
+  --hero-bg: linear-gradient(150deg, #E3E7EE 0%, #CBD6EC 48%, #A9BDEA 100%);
+  --hero-text:      #222536;
+  --hero-text-soft: #484D63;
+  --hero-icon:      #3F54A0;
+  --hero-glow-1: rgba(246,247,251,.60);
+  --hero-glow-2: rgba(111,134,207,.30);
+
+  --grad-brand: linear-gradient(135deg, var(--navy-600) 0%, var(--navy-700) 100%);
+
+  /* ---- Glass (frosted panels that sit on the gradient) ---- */
+  --glass-bg:     rgba(238,241,247,.72);
+  --glass-border: rgba(232,236,244,.85);
+  --glass-blur:   saturate(140%) blur(14px);
+
+  /* ---- Sidebar / navigation (light, with an ink active pill) ---- */
+  --sidebar-bg:         rgba(232,236,243,.62);
+  --sidebar-border:     rgba(198,205,223,.6);
+  --nav-text:           var(--ink-600);
+  --nav-text-strong:    var(--ink-900);
+  --nav-group-text:     var(--ink-500);
+  --nav-hover-bg:       rgba(79,103,184,.09);
+  --nav-active-bg:      var(--navy-950);
+  --nav-active-text:    var(--paper);
+  --nav-active-icon:    var(--coral-500);
 
   /* ---- Typography ---- */
   --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
@@ -139,18 +194,18 @@
   --space-12: 40px;
   --space-16: 56px;
 
-  /* ---- Radius (rounder / more modern than the previous scale) ---- */
+  /* ---- Radius ---- */
   --radius-sm:   8px;
-  --radius-md:   12px;
-  --radius-lg:   16px;
-  --radius-xl:   22px;
+  --radius-md:   14px;
+  --radius-lg:   20px;   /* reference cards are generously rounded */
+  --radius-xl:   26px;
   --radius-full: 999px;
 
-  /* ---- Shadows (light) — tinted navy instead of flat black ---- */
-  --shadow-sm: 0 1px 2px rgba(5,38,89,.08);
-  --shadow-md: 0 6px 18px rgba(5,38,89,.10);
-  --shadow-lg: 0 14px 34px rgba(5,38,89,.14);
-  --shadow-xl: 0 24px 56px rgba(5,38,89,.20);
+  /* ---- Shadows (light): lavender-tinted, low and wide ---- */
+  --shadow-sm: 0 1px 2px rgba(60,70,120,.06), 0 1px 1px rgba(60,70,120,.04);
+  --shadow-md: 0 8px 22px rgba(60,70,120,.09);
+  --shadow-lg: 0 16px 38px rgba(60,70,120,.12);
+  --shadow-xl: 0 26px 60px rgba(40,45,90,.18);
 
   /* ---- Motion ---- */
   --ease-out:     cubic-bezier(0.16,1,0.3,1);
@@ -161,9 +216,7 @@
   --sidebar-width:  212px;
   --topbar-height:  60px;
 
-  /* ---- Responsive breakpoints (reference only — CSS custom
-     properties can't be used inside @media conditions, so every
-     module.css uses these exact px values directly) ----
+  /* ---- Responsive breakpoints (reference only)
      --bp-mobile:  640px
      --bp-tablet:  768px
      --bp-desktop: 1024px
@@ -172,75 +225,111 @@
 
 /* ============================================================
    DARK MODE — applied when [data-theme="dark"] on <html>
+   A dusk version of the same palette: ink surfaces, the same
+   coral + periwinkle glows, slightly lifted pastels for text.
    ============================================================ */
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --success-text: #9FE0BF;
-  --info-text: #A9CCEE;
-  --warning-text: #F1CE98;
-  --danger-text: #F2B0B0;
-  --link: #8DB4DE;
-  --navy-text: #AFCBEA;
-  --navy-strong: #E4F1FF;
-  --navy-700: #234F8A;
-  --navy-600: #2E62A6;
-  --navy-950: #010A17;
+  --success-text: #A5DDBB;
+  --info-text: #BCCBF3;
+  --warning-text: #F8CDB2;
+  --danger-text: #F6B6BE;
+  --link: #A3B7F0;
+  --navy-text: #B9C8F4;
+  --navy-strong: #EEF1FC;
+  --navy-700: #4559A8;
+  --navy-600: #5369BE;
+  --navy-950: #0F1019;
+  --navy-900: #2B3050;
+  --navy-800: #343A5E;
 
-  --surface:        #071E3A;
-  --surface-muted:  #051730;
-  --border:         #123055;
-  --border-strong:  #1C4272;
-  --text-primary:   #E4F1FF;
-  --text-secondary: #9DB8D6;
-  --page-bg:        #031326;
-  --topbar-bg:      #071E3A;
+  --surface:        #1E2132;
+  --surface-muted:  #191B2A;
+  --border:         #2C3048;
+  --border-strong:  #3B405E;
+  --text-primary:   #ECEEF8;
+  --text-secondary: #A9AFC8;
+  --page-bg:        #14151F;
+  --topbar-bg:      #1E2132;
+  --overlay:        rgba(8,9,16,.60);
 
-  --ink-900: #E4F1FF;
-  --ink-800: #D0E3F7;
-  --ink-700: #B6CFE9;
-  --ink-600: #9DB8D6;
-  --ink-500: #86A2C4;
-  --ink-400: #6A87AC;
-  --ink-300: #4D6B92;
-  --ink-200: #2A4A75;
-  --ink-100: #153157;
-  --ink-50:  #071E3A;
-  --white:   #ffffff;
+  --ink-900: #ECEEF8;
+  --ink-800: #DADDEE;
+  --ink-700: #C3C7DE;
+  --ink-600: #A9AFC8;
+  --ink-500: #8E94B0;
+  --ink-400: #6E7493;
+  --ink-300: #50566F;
+  --ink-200: #353A57;
+  --ink-100: #272B42;
+  --ink-50:  #1E2132;
+  --white:   #F1F2F9;
+  --paper:   #F1F2F9;
 
-  --navy-50:  #0A2749;
-  --navy-100: #0F3560;
+  --navy-50:  #1F2540;
+  --navy-100: #2A3260;
 
-  --teal-50:  #0B2742;
-  --teal-100: #103557;
+  --teal-50:  #1D2340;
+  --teal-100: #28305A;
 
-  --gold-50:  #33291c;
-  --gold-100: #413424;
+  --gold-50:  #33261F;
+  --gold-100: #44322A;
 
-  --success-100: #123A2C;
-  --success-50:  #0E2D23;
+  --coral-50:  #3A2328;
+  --coral-100: #4A2B32;
+  --coral-700: #F6B6BE;
+
+  --success-100: #1F3A2D;
+  --success-50:  #182E24;
   --warning-100: var(--gold-100);
   --warning-50:  var(--gold-50);
-  --danger-100:  #3d2427;
-  --danger-50:   #2f1b1e;
+  --danger-100:  #43242C;
+  --danger-50:   #341C23;
   --info-100:    var(--teal-100);
 
-  --status-success: #74CDA0;
-  --status-warning: var(--gold-500);
-  --status-danger:  #eb9a9a;
-  --status-info:    var(--teal-500);
+  --status-success: #8CD2A8;
+  --status-warning: #FFB9A0;
+  --status-danger:  #F29AA6;
+  --status-info:    #A3B7F0;
   --status-neutral: var(--ink-500);
 
-  --table-zebra: #051730;
-  --table-hover: #0F3560;
-  --table-head-bg:     #0C2A4F;
-  --table-head-text:   #DCEBFA;
-  --table-head-border: #1C4272;
+  --table-zebra: #191B2A;
+  --table-hover: #282C48;
+  --table-head-bg:     #242842;
+  --table-head-text:   #D6DCF6;
+  --table-head-border: #353A57;
 
-  --shadow-sm: 0 1px 2px rgba(0,5,15,.40);
-  --shadow-md: 0 6px 16px rgba(0,5,15,.48);
-  --shadow-lg: 0 14px 34px rgba(0,5,15,.56);
-  --shadow-xl: 0 24px 56px rgba(0,5,15,.66);
+  --page-gradient:
+    radial-gradient(900px 620px at 0% 0%,     rgba(254,144,147,.20) 0%, rgba(254,144,147,0) 62%),
+    radial-gradient(760px 520px at 55% -8%,   rgba(255,175,152,.10) 0%, rgba(255,175,152,0) 65%),
+    radial-gradient(900px 700px at 100% 100%, rgba(131,160,221,.22) 0%, rgba(131,160,221,0) 62%),
+    #14151F;
+
+  --hero-bg: linear-gradient(150deg, #3A2733 0%, #2B2640 45%, #1F2A4C 100%);
+  --hero-text:      #ECEEF8;
+  --hero-text-soft: #C9CEE6;
+  --hero-icon:      #FE9093;
+  --hero-glow-1: rgba(254,144,147,.32);
+  --hero-glow-2: rgba(131,160,221,.30);
+
+  --glass-bg:     rgba(30,33,50,.72);
+  --glass-border: rgba(255,255,255,.07);
+
+  --sidebar-bg:      rgba(24,26,40,.78);
+  --sidebar-border:  rgba(255,255,255,.06);
+  --nav-text:        #A9AFC8;
+  --nav-text-strong: #ECEEF8;
+  --nav-group-text:  #8E94B0;
+  --nav-hover-bg:    rgba(163,183,240,.10);
+  --nav-active-bg:   #ECEEF8;
+  --nav-active-text: #1D2030;
+  --nav-active-icon: #E0707D;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,10,.40);
+  --shadow-md: 0 8px 20px rgba(0,0,10,.42);
+  --shadow-lg: 0 16px 36px rgba(0,0,10,.50);
+  --shadow-xl: 0 26px 60px rgba(0,0,10,.62);
 }
 
 /* ---- Global accessibility ---- */
@@ -253,7 +342,7 @@
 }
 
 :focus-visible {
-  outline: 2px solid var(--teal-600);
+  outline: 2px solid var(--navy-500);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }

@@ -40,13 +40,14 @@
 }
 
 /* ---- full app shell (sign-in / guards) ---- */
-.shell { display: flex; flex: 1; width: 100%; min-height: 100%; background: var(--page-bg); }
+.shell { display: flex; flex: 1; width: 100%; min-height: 100%; background: transparent; }
 .shellSide {
-  width: var(--sidebar-width); flex-shrink: 0; background: var(--navy-950);
+  width: var(--sidebar-width); flex-shrink: 0; background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4);
 }
 .shellSide .block {
-  background: linear-gradient(90deg, rgba(255,255,255,.08) 25%, rgba(255,255,255,.16) 37%, rgba(255,255,255,.08) 63%);
+  background: linear-gradient(90deg, var(--surface-muted) 25%, var(--border) 37%, var(--surface-muted) 63%);
   background-size: 400% 100%;
 }
 .shellMain { flex: 1; min-width: 0; padding: var(--space-6); }

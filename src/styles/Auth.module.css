@@ -4,7 +4,8 @@
 
 .page{
     min-height:100vh;
-    background:var(--page-bg);
+    background:var(--page-gradient);
+    background-color:var(--page-bg);
     color:var(--text-primary);
 
     font-family:var(--font-sans);
@@ -22,7 +23,8 @@
     display:grid;
     grid-template-columns:1.15fr .85fr;
 
-    background:var(--page-bg);
+    background:var(--surface);
+    box-shadow:var(--shadow-xl);
 
     border:1px none var(--border);
 
@@ -36,9 +38,10 @@
     position:relative;
     overflow:hidden;
 
-    background:linear-gradient(155deg, var(--navy-950) 0%, var(--navy-900) 55%, #052659 100%);
+    /* the reference's coral > peach > periwinkle wash, at full strength here only */
+    background:var(--hero-bg);
 
-    color:#fff;
+    color:var(--hero-text);
 
     padding:48px 44px;
 
@@ -187,7 +190,7 @@
     border-radius:12px;
 
     background:var(--navy-600);
-    color:white;
+    color:var(--paper);
 
     font-weight:600;
 
@@ -328,7 +331,7 @@
 
     background:var(--navy-600);
 
-    color:#fff;
+    color:var(--paper);
 
     cursor:pointer;
 
@@ -478,14 +481,14 @@
 
 /* ---- palette hero on the left, soft light circles, readable text ---- */
 .leftPanel::before { content:""; position:absolute; width:460px; height:460px; border-radius:50%; top:-170px; right:-150px; pointer-events:none;
-  background:radial-gradient(circle at 35% 35%, rgba(84,131,179,.55), rgba(84,131,179,0) 70%); }
+  background:radial-gradient(circle at 35% 35%, var(--hero-glow-1), transparent 70%); }
 .leftPanel::after  { content:""; position:absolute; width:380px; height:380px; border-radius:50%; bottom:-150px; left:-120px; pointer-events:none;
-  background:radial-gradient(circle at 60% 40%, rgba(193,232,255,.20), rgba(193,232,255,0) 70%); }
+  background:radial-gradient(circle at 60% 40%, var(--hero-glow-2), transparent 70%); }
 .leftPanel > * { position:relative; z-index:1; }
-.leftPanel .brand    { color:#fff; }
-.leftPanel .tagline  { color:#C1E8FF; opacity:.92; }
-.leftPanel .features { color:#C1E8FF; opacity:1; }
-.leftPanel .features svg { color:#7DA0CA; }
+.leftPanel .brand    { color:var(--hero-text); }
+.leftPanel .tagline  { color:var(--hero-text-soft); opacity:1; }
+.leftPanel .features { color:var(--hero-text); opacity:1; }
+.leftPanel .features svg { color:var(--hero-icon); }
 
 /* ---- "By continuing, you agree ..." ---- */
 .consent { margin:2px 0 0; text-align:center; font-size:12px; line-height:1.6; color:var(--text-secondary); }

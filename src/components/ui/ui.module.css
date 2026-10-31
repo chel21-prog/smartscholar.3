@@ -13,7 +13,7 @@
 .btn {
   display: inline-flex; align-items: center; justify-content: center;
   gap: var(--space-2); font-family: var(--font-sans); font-weight: 600;
-  border-radius: var(--radius-md); border: 1px solid transparent;
+  border-radius: var(--radius-full); border: 1px solid transparent; /* pill, like the reference */
   cursor: pointer; white-space: nowrap;
   transition: background-color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),
@@ -23,32 +23,32 @@
 .btn:disabled { cursor: not-allowed; opacity: .55; }
 
 .btn-md { font-size: var(--text-base); padding: 9px 16px; }
-.btn-sm { font-size: var(--text-sm);  padding: 7px 12px; border-radius: var(--radius-sm); }
+.btn-sm { font-size: var(--text-sm);  padding: 7px 14px; }
 
 /* ---- Button colors: exactly 4 across the whole system ----
-   primary   — the main action on a screen (solid navy)
-   secondary — a real but lower-emphasis action (solid teal)
+   primary   — the main action on a screen (solid indigo)
+   secondary — a real but lower-emphasis action (solid periwinkle-blue)
    ghost     — de-emphasized/neutral action, e.g. Cancel/Close (solid gray tint)
    danger    — destructive action (solid red)
    Every one of these has a real, visible background — nothing here
    renders as bare/invisible text. Don't add a 5th variant; reuse one
    of these four. */
-.btn-primary   { background: var(--navy-600); color: #fff; box-shadow: var(--shadow-sm); }
-.btn-primary:hover:not(:disabled) { background: var(--navy-700); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-primary   { background: var(--navy-600); color: var(--paper); box-shadow: 0 4px 12px rgba(79,103,184,.24); }
+.btn-primary:hover:not(:disabled) { background: var(--navy-700); transform: translateY(-1px); box-shadow: 0 8px 18px rgba(79,103,184,.30); }
 
-.btn-secondary { background: var(--teal-700); color: #fff; border-color: var(--teal-700); box-shadow: var(--shadow-sm); }
+.btn-secondary { background: var(--teal-700); color: var(--paper); border-color: var(--teal-700); box-shadow: var(--shadow-sm); }
 .btn-secondary:hover:not(:disabled) { background: var(--teal-900); border-color: var(--teal-900); transform: translateY(-1px); box-shadow: var(--shadow-md); }
 
-.btn-ghost { background: var(--surface-muted); color: var(--text-secondary); border-color: var(--surface-muted); }
-.btn-ghost:hover:not(:disabled) { background: var(--border-strong); color: var(--text-primary); }
+.btn-ghost { background: var(--surface-muted); color: var(--text-secondary); border-color: var(--border); }
+.btn-ghost:hover:not(:disabled) { background: var(--navy-50); border-color: var(--navy-100); color: var(--navy-text); }
 
-.btn-danger { background: var(--danger-600); color: #fff; box-shadow: var(--shadow-sm); }
+.btn-danger { background: var(--danger-600); color: var(--paper); box-shadow: var(--shadow-sm); }
 .btn-danger:hover:not(:disabled) { background: var(--danger-700); transform: translateY(-1px); box-shadow: var(--shadow-md); }
 
 .btnLabel { display: inline-flex; align-items: center; }
 .spinner {
   width: 14px; height: 14px; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,.4); border-top-color: currentColor;
+  border: 2px solid rgba(246,247,251,.4); border-top-color: currentColor;
   animation: spin .7s linear infinite; flex-shrink: 0;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -71,7 +71,7 @@
 }
 .input::placeholder { color: var(--ink-300); }
 .input:hover  { border-color: var(--ink-300); }
-.input:focus  { border-color: var(--teal-600); box-shadow: 0 0 0 3px var(--teal-100); }
+.input:focus  { border-color: var(--navy-500); box-shadow: 0 0 0 3px var(--teal-100); }
 .input:disabled { background: var(--surface-muted); color: var(--text-secondary); cursor: not-allowed; }
 .inputInvalid { border-color: var(--danger-600); }
 .inputInvalid:focus { box-shadow: 0 0 0 3px var(--danger-100); }
@@ -116,8 +116,8 @@
   text-align: center; padding: var(--space-12) var(--space-6); color: var(--text-secondary);
 }
 .emptyIcon {
-  width: 56px; height: 56px; border-radius: 50%; background: var(--teal-50);
-  color: var(--teal-700); display: flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; border-radius: 50%; background: var(--coral-100);
+  color: var(--coral-700); display: flex; align-items: center; justify-content: center;
   font-size: 24px; margin-bottom: var(--space-4);
 }
 .emptyTitle { margin: 0 0 var(--space-2); font-size: var(--text-md); font-weight: 700; color: var(--text-primary); }
@@ -174,9 +174,8 @@
 }
 
 /* ---- Table ----
-   Sticky navy header (keeps the brand's dominant color, per the
-   design system), roomier rows, a single teal accent line under the
-   header so the boundary reads clearly without a hard visual break,
+   Sticky soft-lavender header with indigo labels, roomier rows, a hairline
+   under the header so the boundary reads clearly without a hard visual break,
    and zebra + hover (both come from styles/tables.css) — only the table itself scrolls horizontally
    on narrow screens, never the surrounding page layout. */
 .tableWrap {
@@ -187,11 +186,11 @@
 }
 .table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: var(--text-sm); }
 .table thead th {
-  position: sticky; top: 0; background: var(--navy-900); color: #fff;
+  position: sticky; top: 0; background: var(--table-head-bg); color: var(--table-head-text);
   text-align: left; font-weight: 600; font-size: var(--text-xs);
   letter-spacing: .4px; text-transform: uppercase;
   padding: var(--space-4); white-space: nowrap;
-  border-bottom: 2px solid var(--teal-600);
+  border-bottom: 2px solid var(--table-head-border);
 }
 .table tbody td {
   padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border);
