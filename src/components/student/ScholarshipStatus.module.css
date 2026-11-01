@@ -1,0 +1,75 @@
+/* "Your scholarship" status banner (student dashboard, top of page). */
+
+.wrap { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); flex-shrink: 0; }
+
+.card {
+  position: relative;
+  background: var(--surface-raised);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-6) var(--space-8);
+  display: flex; flex-direction: column; gap: var(--space-3);
+  overflow: hidden;
+  cursor: pointer;
+}
+/* a soft tone wash in the corner, like the reference's tinted panels */
+.card::before {
+  content: ""; position: absolute; inset: 0 auto 0 0; width: 6px;
+}
+.card_ok::before   { background: var(--success-600); }
+.card_warn::before { background: var(--gold-500); }
+.cardLink { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.cardLink:focus-visible { outline: 2px solid var(--navy-600); outline-offset: 2px; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.eyebrow { font-size: var(--text-xs); font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-secondary); }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 7px; padding: 4px 12px;
+  border-radius: var(--radius-full); font-size: var(--text-sm); font-weight: 700; white-space: nowrap;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+.pill i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill_ok   { color: var(--status-success); }
+.pill_warn { color: var(--status-warning); }
+
+.name { margin: 0; font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; line-height: 1.2; color: var(--text-primary); }
+.sub { margin: 0; font-size: var(--text-base); color: var(--text-secondary); max-width: 60ch; }
+
+.facts { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-1); }
+.fact {
+  display: flex; flex-direction: column; gap: 2px; min-width: 110px;
+  padding: 10px 16px; border-radius: var(--radius-md);
+  background: var(--surface); border: 1px solid var(--border);
+}
+.factVal { font-size: var(--text-lg); font-weight: 700; color: var(--text-primary); }
+.factLbl { font-size: var(--text-xs); color: var(--text-secondary); text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
+
+/* progress steps */
+.steps { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: flex; align-items: center; gap: 0; }
+.step { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; position: relative; }
+.step:not(:last-child)::after {
+  content: ""; flex: 1; height: 2px; margin: 0 10px; border-radius: 2px; background: var(--border-strong);
+}
+.step_done:not(:last-child)::after { background: var(--success-600); }
+.stepDot {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  background: var(--surface-muted); color: var(--text-secondary); border: 1px solid var(--border-strong);
+}
+.step_done .stepDot    { background: var(--success-600); border-color: var(--success-600); color: var(--paper); }
+.step_current .stepDot { background: var(--gold-500); border-color: var(--gold-500); color: var(--navy-950); }
+.stepLabel { font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+.step_done .stepLabel, .step_current .stepLabel { color: var(--text-primary); }
+
+.go { align-self: flex-end; margin-top: var(--space-1); font-size: var(--text-sm); font-weight: 600; color: var(--link); pointer-events: none; }
+.arrow { display: inline-block; transition: transform var(--duration-fast) var(--ease-out); }
+.card:hover .arrow, .card:focus-within .arrow { transform: translateX(4px); }
+
+@media (max-width: 640px) {
+  .card { padding: var(--space-5); }
+  .stepLabel { display: none; }
+  .step_current .stepLabel { display: inline; }
+  .name { font-size: var(--text-xl); }
+}

@@ -16,35 +16,26 @@
 
     padding:24px;
 }
-.container{
+.container {
     width:100%;
-    max-width:1300px;
+    max-width:1200px;
 
     display:grid;
-    grid-template-columns:1.15fr .85fr;
+    grid-template-columns:1.1fr .9fr;
+    gap:40px;
+    align-items:center;
 
-    background:var(--surface);
-    box-shadow:var(--shadow-xl);
-
-    border:1px none var(--border);
-
-    border-radius:28px;
-
-    overflow:hidden;
-
-    
+    /* no panel backgrounds: both halves sit directly on the page backdrop */
+    background:transparent;
+    box-shadow:none;
+    border:none;
+    overflow:visible;
 }
-.leftPanel{
+.leftPanel {
     position:relative;
-    overflow:hidden;
-
-    /* the reference's coral > peach > periwinkle wash, at full strength here only */
-    background:var(--hero-bg);
-
-    color:var(--hero-text);
-
-    padding:48px 44px;
-
+    background:transparent;
+    color:var(--text-primary);
+    padding:24px 12px 24px 24px;
     display:flex;
     flex-direction:column;
     justify-content:center;
@@ -85,12 +76,12 @@
    RIGHT PANEL
 ========================================== */
 
-.rightPanel{
+.rightPanel {
     display:flex;
     justify-content:center;
     align-items:center;
-    padding:32px;
-    background:var(--page-bg);
+    padding:24px;
+    background:transparent;
 }
 
 .card {
@@ -320,7 +311,7 @@
 
     .logo{
 
-        width:170px;
+        width:96px;
     }
 
     .brand{
@@ -441,15 +432,10 @@
 }
 
 /* ---- palette hero on the left, soft light circles, readable text ---- */
-.leftPanel::before { content:""; position:absolute; width:460px; height:460px; border-radius:50%; top:-170px; right:-150px; pointer-events:none;
-  background:radial-gradient(circle at 35% 35%, var(--hero-glow-1), transparent 70%); }
-.leftPanel::after  { content:""; position:absolute; width:380px; height:380px; border-radius:50%; bottom:-150px; left:-120px; pointer-events:none;
-  background:radial-gradient(circle at 60% 40%, var(--hero-glow-2), transparent 70%); }
-.leftPanel > * { position:relative; z-index:1; }
-.leftPanel .brand    { color:var(--hero-text); }
-.leftPanel .tagline  { color:var(--hero-text-soft); opacity:1; }
-.leftPanel .features { color:var(--hero-text); opacity:1; }
-.leftPanel .features svg { color:var(--hero-icon); }
+.leftPanel .brand    { color:var(--text-primary); }
+.leftPanel .tagline  { color:var(--text-secondary); opacity:1; }
+.leftPanel .features { color:var(--text-primary); opacity:1; }
+.leftPanel .features svg { color:var(--navy-600); }
 
 /* ---- "By continuing, you agree ..." ---- */
 .consent { margin:2px 0 0; text-align:center; font-size:12px; line-height:1.6; color:var(--text-secondary); }
@@ -461,7 +447,7 @@
     display:inline-flex; align-items:center; gap:10px;
     padding:9px 16px 9px 12px;
     border-radius:var(--radius-full);
-    background:var(--hero-chip-bg);
-    border:1px solid var(--hero-chip-border);
-    color:var(--hero-text);
+    background:var(--surface-raised);
+    border:1px solid var(--glass-border);
+    color:var(--text-primary);
 }

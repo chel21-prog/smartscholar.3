@@ -11,7 +11,7 @@ import { getReportSecurity } from "@/lib/reportSecurity";
 import { useToast } from "@/context/ToastContext";
 import Button from "@/components/ui/Button";
 import TableSkeleton from "@/components/ui/TableSkeleton";
-import { Panel, BarChart, Gauge, Donut, MeterRow, ActivityTable, DeadlineList, EmptyHint, TONE } from "@/components/ui/DashCharts";
+import { Panel, BarChart, Gauge, MeterRow, ActivityTable, DeadlineList, EmptyHint, TONE } from "@/components/ui/DashCharts";
 import dash from "@/components/ui/DashCharts.module.css";
 
 // ─── stable style objects defined outside the component ──────────────────────
@@ -724,7 +724,7 @@ export default function CoordinatorDashboard() {
       },
       headStyles: {
         fillColor:   NAVY,
-        
+        textColor:   WHITE,
         fontStyle:   "bold",
         fontSize:    7.5,
         cellPadding: { top: 6, bottom: 6, left: 5, right: 5 },
@@ -907,7 +907,6 @@ export default function CoordinatorDashboard() {
   // ── chart data (derived from what is already loaded; no extra queries) ──
   const approvedCount = applications.filter(a=>a.status==="Approved").length;
   const rejectedCount = applications.filter(a=>a.status==="Rejected").length;
-  const otherCount    = Math.max(0, totalApplicants - approvedCount - pendingCount - rejectedCount);
   const acceptancePct = totalApplicants ? Math.round(approvedCount/totalApplicants*100) : 0;
 
   // applications per calendar month, last 6 months (oldest first)
@@ -923,7 +922,11 @@ export default function CoordinatorDashboard() {
     });
   })();
 
-  const recentRows = applications.slice(0,6).map(a=>({
+  const slotRows = [...scholarStats]
+    .sort((a,b)=>(b.slots? b.occupied/b.slots : 0) - (a.slots? a.occupied/a.slots : 0))
+    .slice(0,6);
+
+  const recentRows = applications.slice(0,5).map(a=>({
     id: a.application_id,
     name: `${a.students?.users?.first_name||""} ${a.students?.users?.last_name||""}`.trim(),
     scholarship: a.scholarships?.scholarship_name,
@@ -1001,23 +1004,20 @@ export default function CoordinatorDashboard() {
         </div>
       </div>
 
-      {/* ── stat cards ── */}
+      {/* ── stat cards ──
+          Each figure lives in exactly one card: totals up here, the monthly
+          trend / outcome split / slot usage / deadlines in the panels below. */}
       <div className="stats-grid">
         {[
           {
-            label: "Applications This Month", to: "/coordinator/applications", hint: "Applications",
-            val: applications.filter(a=>{const d=new Date(a.application_date),n=new Date();return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear()}).length,
-            explain: "Count of applications whose application date falls in the current calendar month and year.",
+            label: "Total Applications", to: "/coordinator/applications", hint: "Applications",
+            val: totalApplicants,
+            explain: "Every scholarship application currently loaded, regardless of status.",
           },
           {
             label: "Grantees", to: "/coordinator/grantees", hint: "Grantees",
             val: totalGrantees,
             explain: "Sum of the \"occupied\" slot count across every scholarship — i.e. how many active grantees currently hold a slot.",
-          },
-          {
-            label: "Acceptance Rate", to: "/coordinator/applications", hint: "Applications",
-            val: totalApplicants ? Math.round(applications.filter(a=>a.status==="Approved").length/totalApplicants*100)+"%" : "0%",
-            explain: "Applications with status \"Approved\" ÷ total applications × 100, rounded to the nearest whole percent.",
           },
           {
             label: "Scholarships", to: "/coordinator/scholarships", hint: "Scholarships",
@@ -1031,45 +1031,39 @@ export default function CoordinatorDashboard() {
 
       {/* ── charts row ── */}
       <div className={dash.rowA}>
-        <Panel title="Applications overview"
+        <Panel title="Applications overview" to="/coordinator/applications" hint="View applications"
           action={<InfoTooltip label="Applications overview">Number of applications submitted in each of the last 6 calendar months, by application date. The busiest month is highlighted.</InfoTooltip>}>
           {totalApplicants ? <BarChart data={monthlyApps} /> : <EmptyHint>No applications yet.</EmptyHint>}
         </Panel>
 
-        <Panel title="Acceptance rate"
-          action={<InfoTooltip label="Acceptance rate">Applications with status "Approved" ÷ total applications × 100, rounded to the nearest whole percent.</InfoTooltip>}>
-          <Gauge value={acceptancePct} caption={`${approvedCount} approved of ${totalApplicants}`} />
-        </Panel>
-
-        <Panel title="Application status"
-          action={<InfoTooltip label="Application status">Total = all applications loaded. Each slice is the count of applications with that exact status.</InfoTooltip>}>
-          <Donut centerValue={totalApplicants} centerLabel="Applications"
-            segments={[
+        <Panel title="Acceptance rate" to="/coordinator/applications" hint="Review applications"
+          action={<InfoTooltip label="Acceptance rate">Applications with status "Approved" ÷ total applications × 100, rounded to the nearest whole percent. The counts underneath are the applications with that exact status.</InfoTooltip>}>
+          <Gauge value={acceptancePct} caption="of all applications"
+            outcomes={[
               { label:"Approved", value:approvedCount, color:TONE.blue },
               { label:"Pending",  value:pendingCount,  color:TONE.peach },
               { label:"Rejected", value:rejectedCount, color:TONE.coral },
-              ...(otherCount ? [{ label:"Other", value:otherCount, color:"var(--ink-300)" }] : []),
             ]} />
         </Panel>
       </div>
 
       {/* ── activity row ── */}
       <div className={dash.rowB}>
-        <Panel title="Recent activity" bodyClass={dash.listBody}
-          action={<InfoTooltip label="Recent activity">The 6 most recently loaded applications, showing each applicant's current status.</InfoTooltip>}>
+        <Panel bodyClass={dash.listBody} title="Recent activity" to="/coordinator/applications" hint="View all applications"
+          action={<InfoTooltip label="Recent activity">The 5 most recently loaded applications, showing each applicant's current status.</InfoTooltip>}>
           <ActivityTable rows={recentRows} />
         </Panel>
 
-        <Panel title="Scholarship slots" bodyClass={dash.listBody}
-          action={<InfoTooltip label="Scholarship slots">For each scholarship, occupied slots ÷ total slots. The bar turns coral at full capacity and peach at 80%+ full.</InfoTooltip>}>
-          {scholarStats.length
-            ? <div style={{overflow:"auto",scrollbarWidth:"thin"}}>{scholarStats.map(s=>(
+        <Panel bodyClass={dash.listBody} title="Scholarship slots" to="/coordinator/scholarships" hint="Manage scholarships"
+          action={<InfoTooltip label="Scholarship slots">Occupied slots ÷ total slots for the 6 scholarships closest to full. The bar turns coral at full capacity and peach at 80%+ full.</InfoTooltip>}>
+          {slotRows.length
+            ? <div>{slotRows.map(s=>(
                 <MeterRow key={s.scholarship_id} label={s.scholarship_name} value={s.occupied} max={s.slots} />
               ))}</div>
             : <EmptyHint>No scholarships yet.</EmptyHint>}
         </Panel>
 
-        <Panel title="Upcoming deadlines" bodyClass={dash.listBody}
+        <Panel bodyClass={dash.listBody} title="Upcoming deadlines" to="/coordinator/scholarships" hint="View scholarships"
           action={<InfoTooltip label="Upcoming deadlines">Active scholarships whose submission deadline is still ahead, soonest first. Red = 3 days or less, amber = 2 weeks or less.</InfoTooltip>}>
           <DeadlineList items={deadlineItems} />
         </Panel>

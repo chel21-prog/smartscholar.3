@@ -10,6 +10,7 @@ import InfoTooltip from "@/components/ui/InfoTooltip";
 import { getCached, setCached } from "@/lib/dataCache";
 import { checkApplicationRule, fetchActiveGrants, findRuleViolation } from "@/lib/scholarshipRules";
 import { fetchOccupiedMap, findSlotViolation, isFull, slotsFullReason } from "@/lib/scholarshipSlots";
+import ScholarshipStatus from "@/components/student/ScholarshipStatus";
 import s from "./Dashboard.module.css";
 
 const CACHE_KEY = "student-dashboard";
@@ -503,10 +504,38 @@ export default function Dashboard() {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goToSection(id); }
   };
 
+  // ── "your scholarship" status (shown at the very top when there is one) ──
+  // Active awards first; otherwise any application still in progress (pending / approved
+  // but not yet a grantee). Rejected, cancelled and ended ones are not "a scholarship".
+  const scholarshipById = (id) => scholarships.find((x) => String(x.scholarship_id) === String(id));
+  const myScholarships = (() => {
+    const items = [];
+    const heldIds = new Set();
+    activeGrants.forEach((g) => {
+      const sc = scholarshipById(g.scholarship_id);
+      if (sc && !heldIds.has(String(sc.scholarship_id))) {
+        heldIds.add(String(sc.scholarship_id));
+        const app = applications.find((a) => String(a.scholarship_id) === String(sc.scholarship_id) && a.status === "Approved");
+        items.push({ kind: "active", scholarship: sc, application: app });
+      }
+    });
+    applications
+      .filter((a) => !isEnded(a) && a.status !== "Rejected" && !heldIds.has(String(a.scholarship_id)))
+      .sort((a, b) => new Date(b.application_date || 0) - new Date(a.application_date || 0))
+      .forEach((a) => {
+        const sc = scholarshipById(a.scholarship_id);
+        if (sc) { heldIds.add(String(a.scholarship_id)); items.push({ kind: "application", scholarship: sc, application: a }); }
+      });
+    return items;
+  })();
+
   if (loading) return <PageLoader label="Loading your scholarships…" variant="cards" />;
 
   return (
     <div className={`page-shell ${s.page}`}>
+      {/* status of the student's scholarship, at the very top */}
+      <ScholarshipStatus items={myScholarships} />
+
       <div className={`page-header ${s.header}`}>
         <div>
           <h1 className="page-title">Scholarship Dashboard</h1>

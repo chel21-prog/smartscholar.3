@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import styles from "./DashCharts.module.css";
 
 /**
@@ -14,25 +16,48 @@ export const TONE = {
   coral: "var(--coral-500)",
   peach: "var(--gold-500)",
   sage:  "var(--success-600)",
-  track: "var(--ink-100)",
+  track: "var(--border-strong)",
 };
 
-/* ───────────── Panel shell ───────────── */
-export function Panel({ title, action, children, className = "", bodyClass = "" }) {
+/* ───────────── Panel shell ─────────────
+   Pass `to` to make the whole panel a link (same pattern as StatCard): a
+   stretched <Link> sits over the card, the info tooltip stays above it, and
+   a "view" footer shows where it goes. */
+export function Panel({ title, action, children, className = "", bodyClass = "", to, hint }) {
   return (
-    <section className={`${styles.panel} ${className}`}>
+    <section className={`${styles.panel} ${to ? styles.clickable : ""} ${className}`}>
+      {to && <Link to={to} className={styles.cardLink} aria-label={`${title}: ${hint || "view details"}`} />}
       <header className={styles.panelHead}>
         <h3 className={styles.panelTitle}>{title}</h3>
-        {action}
+        {action && <span className={styles.actionSlot}>{action}</span>}
       </header>
       <div className={`${styles.panelBody} ${bodyClass}`}>{children}</div>
+      {to && (
+        <span className={styles.goFoot} aria-hidden="true">
+          {hint || "View"} <span className={styles.goArrow}>→</span>
+        </span>
+      )}
     </section>
   );
 }
 
 /* ───────────── Bars (e.g. applications per month) ───────────── */
-export function BarChart({ data, height = 250 }) {
-  const W = 560, padL = 30, padR = 8, padT = 22, padB = 26;
+export function BarChart({ data, height = 240 }) {
+  // Measure the container so the viewBox is 1:1 with real pixels: text stays a
+  // true 11-12px at every width instead of shrinking on phones.
+  const boxRef = useRef(null);
+  const [W, setW] = useState(560);
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const set = () => setW(Math.max(260, Math.round(el.clientWidth)));
+    set();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const padL = 30, padR = 8, padT = 22, padB = 26;
   const H = height;
   const max = Math.max(1, ...data.map((d) => d.value));
   // round the axis up to a "nice" number so gridlines read cleanly
@@ -45,7 +70,8 @@ export function BarChart({ data, height = 250 }) {
   const peakIdx = data.reduce((b, d, i, a) => (d.value > a[b].value ? i : b), 0);
 
   return (
-    <svg className={styles.svg} viewBox={`0 0 ${W} ${H}`} role="img"
+    <div ref={boxRef} style={{ width: "100%" }}>
+    <svg className={styles.svg} width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img"
       aria-label={`Bar chart: ${data.map((d) => `${d.label} ${d.value}`).join(", ")}`}>
       {[0, 1, 2, 3, 4].map((i) => {
         const y = padT + innerH - (innerH * i) / 4;
@@ -74,29 +100,53 @@ export function BarChart({ data, height = 250 }) {
         );
       })}
     </svg>
+    </div>
   );
 }
 
-/* ───────────── Semicircle gauge ───────────── */
-export function Gauge({ value, caption, tone = TONE.coral }) {
+/* ───────────── Semicircle gauge + outcome counts ─────────────
+   One card for the acceptance rate AND the counts behind it, so the same
+   numbers are never repeated in a second card. */
+export function Gauge({ value, caption, tone = TONE.coral, outcomes = [] }) {
   const pct = Math.max(0, Math.min(100, value));
-  const R = 78, C = 100, cx = 100, cy = 100;
-  const arc = (p) => {
+  const R = 84, cx = 110, cy = 104, SW = 18;
+  const pt = (p, r = R) => {
     const a = Math.PI * (1 - p / 100);
-    return `${cx + R * Math.cos(a)} ${cy - R * Math.sin(a)}`;
+    return [cx + r * Math.cos(a), cy - r * Math.sin(a)];
   };
-  const d = (p) => `M ${cx - R} ${cy} A ${R} ${R} 0 ${p > 50 ? 1 : 0} 1 ${arc(p)}`;
+  const [ex, ey] = pt(pct);
+  const ticks = Array.from({ length: 21 }, (_, i) => i * 5);
   return (
-    <div className={styles.gaugeWrap}>
-      <svg className={styles.gauge} viewBox="0 0 200 116" role="img" aria-label={`${pct}% ${caption || ""}`}>
-        <path d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`} fill="none"
-          stroke={TONE.track} strokeWidth="16" strokeLinecap="round" />
-        {pct > 0 && <path d={d(Math.max(pct, 1))} fill="none" stroke={tone} strokeWidth="16" strokeLinecap="round" />}
-      </svg>
-      <div className={styles.gaugeCenter}>
-        <span className={styles.gaugeValue}>{pct}%</span>
-        {caption && <span className={styles.gaugeCaption}>{caption}</span>}
+    <div className={styles.gaugeCard}>
+      <div className={styles.gaugeWrap}>
+        <svg className={styles.gauge} viewBox="0 0 220 124" role="img" aria-label={`${pct}% ${caption || ""}`}>
+          {ticks.map((t) => {
+            const [x1, y1] = pt(t, R + SW / 2 + 5);
+            const [x2, y2] = pt(t, R + SW / 2 + (t % 25 === 0 ? 11 : 8));
+            return <line key={t} x1={x1} y1={y1} x2={x2} y2={y2} className={styles.tick} />;
+          })}
+          <path d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`} fill="none"
+            stroke={TONE.track} strokeWidth={SW} strokeLinecap="round" />
+          {pct > 0 && (
+            <path d={`M ${cx - R} ${cy} A ${R} ${R} 0 ${pct > 50 ? 1 : 0} 1 ${ex} ${ey}`} fill="none"
+              stroke={tone} strokeWidth={SW} strokeLinecap="round" />
+          )}
+        </svg>
+        <div className={styles.gaugeCenter}>
+          <span className={styles.gaugeValue}>{pct}%</span>
+          {caption && <span className={styles.gaugeCaption}>{caption}</span>}
+        </div>
       </div>
+      {outcomes.length > 0 && (
+        <ul className={styles.outcomes}>
+          {outcomes.map((o) => (
+            <li key={o.label} className={styles.outcome}>
+              <span className={styles.outcomeNum}><i className={styles.dot} style={{ background: o.color }} />{o.value}</span>
+              <span className={styles.outcomeLabel}>{o.label}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
