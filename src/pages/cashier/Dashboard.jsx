@@ -7,10 +7,10 @@ import InfoTooltip from "@/components/ui/InfoTooltip";
 import { getCached, setCached } from "@/lib/dataCache";
 import { buildSchedule, isEligible } from "@/lib/payoutSchedule";
 import { formatPeso, formatDate } from "@/lib/format";
-import s2 from "./Dashboard.module.css";
+import { Panel, BarChart, HBarList, Gauge, StatusPill, EmptyHint, TONE } from "@/components/ui/DashCharts";
+import dash from "@/components/ui/DashCharts.module.css";
 
 const CACHE_KEY = "cashier-dashboard-v2";
-const PAGE_SIZE = 10;
 
 export default function CashierDashboard() {
   const cached = getCached(CACHE_KEY);
@@ -19,7 +19,6 @@ export default function CashierDashboard() {
   const [pendingCount,      setPendingCount]      = useState(cached?.pendingCount ?? 0);
   const [loading,           setLoading]           = useState(!cached);
   const [showAnnouncement,  setShowAnnouncement]  = useState(false);
-  const [page,              setPage]              = useState(1);
 
   useEffect(() => { load(); }, []);
 
@@ -76,10 +75,51 @@ export default function CashierDashboard() {
   if (loading) return <PageLoader label="Loading dashboard…" />;
 
   const totalGrantees  = grantees.length;
-  const totalReleased  = releases.filter(r => r.status === "Released").reduce((sum, r) => sum + Number(r.amount_released || 0), 0);
-  const releasedCount  = releases.filter(r => r.status === "Released").length;
-  const totalPages     = Math.max(1, Math.ceil(releases.length / PAGE_SIZE));
-  const currentRows    = releases.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const releasedRows   = releases.filter(r => r.status === "Released");
+  const skippedCount   = releases.filter(r => r.status === "Skipped").length;
+  const totalReleased  = releasedRows.reduce((sum, r) => sum + Number(r.amount_released || 0), 0);
+  const releasedCount  = releasedRows.length;
+  const releaseRate    = releasedCount + skippedCount ? Math.round((releasedCount / (releasedCount + skippedCount)) * 100) : 0;
+
+  // releases per month, last 6 calendar months (by release date)
+  const monthlyReleases = (() => {
+    const now = new Date();
+    const out = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      out.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString("en", { month: "short" }), value: 0 });
+    }
+    releasedRows.forEach(r => {
+      if (!r.release_date) return;
+      const d = new Date(r.release_date);
+      const m = out.find(x => x.key === `${d.getFullYear()}-${d.getMonth()}`);
+      if (m) m.value += 1;
+    });
+    return out;
+  })();
+
+  // pesos released per scholarship (top 6)
+  const releasedByScholarship = (() => {
+    const m = {};
+    releasedRows.forEach(r => {
+      const n = r.grantees?.scholarships?.scholarship_name;
+      if (n) m[n] = (m[n] || 0) + Number(r.amount_released || 0);
+    });
+    return Object.entries(m).map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value).slice(0, 6);
+  })();
+
+  const recentRows = releases.slice(0, 5).map(r => {
+    const u = r.grantees?.students?.users;
+    return {
+      id: r.release_id,
+      name: u ? `${u.first_name || ""} ${u.last_name || ""}`.trim() : "",
+      scholarship: r.grantees?.scholarships?.scholarship_name || "",
+      amount: formatPeso(r.amount_released),
+      date: r.release_date ? formatDate(r.release_date, { month: "short", day: "numeric" }) : "—",
+      status: r.status,
+    };
+  });
 
   const stats = [
     {
@@ -94,12 +134,7 @@ export default function CashierDashboard() {
       label: "Pending Releases", value: pendingCount, to: "/cashier/funds", hint: "Funds",
       explain: "Active, verified grantees whose next payout period is due but hasn't been released yet — computed from each grantee's schedule, not a stored status.",
     },
-    {
-      label: "Completed Releases", value: releasedCount, to: "/cashier/funds", hint: "Funds",
-      explain: "Count of fund releases whose status is \"Released\".",
-    },
   ];
-
 
   return (
     <div className="page-shell">
@@ -122,72 +157,48 @@ export default function CashierDashboard() {
         ))}
       </div>
 
-      {/* Recent releases table */}
-      <div style={s.tableBox}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-          <h3 style={{margin:0,fontSize:16,fontWeight:700,color:"var(--text-primary)"}}>Recent Fund Releases</h3>
-          <InfoTooltip label="Recent Fund Releases">
-            Every fund release record, newest first — showing who received it, for which scholarship, and for which payout period.
-          </InfoTooltip>
-        </div>
-        <div style={{overflowX:"auto"}}>
-          <table>
-            <thead>
-              <tr>
-                {["Date","Recipient","Student ID","Scholarship","Period","Amount","Status"].map(h => <th key={h}>{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {releases.length === 0 ? (
-                <tr><td colSpan={7} style={{textAlign:"center",padding:24,color:"var(--text-secondary)"}}>No fund releases yet.</td></tr>
-              ) : currentRows.map((r) => {
-                const g = r.grantees;
-                const u = g?.students?.users;
-                const name = u ? `${u.first_name || ""} ${u.last_name || ""}`.trim() : "";
-                const period = [r.academic_year, r.semester, r.payout_period].filter(Boolean).join(" · ");
-                return (
-                  <tr key={r.release_id}>
-                    <td>{r.release_date ? formatDate(r.release_date, { year: "numeric", month: "short", day: "numeric" }) : "—"}</td>
-                    <td style={{fontWeight:600}}>{name || "—"}</td>
-                    <td>{g?.students?.school_id || "—"}</td>
-                    <td>{g?.scholarships?.scholarship_name || "—"}</td>
-                    <td>{period || "—"}</td>
-                    <td style={{fontWeight:600}}>{formatPeso(r.amount_released)}</td>
-                    <td>
-                      <span style={{fontSize:12,fontWeight:700,color:r.status==="Released"?"var(--status-success)":"var(--status-warning)"}}>
-                        {r.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      <div className={dash.rowC}>
+        <Panel title="Releases per month" to="/cashier/funds" hint="View funds"
+          action={<InfoTooltip label="Releases per month">Number of fund releases with status "Released" in each of the last 6 calendar months, by release date. The busiest month is highlighted.</InfoTooltip>}>
+          {releasedCount ? <BarChart data={monthlyReleases} /> : <EmptyHint>No fund releases yet.</EmptyHint>}
+        </Panel>
 
-        <div className={s2.pagination}>
-          <span className={s2.pageInfo}>
-            Showing{" "}
-            {releases.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
-            {" - "}
-            {Math.min(page * PAGE_SIZE, releases.length)} of{" "}
-            {releases.length}
-          </span>
+        <Panel title="Release rate" to="/cashier/funds" hint="View funds"
+          action={<InfoTooltip label="Release rate">Releases with status "Released" ÷ all release records that were either released or skipped × 100, rounded to the nearest whole percent. Due releases that have no record yet are not counted.</InfoTooltip>}>
+          <Gauge value={releaseRate} caption="released, not skipped"
+            outcomes={[
+              { label: "Released", value: releasedCount, color: TONE.blue },
+              { label: "Skipped",  value: skippedCount,  color: TONE.coral },
+            ]} />
+        </Panel>
+      </div>
 
-          <div className={s2.pageButtons}>
-            <button className={s2.pageBtn} disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-              Previous
-            </button>
+      <div className={dash.rowC}>
+        <Panel bodyClass={dash.listBody} title="Recent fund releases" to="/cashier/funds" hint="View funds"
+          action={<InfoTooltip label="Recent fund releases">The five most recent fund release records, newest first, showing who received it, for which scholarship and the amount.</InfoTooltip>}>
+          {recentRows.length === 0 ? <EmptyHint>No fund releases yet.</EmptyHint> : (
+            <div className={dash.rows}>
+              <div className={`${dash.row} ${dash.rowAmt} ${dash.rowHead}`}>
+                <span>Recipient</span><span className={dash.cellMuted}>Scholarship</span>
+                <span className={dash.cellDate}>Date</span><span>Amount</span><span>Status</span>
+              </div>
+              {recentRows.map(r => (
+                <div key={r.id} className={`${dash.row} ${dash.rowAmt}`}>
+                  <span className={dash.cellStrong} title={r.name}>{r.name || "—"}</span>
+                  <span className={dash.cellMuted} title={r.scholarship}>{r.scholarship || "—"}</span>
+                  <span className={dash.cellDate}>{r.date}</span>
+                  <span className={dash.cellStrong}>{r.amount}</span>
+                  <StatusPill status={r.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
 
-            <span className={s2.pageInfo}>
-              Page {releases.length === 0 ? 0 : page} of {totalPages}
-            </span>
-
-            <button className={s2.pageBtn} disabled={page >= totalPages || releases.length === 0} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </button>
-          </div>
-        </div>
+        <Panel bodyClass={dash.listBody} title="Released by scholarship" to="/cashier/funds" hint="View funds"
+          action={<InfoTooltip label="Released by scholarship">Total pesos released per scholarship program (status "Released" only), with each program's share of everything released. The largest is highlighted.</InfoTooltip>}>
+          <HBarList rows={releasedByScholarship} format={formatPeso} empty="No fund releases yet." />
+        </Panel>
       </div>
 
       <AnnouncementModal
@@ -202,5 +213,4 @@ export default function CashierDashboard() {
 const s = {
   announceBtn: { padding:"10px 18px",background:"var(--navy-700)",color:"var(--paper)",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",whiteSpace:"nowrap" },
   card:        { background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:"var(--space-5)",boxShadow:"var(--shadow-sm)" },
-  tableBox:    { background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:"var(--space-5)",boxShadow:"var(--shadow-sm)" },
 };

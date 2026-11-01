@@ -16,3 +16,15 @@ export function formatDate(value, opts) {
   return d.toLocaleDateString("en-PH", opts || { year: "numeric", month: "long", day: "numeric" });
 }
 
+
+// jsPDF's built-in fonts have no peso sign (₱ prints as "±" with odd letter
+// spacing), so PDFs use these instead: plain figures like the printed forms
+// ("1,357,500.00") or an explicit "PHP" prefix.
+export function formatMoneyPlain(amount) {
+  const n = Number(amount);
+  const v = amount === null || amount === undefined || amount === "" || isNaN(n) ? 0 : n;
+  return v.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+export function formatPesoPdf(amount) {
+  return "PHP " + formatMoneyPlain(amount);
+}

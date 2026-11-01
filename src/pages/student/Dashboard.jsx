@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Badge, EmptyState } from "@/components/ui/Card";
 import { TableWrap, Table } from "@/components/ui/Table";
 import Button from "@/components/ui/Button";
+import Stepper from "@/components/ui/Stepper";
 import uiStyles from "@/components/ui/ui.module.css";
 import PageLoader from "@/components/ui/PageLoader";
 import InfoTooltip from "@/components/ui/InfoTooltip";
@@ -233,7 +234,31 @@ export default function Dashboard() {
   };
 
   // ── apply modal ─────────────────────────────────────────
+  const [applyStep, setApplyStep] = useState("details"); // details | form | review
+  const APPLY_STEPS = [
+    { id: "details", label: "Details" },
+    { id: "form",    label: "Your answers" },
+    { id: "review",  label: "Review" },
+  ];
+  const applyIdx = APPLY_STEPS.findIndex((st) => st.id === applyStep);
+  const missingRequired = () =>
+    formFields.filter((f) => f.is_required && !String(answersRef.current[f.field_id] || "").trim());
+  const goApplyStep = (id) => {
+    // reaching Review needs every required answer; earlier steps are always open
+    if (id === "review") {
+      const miss = missingRequired();
+      if (miss.length) {
+        setApplyStep("form");
+        setFormError(`Please fill in: ${miss.map((f) => f.label).join(", ")}`);
+        return;
+      }
+    }
+    setFormError("");
+    setApplyStep(id);
+  };
+
   const openApply = async (scholarship) => {
+    setApplyStep("details");
     setSelectedScholarship(scholarship);
     setFormMeta(null);
     setFormFields([]);
@@ -272,6 +297,7 @@ export default function Dashboard() {
   };
 
   const closeApply = () => {
+    setApplyStep("details");
     setShowForm(false);
     setSelectedScholarship(null);
     setFormMeta(null);
@@ -832,19 +858,41 @@ export default function Dashboard() {
 
               {!formLoading && formMeta && (
                 <>
-                  {formMeta.form_title && <p className={s.formSub}>{formMeta.form_title}</p>}
-                  {formMeta.terms_and_conditions && <p className={s.terms}>{formMeta.terms_and_conditions}</p>}
+                  {formFields.length > 0 && (
+                    <div className={s.applyStepper}>
+                      <Stepper steps={APPLY_STEPS} current={applyStep} onStep={goApplyStep} />
+                    </div>
+                  )}
 
-                  {academic && (
-                    <div className={s.academicBox}>
-                      <strong>Academic period</strong>
-                      <span>{academic.academic_year} · {academic.semester}</span>
+                  {applyStep === "details" && (
+                    <>
+                      {formMeta.form_title && <p className={s.formSub}>{formMeta.form_title}</p>}
+                      {formMeta.terms_and_conditions && <p className={s.terms}>{formMeta.terms_and_conditions}</p>}
+                      {academic && (
+                        <div className={s.academicBox}>
+                          <strong>Academic period</strong>
+                          <span>{academic.academic_year} · {academic.semester}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {applyStep === "review" && formFields.length > 0 && (
+                    <div className={s.reviewBox}>
+                      <p className={s.formSub}>Check your answers, then submit.</p>
+                      {academic && <div className={s.reviewRow}><span>Academic period</span><strong>{academic.academic_year} · {academic.semester}</strong></div>}
+                      {formFields.map((f) => (
+                        <div key={f.field_id} className={s.reviewRow}>
+                          <span>{f.label}</span>
+                          <strong>{formAnswers[f.field_id] || "—"}</strong>
+                        </div>
+                      ))}
                     </div>
                   )}
 
                   {formFields.length === 0 ? (
                     <p className={s.errBlock}>No questions configured for this scholarship yet.</p>
-                  ) : (
+                  ) : applyStep === "form" && (
                     <div className={s.fieldList}>
                       {formFields.map((field) => (
                         <div key={field.field_id} className={s.fieldItem}>
@@ -905,14 +953,28 @@ export default function Dashboard() {
             </div>
 
             <div className={s.modalFoot}>
-              <button className={s.btnSecondary} onClick={closeApply} disabled={submitting}>Cancel</button>
-              <button
-                className={s.btnPrimary}
-                onClick={submitApplication}
-                disabled={submitting || !formMeta || formFields.length === 0}
-              >
-                {submitting ? "Submitting…" : "Submit application"}
-              </button>
+              {applyIdx === 0 ? (
+                <button className={s.btnSecondary} onClick={closeApply} disabled={submitting}>Cancel</button>
+              ) : (
+                <button className={s.btnSecondary} onClick={() => goApplyStep(APPLY_STEPS[applyIdx - 1].id)} disabled={submitting}>Back</button>
+              )}
+              {applyStep !== "review" ? (
+                <button
+                  className={s.btnPrimary}
+                  onClick={() => goApplyStep(APPLY_STEPS[applyIdx + 1].id)}
+                  disabled={!formMeta || formFields.length === 0}
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  className={s.btnPrimary}
+                  onClick={submitApplication}
+                  disabled={submitting || !formMeta || formFields.length === 0}
+                >
+                  {submitting ? "Submitting…" : "Submit application"}
+                </button>
+              )}
             </div>
           </div>
         </div>

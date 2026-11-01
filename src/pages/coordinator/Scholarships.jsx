@@ -11,6 +11,7 @@ import StatCard from "@/components/ui/StatCard";
 import TableSkeleton from "@/components/ui/TableSkeleton";
 import { getCached, setCached } from "@/lib/dataCache";
 import Button from "@/components/ui/Button";
+import Stepper from "@/components/ui/Stepper";
 import { RULE_OPTIONS, RULE_OPEN, RULE_EXCLUDE, normalizeBlockedWith, describeRule } from "@/lib/scholarshipRules";
 import s from "./Scholarships.module.css";
 
@@ -42,7 +43,7 @@ export default function Scholarships() {
   const [viewFormOpen, setViewFormOpen] = useState(false);
   const [editMode,     setEditMode]    = useState(false);
   const [editingId,    setEditingId]   = useState(null);
-  const [tab,          setTab]         = useState("info"); // info | reqs | form
+  const [tab,          setTab]         = useState("info"); // info | reqs | form | review
 
   // ── scholarship fields ──────────────────────────────────
   const [name,           setName]           = useState("");
@@ -341,6 +342,34 @@ export default function Scholarships() {
     appRule === RULE_EXCLUDE && blockedWith.length === 0
       ? "Pick at least one scholarship that can't be held together with this one."
       : null;
+
+  // ── step flow: each step must be valid before moving past it ──
+  const STEPS = [
+    { id: "info",   label: "Details" },
+    { id: "reqs",   label: "Requirements" },
+    { id: "form",   label: "Application form" },
+    { id: "review", label: "Review" },
+  ];
+  const stepIndex = STEPS.findIndex(st => st.id === tab);
+  const stepError = (id) => {
+    if (id === "info") return !name.trim() ? "Enter the scholarship name first." : null;
+    if (id === "reqs") return ruleProblem();
+    if (id === "form") return !formTitle.trim() || !terms.trim() ? "Add a form title and the terms and conditions." : null;
+    return null;
+  };
+  const goStep = (id) => {
+    const target = STEPS.findIndex(st => st.id === id);
+    for (let i = 0; i < target; i++) {
+      const err = stepError(STEPS[i].id);
+      if (err) { setTab(STEPS[i].id); return toast.error(err); }
+    }
+    setTab(id);
+  };
+  const nextStep = () => {
+    const err = stepError(tab);
+    if (err) return toast.error(err);
+    setTab(STEPS[stepIndex + 1].id);
+  };
 
   const createScholarship = () => {
     if (saving) return;
@@ -689,21 +718,14 @@ export default function Scholarships() {
               <button className={s.closeBtn} onClick={closeModal} aria-label="Close"><Icon name="close" size={14} /></button>
             </div>
 
-            {/* ── step tabs ── */}
-            <div className={s.tabs} role="tablist">
-              {[
-                { id: "info", n: 1, label: "Details",          count: null },
-                { id: "reqs", n: 2, label: "Requirements",     count: selectedReq.length },
-                { id: "form", n: 3, label: "Application form", count: fields.length },
-              ].map(tb => (
-                <button key={tb.id} type="button" role="tab" aria-selected={tab === tb.id}
-                  className={`${s.tab} ${tab === tb.id ? s.tabActive : ""}`}
-                  onClick={() => setTab(tb.id)}>
-                  <span className={s.tabNum}>{tb.n}</span>
-                  <span>{tb.label}</span>
-                  {tb.count > 0 && <span className={s.tabCount}>{tb.count}</span>}
-                </button>
-              ))}
+            {/* ── steps ── */}
+            <div className={s.stepperBar}>
+              <Stepper
+                steps={STEPS.map(st => ({ ...st, count: st.id === "reqs" ? selectedReq.length : st.id === "form" ? fields.length : 0 }))}
+                current={tab}
+                onStep={goStep}
+                canVisit={(i) => !STEPS.slice(0, i).some((_, j) => stepError(STEPS[j].id))}
+              />
             </div>
 
             <div className={s.modalBody}>
@@ -1077,6 +1099,33 @@ export default function Scholarships() {
                   </section>
                 </>
               )}
+
+              {/* ═════════ 4 · REVIEW ═════════ */}
+              {tab === "review" && (
+                <>
+                  <section className={s.card}>
+                    <h3 className={s.cardTitle}>Review</h3>
+                    <p className={s.modalSub} style={{ margin: "0 0 var(--space-3)" }}>Check everything below, then save. Use Back to change anything.</p>
+                    <dl className={s.reviewList}>
+                      {[
+                        ["Scholarship", name || "—"],
+                        ["Sponsor", sponsor || "—"],
+                        ["Amount per grantee", amount ? `₱${Number(amount).toLocaleString()}` : "—"],
+                        ["Total budget", budget ? `₱${Number(budget).toLocaleString()}` : "—"],
+                        ["Slots", slots || "—"],
+                        ["Submission deadline", deadline || "—"],
+                        ["Payout", payoutFreq],
+                        ["Duration", duration],
+                        ["Who can apply", describeRule({ application_rule: appRule, blocked_with: blockedWith }, list)],
+                        ["Requirements", `${selectedReq.length} selected`],
+                        ["Application form", `${formTitle || "Untitled"} · ${fields.length} field${fields.length !== 1 ? "s" : ""}`],
+                      ].map(([k, v]) => (
+                        <div key={k} className={s.reviewRow}><dt>{k}</dt><dd>{v}</dd></div>
+                      ))}
+                    </dl>
+                  </section>
+                </>
+              )}
             </div>
 
             <div className={s.modalFooter}>
@@ -1085,14 +1134,16 @@ export default function Scholarships() {
               </span>
               <div className={s.footBtns}>
                 {tab !== "info" && (
-                  <Button variant="ghost" onClick={() => setTab(tab === "form" ? "reqs" : "info")} disabled={saving}>Back</Button>
+                  <Button variant="ghost" onClick={() => setTab(STEPS[stepIndex - 1].id)} disabled={saving}>Back</Button>
                 )}
-                {tab !== "form" && (
-                  <Button variant="secondary" onClick={() => setTab(tab === "info" ? "reqs" : "form")} disabled={saving}>Next</Button>
+                {tab !== "review" && (
+                  <Button variant="primary" onClick={nextStep} disabled={saving}>Next</Button>
                 )}
-                <Button variant="primary" onClick={editMode ? updateScholarship : createScholarship} loading={saving}>
-                  {editMode ? "Update" : "Save Scholarship"}
-                </Button>
+                {(tab === "review" || editMode) && (
+                  <Button variant={tab === "review" ? "primary" : "secondary"} onClick={editMode ? updateScholarship : createScholarship} loading={saving}>
+                    {editMode ? "Update" : "Save Scholarship"}
+                  </Button>
+                )}
               </div>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import f from "./SearchFilterBar.module.css";
 import FilterDropdown from "./FilterDropdown";
@@ -32,6 +33,8 @@ export default function SearchFilterBar({
   const activeFilters = filters.filter(
     (flt) => flt.options?.[0] && flt.value !== flt.options[0].value
   );
+  // On phones the dropdowns fold behind one "Filters" button so the toolbar stays short.
+  const [showFilters, setShowFilters] = useState(false);
   const hasSearch = Boolean(search);
   const hasAnyActive = hasSearch || activeFilters.length > 0;
 
@@ -67,6 +70,13 @@ export default function SearchFilterBar({
           )}
         </div>
 
+        {filters.length > 0 && (
+          <button type="button" className={f.filtersBtn} aria-expanded={showFilters} onClick={() => setShowFilters((v) => !v)}>
+            Filters{activeFilters.length > 0 && <span className={f.filtersCount}>{activeFilters.length}</span>}
+          </button>
+        )}
+
+        <div className={`${f.filterGroup} ${showFilters ? f.filterGroupOpen : ""}`}>
         {filters.map((flt) => (
           <FilterDropdown
             key={flt.label}
@@ -78,6 +88,7 @@ export default function SearchFilterBar({
             active={flt.value !== flt.options[0]?.value}
           />
         ))}
+        </div>
 
         {(resultCount !== undefined && totalCount !== undefined) && (
           <span className={f.count}>{resultCount} of {totalCount}</span>

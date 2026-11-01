@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import AnnouncementModal from "@/components/ui/AnnouncementModal";
+import { formatPesoPdf } from "@/lib/format";
 import StatCard from "@/components/ui/StatCard";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import PageLoader from "@/components/ui/PageLoader";
@@ -638,8 +639,8 @@ export default function CoordinatorDashboard() {
         const row = [String(idx + 1)];
         if (scholarshipColumns.scholarship) row.push(s.scholarship_name || "—");
         if (scholarshipColumns.sponsor)     row.push(s.sponsor || "—");
-        if (scholarshipColumns.amount)      row.push(s.amount != null ? `₱${Number(s.amount).toLocaleString()}` : "—");
-        if (scholarshipColumns.budget)      row.push(s.total_budget != null ? `₱${Number(s.total_budget).toLocaleString()}` : "—");
+        if (scholarshipColumns.amount)      row.push(s.amount != null ? formatPesoPdf(s.amount) : "—");
+        if (scholarshipColumns.budget)      row.push(s.total_budget != null ? formatPesoPdf(s.total_budget) : "—");
         if (scholarshipColumns.slots)       row.push(String(s.slots ?? "—"));
         if (scholarshipColumns.status)      row.push(s.status || "—");
         if (scholarshipColumns.deadline)    row.push(s.submission_deadline || "—");
@@ -1045,7 +1046,7 @@ export default function CoordinatorDashboard() {
 
         <Panel title="Applications by scholarship" bodyClass={dash.listBody} to="/coordinator/applications" hint="View applications"
           action={<InfoTooltip label="Applications by scholarship">Total applications received per scholarship program (all statuses), with each program's share of all applications. The most-applied-to program is highlighted.</InfoTooltip>}>
-          <HBarList rows={appsByScholarship} />
+          <HBarList rows={appsByScholarship} empty="No applications yet." />
         </Panel>
 
         <Panel title="Acceptance rate" to="/coordinator/applications" hint="View applications"

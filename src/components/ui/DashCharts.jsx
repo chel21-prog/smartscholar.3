@@ -196,8 +196,8 @@ export function Donut({ segments, centerValue, centerLabel }) {
 }
 
 /* ───────────── Ranked horizontal bars (count per category) ───────────── */
-export function HBarList({ rows }) {
-  if (!rows.length) return <p className={styles.empty}>No applications yet.</p>;
+export function HBarList({ rows, format = (v) => v, empty = "No data yet." }) {
+  if (!rows.length) return <p className={styles.empty}>{empty}</p>;
   const max = Math.max(1, ...rows.map((r) => r.value));
   const total = rows.reduce((s, r) => s + r.value, 0);
   return (
@@ -206,7 +206,7 @@ export function HBarList({ rows }) {
         <div key={r.label} className={styles.hbar}>
           <div className={styles.hbarTop}>
             <span className={styles.meterLabel} title={r.label}>{r.label}</span>
-            <span className={styles.meterNums}>{r.value}<span className={styles.meterMax}> · {total ? Math.round((r.value / total) * 100) : 0}%</span></span>
+            <span className={styles.meterNums}>{format(r.value)}<span className={styles.meterMax}> · {total ? Math.round((r.value / total) * 100) : 0}%</span></span>
           </div>
           <div className={styles.meterTrack}>
             <div className={styles.meterFill} style={{ width: `${(r.value / max) * 100}%`, background: i === 0 ? TONE.coral : TONE.blue }} />
@@ -237,9 +237,9 @@ export function MeterRow({ label, value, max }) {
 /* ───────────── Status pill ───────────── */
 export function StatusPill({ status }) {
   const tone =
-    status === "Approved" ? "ok" :
+    status === "Approved" || status === "Released" ? "ok" :
     status === "Rejected" ? "bad" :
-    status === "Pending"  ? "warn" : "neutral";
+    status === "Pending" || status === "Skipped" ? "warn" : "neutral";
   return <span className={`${styles.pill} ${styles["pill_" + tone]}`}><i />{status}</span>;
 }
 

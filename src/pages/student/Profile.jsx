@@ -1,6 +1,7 @@
 import Icon from "@/components/ui/Icon";
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import Stepper from "@/components/ui/Stepper";
 import { supabase } from "@/lib/supabase";
 import { Card, CardHeader, Badge } from "@/components/ui/Card";
 import { Field, Input, Select } from "@/components/ui/Input";
@@ -12,11 +13,22 @@ import { getCached, setCached } from "@/lib/dataCache";
 import { useToast } from "@/context/ToastContext";
 import styles from "./Profile.module.css";
 
+const STEPS = [
+  { id: "personal",   label: "Personal" },
+  { id: "school",     label: "School & contact" },
+  { id: "compliance", label: "Compliance" },
+];
+const STEP_FIELDS = {
+  personal:   [["first_name", "First name"], ["last_name", "Last name"], ["gender", "Gender"], ["ethnicity", "Ethnicity"]],
+  school:     [["school_id", "School ID"], ["course", "Program"], ["year_level", "Year level"], ["contact_number", "Contact number"]],
+  compliance: [],
+};
 const STATUS_CYCLE = ["Compliant", "Non-Compliant"];
 const CACHE_KEY = "student-profile";
 
 export default function Profile() {
   const location = useLocation();
+  const navigate = useNavigate();
   const toast = useToast();
   // Reminder banner: only shown when the person landed here because
   // ProfileGuard (or Login/AuthCallback) redirected them for having an
@@ -56,6 +68,24 @@ export default function Profile() {
     gender: "",
     contact_number: "",
   });
+
+  // Steps: Personal -> School & contact -> Compliance. Details auto-save as
+  // before; the steps only break the long form into short pages. A step can
+  // be skipped past only when its required fields are filled in.
+  const missingIn = (id) => STEP_FIELDS[id].filter(([k]) => !String(form[k] || "").trim()).map(([, label]) => label);
+  const firstIncomplete = STEPS.find((st) => missingIn(st.id).length > 0)?.id || "personal";
+  const [step, setStep] = useState(firstIncomplete);
+  const stepIdx = STEPS.findIndex((st) => st.id === step);
+  const profileDone = STEPS.every((st) => missingIn(st.id).length === 0);
+  const goStep = (id) => {
+    const target = STEPS.findIndex((st) => st.id === id);
+    for (let i = 0; i < target; i++) {
+      const miss = missingIn(STEPS[i].id);
+      if (miss.length) { setStep(STEPS[i].id); toast.error(`Still needed: ${miss.join(", ")}.`); return; }
+    }
+    setStep(id);
+  };
+  const nextStep = () => goStep(STEPS[stepIdx + 1].id);
 
   useEffect(() => {
     load();
@@ -425,8 +455,11 @@ export default function Profile() {
       )}
 
       <Card>
+        <div style={{ marginBottom: "var(--space-4)" }}>
+          <Stepper steps={STEPS} current={step} onStep={goStep} canVisit={(i) => !STEPS.slice(0, i).some((st) => missingIn(st.id).length)} />
+        </div>
         <CardHeader
-          title="Student information"
+          title={step === "compliance" ? "Compliance checker" : "Student information"}
           action={
             <span className={styles.saveStatus} data-state={saveState}>
               {saveState === "saving" && "Saving…"}
@@ -444,6 +477,7 @@ export default function Profile() {
           }
         />
 
+        {step === "personal" && (
         <div className={styles.formGrid}>
           <Field label="First name" required>
             <Input
@@ -451,7 +485,6 @@ export default function Profile() {
               onChange={(e) => updateField("first_name", e.target.value)}
             />
           </Field>
-
           <Field label="Middle name (optional)">
             <Input
               value={form.middle_name}
@@ -459,21 +492,41 @@ export default function Profile() {
               placeholder="Leave blank if you don't have one"
             />
           </Field>
-
           <Field label="Last name" required>
             <Input
               value={form.last_name}
               onChange={(e) => updateField("last_name", e.target.value)}
             />
           </Field>
-
+          <Field label="Gender" required>
+            <Select
+              value={form.gender}
+              onChange={(e) => updateField("gender", e.target.value)}
+            >
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </Select>
+          </Field>
+          <Field label="Ethnicity" required>
+            <Input
+              value={form.ethnicity}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (/^[a-zA-Z\s]*$/.test(value)) updateField("ethnicity", value);
+              }}
+            />
+          </Field>
+        </div>
+        )}
+        {step === "school" && (
+        <div className={styles.formGrid}>
           <Field label="School ID" required>
             <Input
               value={form.school_id}
               onChange={(e) => updateField("school_id", e.target.value)}
             />
           </Field>
-
           <Field label="Program" required>
             <Select
               value={form.course}
@@ -488,7 +541,6 @@ export default function Profile() {
               <option value="BSED">Bachelor of Science in Education</option>
             </Select>
           </Field>
-
           <Field label="Year level" required>
             <Select
               value={form.year_level}
@@ -501,28 +553,6 @@ export default function Profile() {
               <option value="4">4</option>
             </Select>
           </Field>
-
-          <Field label="Gender" required>
-            <Select
-              value={form.gender}
-              onChange={(e) => updateField("gender", e.target.value)}
-            >
-              <option value="">Select gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </Select>
-          </Field>
-
-          <Field label="Ethnicity" required>
-            <Input
-              value={form.ethnicity}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^[a-zA-Z\s]*$/.test(value)) updateField("ethnicity", value);
-              }}
-            />
-          </Field>
-
           <Field label="Contact number" required>
             <Input
               value={form.contact_number}
@@ -534,8 +564,17 @@ export default function Profile() {
             />
           </Field>
         </div>
+        )}
+
+        {step !== "compliance" && (
+          <div className={styles.stepNav}>
+            {stepIdx > 0 ? <Button variant="ghost" onClick={() => setStep(STEPS[stepIdx - 1].id)}>Back</Button> : <span />}
+            <Button variant="primary" onClick={nextStep}>Next</Button>
+          </div>
+        )}
       </Card>
 
+      {step === "compliance" && (
       <Card>
         <CardHeader
           title="Compliance checker"
@@ -586,7 +625,14 @@ export default function Profile() {
             </Table>
           </TableWrap>
         )}
+        <div className={styles.stepNav}>
+          <Button variant="ghost" onClick={() => setStep(STEPS[stepIdx - 1].id)}>Back</Button>
+          {profileDone
+            ? <Button variant="primary" onClick={() => navigate("/student/dashboard")}>Finish and go to dashboard</Button>
+            : <span className={styles.stepHint}>Finish the earlier steps to continue.</span>}
+        </div>
       </Card>
+      )}
     </div>
   );
 }

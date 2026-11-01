@@ -356,7 +356,7 @@ const [showCurrent, setShowCurrent] = useState(false);
           description="Change your password"
           onClick={() => setOpenModal("security")}
         />
-        {role === "Coordinator" && (
+        {(role === "Coordinator" || role === "Cashier") && (
           <SettingsTile
             tone="gold"
             icon={TILE_ICONS.report}
@@ -517,8 +517,8 @@ const [showCurrent, setShowCurrent] = useState(false);
         </div>
       </Modal>
 
-      {/* REPORT PDF PASSWORD — Coordinator only */}
-      {role === "Coordinator" && (
+      {/* REPORT PDF PASSWORD — Coordinator and Cashier (one shared export password) */}
+      {(role === "Coordinator" || role === "Cashier") && (
         <Modal open={openModal === "report"} onClose={closeModal} title="Report PDF password" size="md">
           <p className={styles.modalSubtitle}>
             Set the password used to protect exported PDF reports. When generating a report, there's a toggle to secure that export with this password — it's not applied automatically.

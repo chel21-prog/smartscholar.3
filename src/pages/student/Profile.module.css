@@ -76,3 +76,6 @@
   outline: 2px solid var(--navy-600);
   outline-offset: 3px;
 }
+
+.stepNav { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--border); }
+.stepHint { font-size: var(--text-sm); color: var(--text-secondary); }

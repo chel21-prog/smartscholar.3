@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Card, Badge, EmptyState } from "@/components/ui/Card";
 import StatCard from "@/components/ui/StatCard";
-import { TableWrap, Table } from "@/components/ui/Table";
 import PageLoader from "@/components/ui/PageLoader";
 import { getCached, setCached } from "@/lib/dataCache";
 import { useToast } from "@/context/ToastContext";
@@ -215,81 +214,74 @@ export default function Compliance() {
             {Object.keys(r.requirements).length === 0 ? (
               <p className={styles.noReqs}>No document requirements listed for this grant.</p>
             ) : (
-              <TableWrap>
-                <Table>
-                  <thead>
-                    <tr>
-                      <th data-pin>Requirement</th>
-                      <th>Status</th>
-                      <th>File</th>
-                      <th>Upload</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.values(r.requirements).map((req) => {
-                      const uploadKey = `${r.application_id}|${req.requirement_name}`;
-                      const isUploading = uploadingKeys.has(uploadKey);
+              <>
+                {(() => {
+                  const list = Object.values(r.requirements);
+                  const done = list.filter((q) => q.file_url).length;
+                  return (
+                    <div className={styles.progress}>
+                      <div className={styles.progressTop}>
+                        <span>{done} of {list.length} submitted</span>
+                        <strong>{list.length ? Math.round((done / list.length) * 100) : 0}%</strong>
+                      </div>
+                      <div className={styles.progressTrack}>
+                        <div className={styles.progressFill} style={{ width: `${list.length ? (done / list.length) * 100 : 0}%` }} />
+                      </div>
+                    </div>
+                  );
+                })()}
 
-                      return (
-                        <tr key={req.requirement_name}>
-                          <td data-pin className={styles.reqName}>{req.requirement_name}</td>
-
-                          <td>
-                            <Badge status={req.file_url ? "Submitted" : "Missing"} />
-                          </td>
-
-                          <td>
-                            {req.file_url ? (
-                              <a
-                                href={req.file_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className={styles.viewLink}
-                              >
-                                View ↗
-                              </a>
+                <ul className={styles.checklist}>
+                  {Object.values(r.requirements).map((req) => {
+                    const uploadKey = `${r.application_id}|${req.requirement_name}`;
+                    const isUploading = uploadingKeys.has(uploadKey);
+                    const done = Boolean(req.file_url);
+                    return (
+                      <li key={req.requirement_name} className={`${styles.checkItem} ${done ? styles.checkDone : ""}`}>
+                        <span className={styles.checkIcon} aria-hidden="true">
+                          {done ? <Icon name="check" size={13} /> : null}
+                        </span>
+                        <div className={styles.checkMain}>
+                          <span className={styles.reqName}>{req.requirement_name}</span>
+                          <span className={styles.checkSub}>
+                            {done ? (
+                              <a href={req.file_url} target="_blank" rel="noreferrer" className={styles.viewLink}>View file ↗</a>
                             ) : (
-                              <span className={styles.noFile}>—</span>
+                              "Not submitted yet"
                             )}
-                          </td>
-
-                          <td>
-                            <label
-                              className={`${styles.uploadLabel} ${
-                                isUploading ? styles.uploadLabelBusy : ""
-                              }`}
-                            >
-                              {isUploading ? (
-                                <>
-                                  <span className={styles.uploadSpinner} />
-                                  Uploading…
-                                </>
-                              ) : (
-                                <>
-                                  <Icon name="upload" size={13} />
-                                  {req.file_url ? "Replace" : "Upload"}
-                                </>
-                              )}
-                              <input
-                                type="file"
-                                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                                className={styles.hiddenInput}
-                                disabled={isUploading}
-                                onChange={(e) =>
-                                  uploadFile(e, {
-                                    application_id: r.application_id,
-                                    requirement_name: req.requirement_name,
-                                  })
-                                }
-                              />
-                            </label>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </Table>
-              </TableWrap>
+                          </span>
+                        </div>
+                        <Badge status={done ? "Submitted" : "Missing"} />
+                        <label className={`${styles.uploadLabel} ${isUploading ? styles.uploadLabelBusy : ""}`}>
+                          {isUploading ? (
+                            <>
+                              <span className={styles.uploadSpinner} />
+                              Uploading…
+                            </>
+                          ) : (
+                            <>
+                              <Icon name="upload" size={13} />
+                              {done ? "Replace" : "Upload"}
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                            className={styles.hiddenInput}
+                            disabled={isUploading}
+                            onChange={(e) =>
+                              uploadFile(e, {
+                                application_id: r.application_id,
+                                requirement_name: req.requirement_name,
+                              })
+                            }
+                          />
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
             )}
           </Card>
         ))}
