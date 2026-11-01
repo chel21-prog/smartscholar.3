@@ -114,7 +114,8 @@ export function Gauge({ value, caption, tone = TONE.coral, outcomes = [] }) {
     const a = Math.PI * (1 - p / 100);
     return [cx + r * Math.cos(a), cy - r * Math.sin(a)];
   };
-  const [ex, ey] = pt(pct);
+  // NOTE: the arc is never more than 180 degrees, so SVG's large-arc flag is always 0.
+  const [ex, ey] = pt(Math.min(pct, 99.9));
   const ticks = Array.from({ length: 21 }, (_, i) => i * 5);
   return (
     <div className={styles.gaugeCard}>
@@ -128,7 +129,7 @@ export function Gauge({ value, caption, tone = TONE.coral, outcomes = [] }) {
           <path d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`} fill="none"
             stroke={TONE.track} strokeWidth={SW} strokeLinecap="round" />
           {pct > 0 && (
-            <path d={`M ${cx - R} ${cy} A ${R} ${R} 0 ${pct > 50 ? 1 : 0} 1 ${ex} ${ey}`} fill="none"
+            <path d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${ex} ${ey}`} fill="none"
               stroke={tone} strokeWidth={SW} strokeLinecap="round" />
           )}
         </svg>
