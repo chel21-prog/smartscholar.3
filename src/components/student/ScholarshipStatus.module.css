@@ -63,10 +63,6 @@
 .stepLabel { font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
 .step_done .stepLabel, .step_current .stepLabel { color: var(--text-primary); }
 
-.go { align-self: flex-end; margin-top: var(--space-1); font-size: var(--text-sm); font-weight: 600; color: var(--link); pointer-events: none; }
-.arrow { display: inline-block; transition: transform var(--duration-fast) var(--ease-out); }
-.card:hover .arrow, .card:focus-within .arrow { transform: translateX(4px); }
-
 @media (max-width: 640px) {
   .card { padding: var(--space-5); }
   .stepLabel { display: none; }

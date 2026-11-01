@@ -442,12 +442,15 @@
 .consentLink { background:none; border:none; padding:0; margin:0; font:inherit; font-weight:600; color:var(--link); cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
 .consentLink:hover { text-decoration-thickness:2px; }
 
-/* feature list: soft frosted pills, like the reference's chips */
+/* feature list: light rows with a small tinted check badge, no heavy pills */
+.leftPanel .features { gap:14px; margin-top:28px; }
 .leftPanel .features > div {
-    display:inline-flex; align-items:center; gap:10px;
-    padding:9px 16px 9px 12px;
-    border-radius:var(--radius-full);
-    background:var(--surface-raised);
-    border:1px solid var(--glass-border);
-    color:var(--text-primary);
+    display:flex; align-items:center; gap:12px;
+    padding:0; background:transparent; border:none; border-radius:0;
+    color:var(--text-primary); font-size:15px;
+}
+.leftPanel .features > div svg {
+    box-sizing:content-box; padding:5px; width:14px; height:14px; flex-shrink:0;
+    border-radius:50%; color:var(--link);
+    background:color-mix(in srgb, var(--teal-600) 22%, var(--surface-raised));
 }

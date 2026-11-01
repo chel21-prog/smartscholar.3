@@ -51,9 +51,8 @@ export default function StatCard({ label, value, explain, to, onClick, hint }) {
       </div>
 
       {clickable && (
-        <span className={st.goHint} aria-hidden="true">
-          {hint && <span className={st.goText}>{hint}</span>}
-          <span className={st.goArrow}>→</span>
+        <span className="go-foot" aria-hidden="true">
+          View {hint ? hint.toLowerCase() : "details"} <span className="go-arrow">→</span>
         </span>
       )}
     </div>

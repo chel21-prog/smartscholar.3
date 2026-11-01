@@ -17,6 +17,8 @@ export const TONE = {
   peach: "var(--gold-500)",
   sage:  "var(--success-600)",
   track: "var(--border-strong)",
+  // reference gauge: the track is a soft tint of the arc colour, not a grey
+  gaugeTrack: "color-mix(in srgb, var(--coral-500) 24%, var(--surface))",
 };
 
 /* ───────────── Panel shell ─────────────
@@ -33,8 +35,8 @@ export function Panel({ title, action, children, className = "", bodyClass = "",
       </header>
       <div className={`${styles.panelBody} ${bodyClass}`}>{children}</div>
       {to && (
-        <span className={styles.goFoot} aria-hidden="true">
-          {hint || "View"} <span className={styles.goArrow}>→</span>
+        <span className="go-foot" aria-hidden="true">
+          {hint || "View"} <span className="go-arrow">→</span>
         </span>
       )}
     </section>
@@ -127,7 +129,7 @@ export function Gauge({ value, caption, tone = TONE.coral, outcomes = [] }) {
             return <line key={t} x1={x1} y1={y1} x2={x2} y2={y2} className={styles.tick} />;
           })}
           <path d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`} fill="none"
-            stroke={TONE.track} strokeWidth={SW} strokeLinecap="round" />
+            stroke={TONE.gaugeTrack} strokeWidth={SW} strokeLinecap="round" />
           {pct > 0 && (
             <path d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${ex} ${ey}`} fill="none"
               stroke={tone} strokeWidth={SW} strokeLinecap="round" />
@@ -189,6 +191,28 @@ export function Donut({ segments, centerValue, centerLabel }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/* ───────────── Ranked horizontal bars (count per category) ───────────── */
+export function HBarList({ rows }) {
+  if (!rows.length) return <p className={styles.empty}>No applications yet.</p>;
+  const max = Math.max(1, ...rows.map((r) => r.value));
+  const total = rows.reduce((s, r) => s + r.value, 0);
+  return (
+    <div className={styles.hbars}>
+      {rows.map((r, i) => (
+        <div key={r.label} className={styles.hbar}>
+          <div className={styles.hbarTop}>
+            <span className={styles.meterLabel} title={r.label}>{r.label}</span>
+            <span className={styles.meterNums}>{r.value}<span className={styles.meterMax}> · {total ? Math.round((r.value / total) * 100) : 0}%</span></span>
+          </div>
+          <div className={styles.meterTrack}>
+            <div className={styles.meterFill} style={{ width: `${(r.value / max) * 100}%`, background: i === 0 ? TONE.coral : TONE.blue }} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

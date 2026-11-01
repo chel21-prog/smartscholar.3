@@ -78,7 +78,7 @@ export default function ScholarshipStatus({ items }) {
 
             {!isActive && <Steps status={status} />}
 
-            <span className={styles.go} aria-hidden="true">View my applications <span className={styles.arrow}>→</span></span>
+            <span className="go-foot" aria-hidden="true">View applications <span className="go-arrow">→</span></span>
           </article>
         );
       })}

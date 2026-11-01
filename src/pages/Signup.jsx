@@ -1,11 +1,12 @@
 import Icon from "@/components/ui/Icon";
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import styles from "@/styles/Auth.module.css";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useToast } from "@/context/ToastContext";
+import { IconField, PasswordStrength, PrivacyBadge, GoLink } from "@/components/ui/AuthExtras";
 export default function Signup() {
   const toast = useToast();
   const [email, setEmail] = useState("");
@@ -146,6 +147,8 @@ export default function Signup() {
         <div><Icon name="check" size={14} /> Receive scholarship notifications</div>
         <div><Icon name="check" size={14} /> Secure document management</div>
       </div>
+
+              <PrivacyBadge />
       
              
             </div>
@@ -165,6 +168,7 @@ export default function Signup() {
     className={styles.form}
 >
 
+            <IconField icon="mail">
             <input
   type="email"
   className={styles.input}
@@ -173,7 +177,9 @@ export default function Signup() {
   onChange={(e) => setEmail(e.target.value)}
   required
 />
+            </IconField>
 
+            <IconField icon="lock">
             <div className={styles.passwordField}>
     <input
         type={showPassword ? "text" : "password"}
@@ -200,6 +206,8 @@ export default function Signup() {
             : <FaEye />}
     </button>
 </div>
+            </IconField>
+            <PasswordStrength value={password} />
 
 
  <button className={styles.primaryButton} disabled={loading}>
@@ -231,9 +239,7 @@ export default function Signup() {
 
           <div className={styles.signup}>
             <span>Already have an account?</span>
-            <Link to="/Login" className={styles.signupLink}>
-              Login
-            </Link>
+            <span className={styles.signupLink}><GoLink to="/login">Login</GoLink></span>
           </div>
 
         </div>

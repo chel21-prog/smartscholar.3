@@ -1,4 +1,6 @@
 .card {
+  display: flex;
+  flex-direction: column;
   background: var(--surface-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -146,33 +148,3 @@
 
 /* keeps the info icon usable above the stretched link */
 .infoSlot { position: relative; z-index: 2; display: inline-flex; }
-
-/* "View →" indicator, top-right of the card */
-.goHint {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  pointer-events: none;
-  transition: color var(--duration-fast) var(--ease-out);
-}
-.goText {
-  opacity: 0;
-  transform: translateX(4px);
-  transition: opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
-}
-.goArrow {
-  display: inline-block;
-  transition: transform var(--duration-fast) var(--ease-out);
-}
-.clickable:hover .goHint,
-.clickable:focus-within .goHint { color: var(--link); }
-.clickable:hover .goText,
-.clickable:focus-within .goText { opacity: 1; transform: none; }
-.clickable:hover .goArrow,
-.clickable:focus-within .goArrow { transform: translateX(3px); }

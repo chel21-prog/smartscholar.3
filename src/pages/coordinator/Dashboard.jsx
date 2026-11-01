@@ -11,7 +11,7 @@ import { getReportSecurity } from "@/lib/reportSecurity";
 import { useToast } from "@/context/ToastContext";
 import Button from "@/components/ui/Button";
 import TableSkeleton from "@/components/ui/TableSkeleton";
-import { Panel, BarChart, Gauge, MeterRow, ActivityTable, DeadlineList, EmptyHint, TONE } from "@/components/ui/DashCharts";
+import { Panel, BarChart, HBarList, Gauge, MeterRow, ActivityTable, DeadlineList, EmptyHint, TONE } from "@/components/ui/DashCharts";
 import dash from "@/components/ui/DashCharts.module.css";
 
 // ─── stable style objects defined outside the component ──────────────────────
@@ -926,6 +926,13 @@ export default function CoordinatorDashboard() {
     .sort((a,b)=>(b.slots? b.occupied/b.slots : 0) - (a.slots? a.occupied/a.slots : 0))
     .slice(0,6);
 
+  const appsByScholarship = (() => {
+    const m = {};
+    applications.forEach(a => { const n = a.scholarships?.scholarship_name; if (n) m[n] = (m[n] || 0) + 1; });
+    return Object.entries(m).map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value).slice(0, 6);
+  })();
+
   const recentRows = applications.slice(0,5).map(a=>({
     id: a.application_id,
     name: `${a.students?.users?.first_name||""} ${a.students?.users?.last_name||""}`.trim(),
@@ -1036,7 +1043,12 @@ export default function CoordinatorDashboard() {
           {totalApplicants ? <BarChart data={monthlyApps} /> : <EmptyHint>No applications yet.</EmptyHint>}
         </Panel>
 
-        <Panel title="Acceptance rate" to="/coordinator/applications" hint="Review applications"
+        <Panel title="Applications by scholarship" bodyClass={dash.listBody} to="/coordinator/applications" hint="View applications"
+          action={<InfoTooltip label="Applications by scholarship">Total applications received per scholarship program (all statuses), with each program's share of all applications. The most-applied-to program is highlighted.</InfoTooltip>}>
+          <HBarList rows={appsByScholarship} />
+        </Panel>
+
+        <Panel title="Acceptance rate" to="/coordinator/applications" hint="View applications"
           action={<InfoTooltip label="Acceptance rate">Applications with status "Approved" ÷ total applications × 100, rounded to the nearest whole percent. The counts underneath are the applications with that exact status.</InfoTooltip>}>
           <Gauge value={acceptancePct} caption="of all applications"
             outcomes={[
@@ -1049,12 +1061,12 @@ export default function CoordinatorDashboard() {
 
       {/* ── activity row ── */}
       <div className={dash.rowB}>
-        <Panel bodyClass={dash.listBody} title="Recent activity" to="/coordinator/applications" hint="View all applications"
+        <Panel bodyClass={dash.listBody} title="Recent activity" to="/coordinator/applications" hint="View applications"
           action={<InfoTooltip label="Recent activity">The 5 most recently loaded applications, showing each applicant's current status.</InfoTooltip>}>
           <ActivityTable rows={recentRows} />
         </Panel>
 
-        <Panel bodyClass={dash.listBody} title="Scholarship slots" to="/coordinator/scholarships" hint="Manage scholarships"
+        <Panel bodyClass={dash.listBody} title="Scholarship slots" to="/coordinator/scholarships" hint="View scholarships"
           action={<InfoTooltip label="Scholarship slots">Occupied slots ÷ total slots for the 6 scholarships closest to full. The bar turns coral at full capacity and peach at 80%+ full.</InfoTooltip>}>
           {slotRows.length
             ? <div>{slotRows.map(s=>(

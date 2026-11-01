@@ -9,6 +9,7 @@ import { getMissingProfileFields } from "@/lib/profileCompleteness";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import ForgotPasswordFlow from "@/components/ui/ForgotPasswordFlow";
+import { IconField, PrivacyBadge, GoLink } from "@/components/ui/AuthExtras";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -175,6 +176,8 @@ export default function Login() {
   <div><Icon name="check" size={14} /> Secure document management</div>
 </div>
 
+        <PrivacyBadge />
+
        
       </div>
 
@@ -182,7 +185,6 @@ export default function Login() {
       <div data-no-glow className={styles.rightPanel}>
         <div className={styles.card}>
           <div className={styles.header}>
-            
             <h2 className={styles.title}>Welcome</h2>
             <p className={styles.subtitle}>Login to your account</p>
           </div>
@@ -190,6 +192,7 @@ export default function Login() {
           {error && <div className={styles.error}>{error}</div>}
 
           <form onSubmit={handleLogin} className={styles.form}>
+            <IconField icon="mail">
             <input
   type="email"
   className={styles.input}
@@ -198,7 +201,9 @@ export default function Login() {
   required
   onChange={(e) => setEmail(e.target.value)}
 />
+            </IconField>
 
+            <IconField icon="lock">
             <div className={styles.passwordField}>
   <input
     type={showPassword ? "text" : "password"}
@@ -218,6 +223,7 @@ export default function Login() {
     {showPassword ? <FaEyeSlash /> : <FaEye />}
   </button>
 </div>
+            </IconField>
 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: -4 }}>
   <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
     <input
@@ -267,9 +273,7 @@ export default function Login() {
 
           <div className={styles.signup}>
             <span>Don’t have an account?</span>
-            <Link to="/signup" className={styles.signupLink}>
-              Create one
-            </Link>
+            <span className={styles.signupLink}><GoLink to="/signup">Create one</GoLink></span>
           </div>
 
         </div>

@@ -430,3 +430,34 @@ input[type="password"]::-ms-clear { display: none; }
 }
 #root [data-stepper]:hover:not(:disabled) { box-shadow: none; }
 #root [data-plain-hover]:hover:not(:disabled) { box-shadow: none; }
+
+
+/* ============================================================
+   Redirect pattern (ONE style app-wide)
+   Every clickable card, panel and in-form link that navigates somewhere ends
+   in "View … →": same size, weight, colour and the same arrow nudge on hover.
+     <span className="go-foot">View applications <span className="go-arrow">→</span></span>   (cards / panels)
+     <Link className="go-link">Create one <span className="go-arrow">→</span></Link>          (inline links)
+   The arrow moves when the card (or link) is hovered or keyboard-focused.
+   ============================================================ */
+.go-foot {
+  display: inline-flex; align-items: center; gap: 6px;
+  align-self: flex-end; margin-top: var(--space-4);
+  font-size: var(--text-sm); font-weight: 600; line-height: 1.2;
+  color: var(--link); pointer-events: none; white-space: nowrap;
+}
+.go-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-weight: 600; color: var(--link); text-decoration: none;
+}
+.go-link:hover { text-decoration: none; }
+.go-arrow { display: inline-block; transition: transform var(--duration-fast) var(--ease-out); }
+.go-arrow--down { }
+[class*="card_" i]:hover .go-arrow,
+[class*="panel_" i]:hover .go-arrow,
+[class*="card_" i]:focus-within .go-arrow,
+[class*="panel_" i]:focus-within .go-arrow,
+.go-link:hover .go-arrow,
+.go-link:focus-visible .go-arrow { transform: translateX(4px); }
+[class*="card_" i]:hover .go-arrow--down,
+[class*="card_" i]:focus-within .go-arrow--down { transform: translateY(3px); }

@@ -548,7 +548,6 @@ export default function Dashboard() {
         <div className={`${s.statCard} ${s.statClickable}`}>
           <span role="link" tabIndex={0} className={s.statLink} aria-label="Total scholarships — jump to list"
             onClick={() => goToSection("eligible-scholarships")} onKeyDown={cardKey("eligible-scholarships")} />
-          <span className={s.statGo} aria-hidden="true">↓</span>
           <div className={s.statNum}>{scholarships.length}</div>
           <div className={s.statLblRow}>
             <span className={s.statLbl}>Total scholarships</span>
@@ -558,11 +557,11 @@ export default function Dashboard() {
               </InfoTooltip>
             </span>
           </div>
+          <span className="go-foot" aria-hidden="true">View list <span className="go-arrow go-arrow--down">↓</span></span>
         </div>
         <div className={`${s.statCard} ${s.statClickable}`}>
           <span role="link" tabIndex={0} className={s.statLink} aria-label="Eligible — jump to list"
             onClick={() => goToSection("eligible-scholarships")} onKeyDown={cardKey("eligible-scholarships")} />
-          <span className={s.statGo} aria-hidden="true">↓</span>
           <div className={`${s.statNum} ${s.statSuccess}`}>{eligible.length}</div>
           <div className={s.statLblRow}>
             <span className={s.statLbl}>Eligible</span>
@@ -572,11 +571,11 @@ export default function Dashboard() {
               </InfoTooltip>
             </span>
           </div>
+          <span className="go-foot" aria-hidden="true">View list <span className="go-arrow go-arrow--down">↓</span></span>
         </div>
         <div className={`${s.statCard} ${s.statClickable}`}>
           <span role="link" tabIndex={0} className={s.statLink} aria-label="May need more requirements — jump to list"
             onClick={() => goToSection("needs-requirements")} onKeyDown={cardKey("needs-requirements")} />
-          <span className={s.statGo} aria-hidden="true">↓</span>
           <div className={`${s.statNum} ${s.statDanger}`}>{notEligible.length}</div>
           <div className={s.statLblRow}>
             <span className={s.statLbl}>May need more requirements</span>
@@ -586,11 +585,11 @@ export default function Dashboard() {
               </InfoTooltip>
             </span>
           </div>
+          <span className="go-foot" aria-hidden="true">View list <span className="go-arrow go-arrow--down">↓</span></span>
         </div>
         <div className={`${s.statCard} ${s.statClickable}`}>
           <span role="link" tabIndex={0} className={s.statLink} aria-label="Cannot apply — jump to list"
             onClick={() => goToSection("restricted-scholarships")} onKeyDown={cardKey("restricted-scholarships")} />
-          <span className={s.statGo} aria-hidden="true">↓</span>
           <div className={`${s.statNum} ${s.statWarn}`}>{restricted.length}</div>
           <div className={s.statLblRow}>
             <span className={s.statLbl}>{"Can't apply"}</span>
@@ -600,6 +599,7 @@ export default function Dashboard() {
               </InfoTooltip>
             </span>
           </div>
+          <span className="go-foot" aria-hidden="true">View list <span className="go-arrow go-arrow--down">↓</span></span>
         </div>
       </div>
 
