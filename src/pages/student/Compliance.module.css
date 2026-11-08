@@ -136,3 +136,6 @@
 .checkDone .checkIcon { background: var(--success-600); border-color: var(--success-600); }
 .checkMain { display: flex; flex-direction: column; gap: 2px; flex: 1 1 180px; min-width: 0; }
 .checkSub { font-size: var(--text-xs); color: var(--text-secondary); }
+.checkBody { padding: var(--space-4) var(--space-5) var(--space-2); }
+.checkItem .uploadLabel { min-width: 104px; justify-content: center; }
+@media (max-width: 640px) { .checkBody { padding: var(--space-3) var(--space-4) var(--space-1); } }

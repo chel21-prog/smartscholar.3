@@ -285,6 +285,18 @@ export default function Profile() {
         if (userUpdateErr) throw userUpdateErr;
       }
 
+      // If a coordinator already imported this School ID (a grantee list from before the
+      // system), ask the coordinator to link that record to this account. Nothing is linked
+      // until they approve. Needs supabase/claim_imported_student.sql; skipped if not installed.
+      if (updatedForm.school_id && updatedForm.school_id !== last.school_id) {
+        const { data: link, error: linkErr } = await supabase.rpc("request_student_link", {
+          p_school_id: updatedForm.school_id.trim(),
+        });
+        if (!linkErr && link?.requested && !link?.already) {
+          toast.success("We found scholarship records under this School ID. A coordinator will confirm it's you before they're linked.");
+        }
+      }
+
       if (studentChanged || !student) {
         const payload = {
           user_id: userId,

@@ -613,7 +613,7 @@ export default function CoordinatorDashboard() {
         if (utilizationColumns.scholarship) row.push(s.scholarship_name || "—");
         if (utilizationColumns.slots)       row.push(String(s.slots ?? "—"));
         if (utilizationColumns.occupied)    row.push(String(s.occupied ?? 0));
-        if (utilizationColumns.remaining)   row.push(String((s.slots ?? 0) - (s.occupied ?? 0)));
+        if (utilizationColumns.remaining)   row.push(String(Math.max(0, (s.slots ?? 0) - (s.occupied ?? 0))));
         return row;
       });
       statusColIdx = -1;
@@ -1369,7 +1369,7 @@ export default function CoordinatorDashboard() {
                         utilizationColumns.scholarship && { label:"Scholarship", render:s=>s.scholarship_name||"—" },
                         utilizationColumns.slots        && { label:"Slots",       render:s=>s.slots ?? "—" },
                         utilizationColumns.occupied     && { label:"Occupied",    render:s=>s.occupied ?? 0 },
-                        utilizationColumns.remaining    && { label:"Remaining",   render:s=>(s.slots??0)-(s.occupied??0) },
+                        utilizationColumns.remaining    && { label:"Remaining",   render:s=>Math.max(0,(s.slots??0)-(s.occupied??0)) },
                       ].filter(Boolean),
                       grantees: [
                         granteeColumns.schoolId     && { label:"School ID",    render:g=>g.students?.school_id||"—" },

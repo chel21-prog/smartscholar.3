@@ -1,5 +1,5 @@
 import Icon from "@/components/ui/Icon";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Modal from "@/components/ui/Modal";
 import NumberInput from "@/components/ui/NumberInput";
@@ -7,16 +7,18 @@ import { useNavigate } from "react-router-dom";
 import SearchFilterBar from "@/components/ui/SearchFilterBar";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import TableSkeleton from "@/components/ui/TableSkeleton";
-import { getCached, setCached } from "@/lib/dataCache";
+import { getCached, setCached, clearAllCached } from "@/lib/dataCache";
 import { useToast } from "@/context/ToastContext";
 import Button from "@/components/ui/Button";
 import { Field, Textarea } from "@/components/ui/Input";
-import { closePendingIfFull } from "@/lib/scholarshipSlots";
+import { closePendingIfFull, fetchOccupiedMap } from "@/lib/scholarshipSlots";
 import {
   endScholarship, notifyStudent, terminationText,
   revokeMessage, cancellationApprovedMessage, cancellationDeclinedMessage,
 } from "@/lib/scholarshipCancellation";
 import styles from "./Grantees.module.css";
+import imp from "./GranteeImport.module.css";
+import Stepper from "@/components/ui/Stepper";
 import { SkeletonForm } from "@/components/ui/Skeleton";
 
 const CACHE_KEY = "coordinator-grantees";
@@ -67,6 +69,17 @@ const VALID_STATUSES = ["Active", "Inactive", "Pending"];
 const VALID_VERIFICATIONS = ["Verified", "Pending Review", "Ineligible"];
 const AY_PATTERN = /^\d{4}\s*-\s*\d{4}$/;
 
+// A school year that has already finished (2022-2023 when it is now 2026) is history: those
+// grantees must not occupy today's slots or show as a current scholarship. The Philippine
+// school year starts around June.
+const isPastAcademicYear = (ay) => {
+  const m = /^(\d{4})\s*-\s*(\d{4})$/.exec((ay || "").trim());
+  if (!m) return false;
+  const now = new Date();
+  const currentStart = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+  return Number(m[1]) < currentStart;
+};
+
 // Case/whitespace-tolerant match against a fixed set of allowed values —
 // used so "active", " Active ", "ACTIVE" in a spreadsheet all resolve to
 // the exact string the grantees table's CHECK constraint expects, instead
@@ -98,6 +111,8 @@ const [yearFilter, setYearFilter] = useState("All");
   const [revokeMessageText, setRevokeMessageText] = useState(null); // null = follow the default template
   const [savingRevoke, setSavingRevoke] = useState(false);
   const [cancelRequests, setCancelRequests] = useState([]);
+  const [linkRequests, setLinkRequests] = useState([]); // students asking to be linked to an imported record
+  const [linkBusy, setLinkBusy] = useState(null);
   const [reviewTarget, setReviewTarget] = useState(null); // { request, row }
   const [reviewRemarks, setReviewRemarks] = useState("");
   const [savingReview, setSavingReview] = useState(false);
@@ -142,10 +157,18 @@ const [yearFilter, setYearFilter] = useState("All");
 
   // ── bulk file import ──
   const [showImport,     setShowImport]     = useState(false);
-  const [importStep,     setImportStep]     = useState("upload"); // "upload" | "preview" | "results"
+  const [importStep,     setImportStep]     = useState("upload"); // "upload" | "word" | "preview" | "results"
   const [importFileName, setImportFileName] = useState("");
   const [importRows,     setImportRows]     = useState([]); // parsed + validated
   const [parsingFile,    setParsingFile]    = useState(false);
+  // Word (.docx) masterlist import: detected rows + the details the list doesn't carry
+  const [wordDraft,      setWordDraft]      = useState(null);
+  const wordPendingRef = useRef({}); // scholarships to create at import time: lower-cased name -> { name, amount }
+  const [dragOver, setDragOver] = useState(false);
+  const [previewFilter, setPreviewFilter] = useState("all"); // "all" | "ok" | "warn" | "bad"
+  const [bulkSemester, setBulkSemester] = useState("");
+  const [bulkDate, setBulkDate] = useState("");
+  const wordRawRef = useRef([]); // the rows handed to validateImportRows, so a School ID typed in the preview can re-run it
   const [importing,      setImporting]      = useState(false);
   const [importResults,  setImportResults]  = useState({ succeeded: 0, failed: [] });
 
@@ -383,13 +406,20 @@ const [yearFilter, setYearFilter] = useState("All");
   // gets written until the coordinator has reviewed exactly what will
   // happen — new student vs. linking to an existing one, which scholarship
   // it resolved to, and anything that looks like a duplicate.
-  const handleFileSelected = async (e) => {
+  const handleFileSelected = (e) => {
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-selecting the same file later
-    if (!file) return;
+    if (file) ingestFile(file);
+  };
+
+  const ingestFile = async (file) => {
+    if (!/\.(csv|docx)$/i.test(file.name)) { toast.error("Choose a .docx or .csv file."); return; }
+    setPreviewFilter("all");
 
     setImportFileName(file.name);
     setParsingFile(true);
+
+    if (/\.docx$/i.test(file.name)) { await handleWordSelected(file); return; }
 
     const { default: Papa } = await import("papaparse");
     Papa.parse(file, {
@@ -414,7 +444,141 @@ const [yearFilter, setYearFilter] = useState("All");
     });
   };
 
-  const validateImportRows = async (raw) => {
+  // ── Word (.docx) masterlist ────────────────────────────────
+  // Recognises the columns by their headers (Last/First/MI, Program, Year, scholarship
+  // column, ...), so small differences between lists still work. The list doesn't say
+  // which semester, award date or school IDs, so those are asked for / filled in next.
+  const handleWordSelected = async (file) => {
+    try {
+      const [{ readDocx }, { parseGranteeList, guessScholarship }] = await Promise.all([
+        import("@/lib/docxTables"), import("@/lib/granteeList"),
+      ]);
+      const doc = await readDocx(await file.arrayBuffer());
+      const parsed = parseGranteeList(doc.tables, doc.paragraphs, [file.name]);
+      if (!parsed || parsed.rows.length === 0) {
+        toast.error("Couldn't find a grantee list in that Word file. It needs a table with Last name and First name columns.");
+        return;
+      }
+      const { data: sch } = await supabase.from("scholarships").select("scholarship_id, scholarship_name").order("scholarship_name");
+      const counts = new Map();
+      parsed.rows.forEach(r => counts.set(r.scholarship_label, (counts.get(r.scholarship_label) || 0) + 1));
+      const usualAmount = (label) => {
+        const tally = new Map();
+        parsed.rows.filter(x => x.scholarship_label === label).forEach(x => {
+          const n = Number(String(x.amount).replace(/[^\d.]/g, ""));
+          if (n > 0) tally.set(n, (tally.get(n) || 0) + 1);
+        });
+        return [...tally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+      };
+      const labels = [...counts.entries()].map(([label, count]) => ({
+        label, count, scholarship_id: String(guessScholarship(label, sch || [])?.scholarship_id || ""),
+        newName: label, newAmount: String(usualAmount(label)),
+      }));
+      setWordDraft({
+        rows: parsed.rows, skipped: parsed.skipped, scholarships: sch || [], labels,
+        academic_year: parsed.academic_year, semester: parsed.semester,
+        date_awarded: "",
+        hasSchoolId: parsed.hasSchoolId,
+      });
+      setImportStep("word");
+    } catch (err) {
+      toast.error("Couldn't read that Word file: " + err.message);
+    } finally {
+      setParsingFile(false);
+    }
+  };
+
+  const NEW_SCHOLARSHIP = "__new__";
+  const wordLabelsMapped = wordDraft ? wordDraft.labels.filter(l => l.scholarship_id).reduce((n, l) => n + l.count, 0) : 0;
+
+  // Semester and date awarded may be left blank here: they can be filled in per row
+  // (or for all rows at once) on the next screen.
+  const continueWordImport = async () => {
+    const d = wordDraft;
+    if (!AY_PATTERN.test(d.academic_year.trim())) return toast.error('Academic year should look like "2022-2023".');
+    if (wordLabelsMapped === 0) return toast.error("Match at least one scholarship in the list to a scholarship in the system, or choose to create it.");
+    const bad = d.labels.find(l => l.scholarship_id === NEW_SCHOLARSHIP && !l.newName.trim());
+    if (bad) return toast.error("Give the new scholarship a name.");
+    const nameById = new Map(d.scholarships.map(x => [String(x.scholarship_id), x.scholarship_name]));
+    const pending = {};
+    d.labels.filter(l => l.scholarship_id === NEW_SCHOLARSHIP).forEach(l => {
+      pending[l.newName.trim().toLowerCase()] = { name: l.newName.trim(), amount: Number(l.newAmount) || 0 };
+    });
+    const nameFor = (l) => (l.scholarship_id === NEW_SCHOLARSHIP ? l.newName.trim() : nameById.get(l.scholarship_id));
+    const byLabel = new Map(d.labels.map(l => [l.label, l]));
+    const raw = d.rows
+      .filter(row => byLabel.get(row.scholarship_label)?.scholarship_id)
+      .map(row => ({
+        first_name: row.first_name, middle_name: row.middle_name, last_name: row.last_name,
+        school_id: row.school_id, course: row.course, year_level: row.year_level, contact_number: "",
+        scholarship_name: nameFor(byLabel.get(row.scholarship_label)),
+        academic_year: d.academic_year.trim(), semester: d.semester, date_awarded: d.date_awarded,
+        status: "", verification_result: "",
+      }));
+    wordRawRef.current = raw;
+    wordPendingRef.current = pending;
+    setParsingFile(true);
+    await validateImportRows(raw, { fromWord: true, pending });
+    setParsingFile(false);
+    setImportStep("preview");
+  };
+
+  const revalidateWord = () => validateImportRows(wordRawRef.current, { fromWord: true, pending: wordPendingRef.current });
+
+  // One field on one row (School ID, semester, date awarded) typed into the preview.
+  const setWordField = async (rawIndex, field, value) => {
+    const v = String(value).trim();
+    if (wordRawRef.current[rawIndex]?.[field] === v) return;
+    wordRawRef.current = wordRawRef.current.map((row, i) => (i === rawIndex ? { ...row, [field]: v } : row));
+    await revalidateWord();
+  };
+
+  // Semester / date awarded for every row at once (only the fields that were filled in).
+  const applyToAllWord = async (patch) => {
+    const clean = Object.fromEntries(Object.entries(patch).filter(([, v]) => v));
+    if (Object.keys(clean).length === 0) return toast.error("Choose a semester or a date first.");
+    wordRawRef.current = wordRawRef.current.map(row => ({ ...row, ...clean }));
+    await revalidateWord();
+  };
+
+  // The previewed rows as the CSV template, so missing School IDs can be filled in a spreadsheet.
+  const downloadPreviewCsv = async () => {
+    const { default: Papa } = await import("papaparse");
+    const csv = Papa.unparse({
+      fields: CSV_COLUMNS,
+      data: importRows.map(r => CSV_COLUMNS.map(c => (c === "year_level" ? (r.year_level ?? "") : (r[c] ?? "")))),
+    });
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = "grantees_from_word.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const validateImportRows = async (rawIn, opts = {}) => {
+    // Rows without a School ID (a Word masterlist has none): look for exactly one existing
+    // student with the same first and last name and use theirs.
+    const nameFilled = new Set();
+    let raw = rawIn;
+    const noId = rawIn.filter(x => !(x.school_id || "").trim());
+    if (noId.length > 0) {
+      const lastNames = [...new Set(noId.map(x => (x.last_name || "").trim()).filter(Boolean))];
+      const { data: byName } = lastNames.length > 0
+        ? await supabase.from("students").select("school_id, users!inner(first_name, last_name)").in("users.last_name", lastNames)
+        : { data: [] };
+      const key = (f, l) => `${(f || "").trim().toLowerCase()}|${(l || "").trim().toLowerCase()}`;
+      const idx = new Map();
+      (byName || []).forEach(st => {
+        const k = key(st.users?.first_name, st.users?.last_name);
+        idx.set(k, [...(idx.get(k) || []), st.school_id]);
+      });
+      raw = rawIn.map((x, i) => {
+        if ((x.school_id || "").trim()) return x;
+        const hit = idx.get(key(x.first_name, x.last_name)) || [];
+        if (hit.length === 1) { nameFilled.add(i); return { ...x, school_id: hit[0] }; }
+        return x;
+      });
+    }
+
     // batch lookups instead of one query per row
     const { data: allScholarships } = await supabase
       .from("scholarships").select("scholarship_id, scholarship_name");
@@ -456,8 +620,11 @@ const [yearFilter, setYearFilter] = useState("All");
       if (!r.semester?.trim()) errors.push("Missing semester");
       else if (!semester) errors.push(`semester "${r.semester}" must be "1st Semester" or "2nd Semester"`);
 
-      const status = r.status?.trim() ? normalizeAgainst(r.status, VALID_STATUSES) : "Active";
+      const pastYear = isPastAcademicYear(academic_year);
+      const status = r.status?.trim() ? normalizeAgainst(r.status, VALID_STATUSES) : (pastYear ? "Inactive" : "Active");
       if (r.status?.trim() && !status) errors.push(`status "${r.status}" must be Active, Inactive, or Pending`);
+      if (!r.status?.trim() && pastYear) warnings.push(`${academic_year} is a past school year, so this is saved as Inactive (history only). It won't use up a slot or show as a current scholarship`);
+      if (r.status?.trim() && status === "Active" && pastYear) warnings.push(`${academic_year} is a past school year but the status is Active. This will use up a slot`);
 
       const verification_result = r.verification_result?.trim()
         ? normalizeAgainst(r.verification_result, VALID_VERIFICATIONS) : "Verified";
@@ -472,17 +639,20 @@ const [yearFilter, setYearFilter] = useState("All");
         else year_level = n;
       }
 
+      const pendingNew = opts.pending?.[scholarship_name.toLowerCase()];
       const scholarshipMatch = scholarship_name ? scholarshipByName.get(scholarship_name.toLowerCase()) : null;
-      if (scholarship_name && !scholarshipMatch) errors.push(`No scholarship named "${scholarship_name}" — check spelling, or add it under Scholarships first`);
+      if (pendingNew && !scholarshipMatch) warnings.push(`Will create the scholarship "${pendingNew.name}" (set to Suspended until you set it up under Scholarships)`);
+      if (scholarship_name && !scholarshipMatch && !pendingNew) errors.push(`No scholarship named "${scholarship_name}" — check spelling, or add it under Scholarships first`);
 
       const studentMatch = school_id ? studentBySchoolId.get(school_id) : null;
+      if (nameFilled.has(i)) warnings.push("School ID filled in from an existing student with the same name. Check it is the same person");
       if (studentMatch) {
         warnings.push(`School ID already in the system — will link to ${studentMatch.users?.first_name} ${studentMatch.users?.last_name} instead of creating a new student`);
         const dupeGrant = (studentMatch.existingGrantees || []).some(g =>
           scholarshipMatch && g.scholarship_id === scholarshipMatch.scholarship_id &&
           g.academic_year === academic_year && g.semester === semester
         );
-        if (dupeGrant) warnings.push("This student already has a grantee record for this exact scholarship, academic year, and semester — likely a duplicate import");
+        if (dupeGrant) errors.push("This student already has a grantee record for this exact scholarship, academic year and semester. It won't be imported again");
       }
 
       if (school_id) {
@@ -498,10 +668,11 @@ const [yearFilter, setYearFilter] = useState("All");
         first_name, middle_name: (r.middle_name || "").trim(), last_name,
         school_id, course: (r.course || "").trim(), year_level,
         contact_number: (r.contact_number || "").trim(),
-        scholarship_name, scholarship_id: scholarshipMatch?.scholarship_id || null,
+        scholarship_name, scholarship_id: scholarshipMatch?.scholarship_id || null, newScholarship: pendingNew && !scholarshipMatch ? pendingNew : null,
         academic_year, semester: semester || r.semester?.trim() || "",
         date_awarded, status: status || "Active", verification_result: verification_result || "Verified",
         studentMatch,
+        fromWord: Boolean(opts.fromWord), rawIndex: i,
         errors, warnings,
       };
     });
@@ -510,6 +681,16 @@ const [yearFilter, setYearFilter] = useState("All");
   };
 
   const importReadyRows = importRows.filter(r => r.errors.length === 0);
+  const badRows   = importRows.filter(r => r.errors.length > 0);
+  const warnRows  = importRows.filter(r => r.errors.length === 0 && r.warnings.length > 0);
+  const cleanRows = importRows.filter(r => r.errors.length === 0 && r.warnings.length === 0);
+  const noIdCount = importRows.filter(r => !r.school_id).length;
+  const shownRows = previewFilter === "ok" ? cleanRows : previewFilter === "warn" ? warnRows : previewFilter === "bad" ? badRows : importRows;
+  const isWordImport = importStep === "word" || Boolean(importRows[0]?.fromWord);
+  const importSteps = isWordImport
+    ? [{ id: "upload", label: "Upload" }, { id: "details", label: "Details" }, { id: "review", label: "Review", count: importStep === "preview" ? importReadyRows.length : 0 }, { id: "done", label: "Done" }]
+    : [{ id: "upload", label: "Upload" }, { id: "review", label: "Review", count: importStep === "preview" ? importReadyRows.length : 0 }, { id: "done", label: "Done" }];
+  const importStepId = { upload: "upload", word: "details", preview: "review", results: "done" }[importStep];
 
   const commitImport = async () => {
     if (importReadyRows.length === 0) return;
@@ -518,6 +699,29 @@ const [yearFilter, setYearFilter] = useState("All");
     const succeeded = [];
     const failed = [];
     const touchedScholarships = new Set();
+
+    // Scholarships that don't exist yet are created first. They start as Suspended so
+    // students can't apply to a half-set-up scholarship; set them up under Scholarships.
+    const createdIds = new Map(); // lower-cased name -> scholarship_id
+    for (const row of importReadyRows) {
+      const ns = row.newScholarship;
+      if (!ns || createdIds.has(ns.name.toLowerCase())) continue;
+      const { data: made, error: madeErr } = await supabase.from("scholarships").insert({
+        scholarship_name: ns.name, amount: ns.amount, total_budget: 0, slots: 0,
+        submission_deadline: row.date_awarded || new Date().toISOString().split("T")[0],
+        payout_frequency: "Semester", duration_type: "Until Graduation", status: "Suspended",
+        description: "Created while importing a grantee list. Review its details, requirements and application form, then set it to Active.",
+      }).select().single();
+      if (madeErr) {
+        toast.error(`Couldn't create the scholarship "${ns.name}": ${madeErr.message}. Nothing was imported.`);
+        setImporting(false);
+        return;
+      }
+      createdIds.set(ns.name.toLowerCase(), made.scholarship_id);
+    }
+    importReadyRows.forEach(row => {
+      if (row.newScholarship) row.scholarship_id = createdIds.get(row.newScholarship.name.toLowerCase());
+    });
 
     for (const row of importReadyRows) {
       let studentId = row.studentMatch?.student_id;
@@ -579,6 +783,22 @@ const [yearFilter, setYearFilter] = useState("All");
     }
 
     for (const sid of touchedScholarships) await closePendingIfFull(supabase, sid);
+
+    // Tell the coordinator if the imported Active grantees put a scholarship over its slot limit.
+    if (touchedScholarships.size > 0) {
+      const [{ data: limits }, occupiedNow] = await Promise.all([
+        supabase.from("scholarships").select("scholarship_id, scholarship_name, slots").in("scholarship_id", [...touchedScholarships]),
+        fetchOccupiedMap(supabase),
+      ]);
+      const over = (limits || []).filter(sc => Number(sc.slots) > 0 && (occupiedNow[String(sc.scholarship_id)] || 0) > Number(sc.slots));
+      if (over.length > 0) {
+        toast.error(
+          over.map(sc => `${sc.scholarship_name}: ${occupiedNow[String(sc.scholarship_id)]} active grantees but only ${sc.slots} slots`).join(". ") +
+          ". Raise the slots under Scholarships if that's right.",
+          12000
+        );
+      }
+    }
 
     setImporting(false);
     setImportResults({ succeeded: succeeded.length, failed });
@@ -682,6 +902,7 @@ const [yearFilter, setYearFilter] = useState("All");
   setCached(CACHE_KEY, formatted);
   setLoading(false);
   loadRequests();
+  loadLinkRequests();
 };
 
   // Pending cancellation requests from students. If the table doesn't exist yet
@@ -693,6 +914,41 @@ const [yearFilter, setYearFilter] = useState("All");
       .eq("status", "Pending")
       .order("created_at", { ascending: true });
     setCancelRequests(error ? [] : data || []);
+  };
+
+  // Students who typed a School ID that matches an imported record. Needs
+  // supabase/claim_imported_student.sql; if it isn't installed this shows nothing.
+  const loadLinkRequests = async () => {
+    const { data, error } = await supabase.rpc("list_student_link_requests");
+    setLinkRequests(error ? [] : data || []);
+  };
+
+  const decideLink = async (rq, approve) => {
+    if (linkBusy) return;
+    if (!approve && !window.confirm("Reject this link request? The imported record stays as it is.")) return;
+    setLinkBusy(rq.request_id);
+    const { data, error } = approve
+      ? await supabase.rpc("approve_student_link", { p_request_id: rq.request_id })
+      : await supabase.rpc("reject_student_link", { p_request_id: rq.request_id, p_remarks: null });
+    setLinkBusy(null);
+    if (error) return toast.error(error.message);
+    if (approve && !data?.approved) {
+      toast.error(data?.reason === "already_claimed" ? "That record was already linked to an account." : "Couldn't link this one. It may no longer exist.");
+    } else if (!approve && !data?.rejected) {
+      toast.error("That request was already handled.");
+    } else {
+      toast.success(approve ? "Linked. The scholarship now shows on the student's account." : "Request rejected.");
+      notifyStudent(
+        supabase,
+        data?.student_user_id,
+        approve ? "Scholarship records linked" : "Link request not approved",
+        approve
+          ? "A coordinator confirmed your School ID. Your past scholarship records are now on your account."
+          : "A coordinator could not confirm that the School ID you entered is yours. Please check it, or visit the scholarship office."
+      );
+    }
+    clearAllCached();
+    load();
   };
 
   const pendingGranteeIds = new Set(cancelRequests.map((r) => String(r.grantee_id)));
@@ -1155,6 +1411,33 @@ const endRow =
           </div>
         );
       })}
+    </div>
+  </section>
+)}
+
+{linkRequests.length > 0 && (
+  <section className={styles.requestsPanel} aria-label="Account link requests">
+    <h2 className={styles.requestsTitle}>
+      Account link requests <span className={styles.requestsCount}>{linkRequests.length}</span>
+    </h2>
+    <div className={styles.requestsList}>
+      {linkRequests.map((rq) => (
+        <div key={rq.request_id} className={styles.requestRow}>
+          <div className={styles.requestMain}>
+            <strong>{rq.requester_name || "Student"}</strong>
+            <span className={styles.requestMeta}>
+              entered School ID {rq.school_id}{rq.requester_email ? ` · ${rq.requester_email}` : ""}
+            </span>
+            <span className={styles.requestReason}>
+              Imported record: {rq.imported_name}{rq.imported_course ? ` · ${rq.imported_course}` : ""}{rq.scholarships ? ` · ${rq.scholarships}` : ""}. Approve only if you can confirm this is the same person.
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button size="sm" variant="secondary" disabled={linkBusy === rq.request_id} onClick={() => decideLink(rq, false)}>Reject</Button>
+            <Button size="sm" variant="primary" disabled={linkBusy === rq.request_id} onClick={() => decideLink(rq, true)}>Approve</Button>
+          </div>
+        </div>
+      ))}
     </div>
   </section>
 )}
@@ -1807,11 +2090,18 @@ const endRow =
         open={showImport}
         onClose={() => setShowImport(false)}
         title="Import Historical Grantees from File"
-        size="lg"
+        size="xl"
         footer={
-          importStep === "preview" ? (
+          importStep === "word" ? (
             <>
               <button className={styles.pageBtn} onClick={() => setImportStep("upload")}>Back</button>
+              <button className={styles.documentButton} disabled={parsingFile} onClick={continueWordImport}>
+                {parsingFile ? "Checking…" : "Continue"}
+              </button>
+            </>
+          ) : importStep === "preview" ? (
+            <>
+              <button className={styles.pageBtn} onClick={() => setImportStep(wordDraft && importRows[0]?.fromWord ? "word" : "upload")}>Back</button>
               <button
                 className={styles.documentButton}
                 disabled={importing || importReadyRows.length === 0}
@@ -1827,98 +2117,283 @@ const endRow =
           )
         }
       >
+        <div className={imp.stepper}>
+          <Stepper steps={importSteps} current={importStepId} onStep={() => {}} canVisit={() => false} />
+        </div>
+
         {importStep === "upload" && (
-          <div className={styles.verifyForm}>
-            <p className={styles.description}>
-              For migrating many historical scholars at once instead of one at a time. Download the
-              template, fill it in, and upload it — nothing gets saved until you've reviewed exactly
-              what will happen on the next screen.
+          <div>
+            <label
+              className={`${imp.drop} ${dragOver ? imp.dropActive : ""} ${parsingFile ? imp.dropBusy : ""}`}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files?.[0]; if (f) ingestFile(f); }}
+            >
+              <input className={imp.dropInput} type="file" accept=".csv,.docx" onChange={handleFileSelected} disabled={parsingFile} />
+              <span className={imp.dropIcon} aria-hidden="true"><Icon name="upload" size={20} /></span>
+              <span className={imp.dropTitle}>{parsingFile ? "Reading and checking your file…" : "Drop a file here, or click to choose"}</span>
+              <span className={imp.dropSub}>Word masterlist (.docx) or CSV (.csv)</span>
+            </label>
+
+            <div className={imp.kinds}>
+              <div className={imp.kind}>
+                <span className={imp.kindTitle}><Icon name="file" size={14} /> Word masterlist</span>
+                <p className={imp.kindText}>
+                  Columns are recognised by their headers (Last, First, MI, Program, Year, scholarship). You'll be asked
+                  for anything the list doesn't say, like the semester.
+                </p>
+              </div>
+              <div className={imp.kind}>
+                <span className={imp.kindTitle}><Icon name="file" size={14} /> CSV template</span>
+                <div className={imp.chips}>
+                  {["first_name", "last_name", "school_id", "scholarship_name", "academic_year", "semester", "date_awarded"].map(c => <span key={c} className={imp.chip}>{c}</span>)}
+                  {["middle_name", "course", "year_level", "contact_number", "status", "verification_result"].map(c => <span key={c} className={`${imp.chip} ${imp.chipOpt}`}>{c}</span>)}
+                </div>
+                <p className={imp.kindText}>Solid chips are required. scholarship_name must match an existing scholarship.</p>
+                <div><button type="button" className={styles.pageBtn} onClick={downloadCsvTemplate}>Download CSV template</button></div>
+              </div>
+            </div>
+
+            <p className={imp.note}>
+              Nothing is saved until you've reviewed every row on the next screens. A School ID already in the system links to that
+              student instead of creating a new person. Rows from school years that have already ended are saved as Inactive,
+              so they don't use up current slots.
             </p>
-            <div className={styles.verifySection}>
-              <button type="button" className={styles.pageBtn} onClick={downloadCsvTemplate}>
-                Download CSV Template
-              </button>
-              <p className={styles.description} style={{ marginTop: 10 }}>
-                Required columns: first_name, last_name, school_id, scholarship_name, academic_year
-                (e.g. 2022-2023), semester, date_awarded. scholarship_name must exactly match an
-                existing scholarship's name. Optional: middle_name, course, year_level, contact_number,
-                status (defaults Active), verification_result (defaults Verified).
-              </p>
-              <p className={styles.description}>
-                If a school_id already exists in the system, that row links to the existing student
-                instead of creating a new one — it never creates duplicate people.
-              </p>
+          </div>
+        )}
+
+        {importStep === "word" && wordDraft && (
+          <div>
+            <div className={imp.fileBar}>
+              <span className={imp.dropIcon} aria-hidden="true" style={{ width: 36, height: 36, fontSize: 16 }}><Icon name="file" size={16} /></span>
+              <div>
+                <div className={imp.fileName}>{importFileName}</div>
+                <div className={imp.fileMeta}>
+                  {wordDraft.rows.length} grantees found
+                  {wordDraft.skipped > 0 && <> · {wordDraft.skipped} blank or incomplete rows skipped</>}
+                </div>
+              </div>
             </div>
-            <div className={styles.verifySection}>
-              <input type="file" accept=".csv" onChange={handleFileSelected} disabled={parsingFile} />
-              {parsingFile && <p className={styles.description}>Reading and checking your file against current records…</p>}
-            </div>
+
+            <section className={imp.card}>
+              <h4 className={imp.cardTitle}>About this list</h4>
+              <p className={imp.cardHint}>Applies to every row. Semester and date can be left blank here and set per row on the review screen.</p>
+              <div className={imp.grid3}>
+                <label className={imp.label}>Academic year
+                  <input className={styles.vfInput} value={wordDraft.academic_year} placeholder="2022-2023"
+                    onChange={(e) => setWordDraft(d => ({ ...d, academic_year: e.target.value }))} />
+                </label>
+                <label className={imp.label}><span>Semester <span className={imp.optional}>(optional)</span></span>
+                  <select className={styles.vfInput} value={wordDraft.semester}
+                    onChange={(e) => setWordDraft(d => ({ ...d, semester: e.target.value }))}>
+                    <option value="">Set later</option>
+                    {VALID_SEMESTERS.map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </label>
+                <label className={imp.label}><span>Date awarded <span className={imp.optional}>(optional)</span></span>
+                  <input className={styles.vfInput} type="date" value={wordDraft.date_awarded}
+                    onChange={(e) => setWordDraft(d => ({ ...d, date_awarded: e.target.value }))} />
+                </label>
+              </div>
+            </section>
+
+            <section className={imp.card}>
+              <h4 className={imp.cardTitle}>Match scholarships</h4>
+              <p className={imp.cardHint}>Pick the scholarship in the system for each name in the list, create it if it isn't there yet, or skip those people.</p>
+              {wordDraft.labels.map((l, i) => {
+                const upd = (patch) => setWordDraft(d => ({ ...d, labels: d.labels.map((x, j) => (j === i ? { ...x, ...patch } : x)) }));
+                const kind = l.scholarship_id === NEW_SCHOLARSHIP ? "new" : l.scholarship_id ? "ok" : "skip";
+                return (
+                  <div key={l.label || "none"} className={imp.match}>
+                    <div className={imp.matchTop}>
+                      <span className={imp.matchName}>
+                        <strong>{l.label || "(no scholarship column)"}</strong>
+                        <span className={imp.matchCount}>{l.count} grantee{l.count !== 1 ? "s" : ""}</span>
+                      </span>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <select className={styles.vfInput} style={{ flex: 1 }} value={l.scholarship_id} aria-label={`Scholarship for ${l.label}`}
+                          onChange={(e) => upd({ scholarship_id: e.target.value })}>
+                          <option value="">Skip these</option>
+                          <option value={NEW_SCHOLARSHIP}>+ Create new scholarship…</option>
+                          {wordDraft.scholarships.map(sc => <option key={sc.scholarship_id} value={String(sc.scholarship_id)}>{sc.scholarship_name}</option>)}
+                        </select>
+                        <span className={`${imp.tag} ${kind === "ok" ? imp.tagOk : kind === "new" ? imp.tagNew : imp.tagSkip}`}>
+                          {kind === "ok" ? "Matched" : kind === "new" ? "New" : "Skipped"}
+                        </span>
+                      </div>
+                    </div>
+                    {kind === "new" && (
+                      <div className={imp.matchNew}>
+                        <label className={imp.label}>New scholarship name
+                          <input className={styles.vfInput} value={l.newName} onChange={(e) => upd({ newName: e.target.value })} />
+                        </label>
+                        <label className={imp.label}>Amount per grantee (₱)
+                          <input className={styles.vfInput} type="number" min="0" value={l.newAmount} onChange={(e) => upd({ newAmount: e.target.value })} />
+                        </label>
+                        <p className={imp.matchNote}>Created when you import, as Suspended, so students can't apply until you finish setting it up under Scholarships.</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </section>
+
+            {!wordDraft.hasSchoolId && (
+              <p className={imp.note} style={{ marginTop: 0 }}>
+                This list has no School ID column. Anyone who already has a record is matched by name on the next screen; you can type
+                the rest in, or download the rows as CSV, fill them in with Excel and upload that.
+              </p>
+            )}
           </div>
         )}
 
         {importStep === "preview" && (
-          <div className={styles.verifyForm}>
-            <p className={styles.description}>
-              <strong>{importFileName}</strong> — {importRows.length} row{importRows.length !== 1 ? "s" : ""} found.
-              {" "}{importReadyRows.length} ready to import, {importRows.filter(r => r.errors.length > 0).length} will be skipped
-              (fix and re-upload if needed), {importRows.filter(r => r.errors.length === 0 && r.warnings.length > 0).length} have warnings but will still import.
-            </p>
-            <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
-              <table className={styles.table}>
-                <thead className={styles.thead}>
-                  <tr>
-                    <th className={styles.th}>Row</th>
-                    <th data-pin className={styles.th}>Name</th>
-                    <th className={styles.th}>School ID</th>
-                    <th className={styles.th}>Scholarship</th>
-                    <th className={styles.th}>AY / Semester</th>
-                    <th className={styles.th}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {importRows.map(r => (
-                    <tr key={r.rowNumber}>
-                      <td className={styles.td}>{r.rowNumber}</td>
-                      <td data-pin className={styles.td}>{r.first_name} {r.last_name}</td>
-                      <td className={styles.td}>{r.school_id || "—"}</td>
-                      <td className={styles.td}>{r.scholarship_name || "—"}</td>
-                      <td className={styles.td}>{r.academic_year} {r.semester}</td>
-                      <td className={styles.td}>
-                        {r.errors.length > 0 ? (
-                          <span style={{ color: "var(--danger-700)", fontWeight: 600 }}>
-                            <Icon name="close" size={12} /> {r.errors.join("; ")}
-                          </span>
-                        ) : r.warnings.length > 0 ? (
-                          <span style={{ color: "var(--warning-700)", fontWeight: 600 }}>
-                            <Icon name="alert" size={12} /> {r.warnings.join("; ")}
-                          </span>
-                        ) : (
-                          <span style={{ color: "var(--success-700)", fontWeight: 600 }}><Icon name="check" size={12} /> Ready</span>
-                        )}
-                      </td>
+          <div>
+            <div className={imp.tiles}>
+              {[
+                { id: "all",  num: importRows.length,   label: "Rows found",           cls: "" },
+                { id: "ok",   num: cleanRows.length,    label: "Ready, no issues",     cls: imp.tileOk },
+                { id: "warn", num: warnRows.length,     label: "Ready, with warnings", cls: imp.tileWarn },
+                { id: "bad",  num: badRows.length,      label: "Will be skipped",      cls: imp.tileBad },
+              ].map(t => (
+                <button key={t.id} type="button" className={`${imp.tile} ${t.cls} ${previewFilter === t.id ? imp.tileOn : ""}`}
+                  onClick={() => setPreviewFilter(t.id)} aria-pressed={previewFilter === t.id}>
+                  <span className={imp.tileNum}>{t.num}</span>
+                  <span className={imp.tileLabel}>{t.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {importRows[0]?.fromWord && (
+              <div className={imp.bulk}>
+                <p className={imp.bulkTitle}>Set for all rows at once</p>
+                <label className={imp.label}>Semester
+                  <select className={styles.vfInput} value={bulkSemester} onChange={(e) => setBulkSemester(e.target.value)}>
+                    <option value="">Choose…</option>
+                    {VALID_SEMESTERS.map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </label>
+                <label className={imp.label}>Date awarded
+                  <input className={styles.vfInput} type="date" value={bulkDate} onChange={(e) => setBulkDate(e.target.value)} />
+                </label>
+                <button type="button" className={styles.pageBtn} onClick={() => applyToAllWord({ semester: bulkSemester, date_awarded: bulkDate })}>Apply to all</button>
+                <button type="button" className={styles.pageBtn} onClick={downloadPreviewCsv}>Download as CSV</button>
+                <p className={imp.bulkNote}>
+                  {noIdCount > 0 ? `${noIdCount} row${noIdCount !== 1 ? "s" : ""} still need a School ID. Type it in the table, or fill the CSV in Excel and upload that. ` : "Every row has a School ID. "}
+                  You can also change semester and date row by row.
+                </p>
+              </div>
+            )}
+
+            <div className={imp.tableWrap}>
+              {shownRows.length === 0 ? (
+                <div className={imp.empty}>No rows in this group.</div>
+              ) : (
+                <table className={imp.tbl}>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Name</th>
+                      <th>School ID</th>
+                      <th>Year / semester</th>
+                      {importRows[0]?.fromWord && <th>Date awarded</th>}
+                      <th>Check</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {shownRows.map(r => {
+                      const bad = r.errors.length > 0, warn = !bad && r.warnings.length > 0;
+                      return (
+                        <tr key={r.rowNumber} className={bad ? imp.rowBad : warn ? imp.rowWarn : imp.rowOk}>
+                          <td>{r.rowNumber}</td>
+                          <td>
+                            <span className={imp.who}>{r.first_name} {r.last_name}</span>
+                            <span className={imp.sub}>{[r.scholarship_name, r.course, r.year_level && `Year ${r.year_level}`].filter(Boolean).join(" · ")}</span>
+                          </td>
+                          <td>
+                            {r.fromWord ? (
+                              <input
+                                key={`${r.rowNumber}-${r.school_id}`}
+                                className={`${styles.vfInput} ${imp.cellInput}`}
+                                defaultValue={r.school_id}
+                                placeholder="School ID"
+                                aria-label={`School ID for ${r.first_name} ${r.last_name}`}
+                                onBlur={(e) => setWordField(r.rawIndex, "school_id", e.target.value)}
+                              />
+                            ) : (r.school_id || "—")}
+                          </td>
+                          <td>
+                            {r.fromWord && <span className={imp.sub} style={{ marginBottom: 3 }}>{r.academic_year}</span>}
+                            {r.fromWord ? (
+                              <select
+                                key={`${r.rowNumber}-sem-${r.semester}`}
+                                className={`${styles.vfInput} ${imp.cellInput}`}
+                                style={{ minWidth: 130 }}
+                                defaultValue={r.semester}
+                                aria-label={`Semester for ${r.first_name} ${r.last_name}`}
+                                onChange={(e) => setWordField(r.rawIndex, "semester", e.target.value)}
+                              >
+                                <option value="">Choose…</option>
+                                {VALID_SEMESTERS.map(v => <option key={v} value={v}>{v}</option>)}
+                              </select>
+                            ) : `${r.academic_year} ${r.semester}`}
+                          </td>
+                          {r.fromWord && (
+                            <td>
+                              <input
+                                key={`${r.rowNumber}-date-${r.date_awarded}`}
+                                className={`${styles.vfInput} ${imp.cellInput}`}
+                                style={{ minWidth: 120 }}
+                                type="date"
+                                defaultValue={r.date_awarded}
+                                aria-label={`Date awarded for ${r.first_name} ${r.last_name}`}
+                                onBlur={(e) => setWordField(r.rawIndex, "date_awarded", e.target.value)}
+                              />
+                            </td>
+                          )}
+                          <td>
+                            {bad ? <span className={`${imp.pill} ${imp.pillBad}`}><Icon name="close" size={11} /> Skipped</span>
+                              : warn ? <span className={`${imp.pill} ${imp.pillWarn}`}><Icon name="alert" size={11} /> Check</span>
+                              : <span className={`${imp.pill} ${imp.pillOk}`}><Icon name="check" size={11} /> Ready</span>}
+                            {!bad && <span className={`${imp.pill} ${r.status === "Active" ? imp.pillOk : imp.pillIdle}`} style={{ marginLeft: 6 }} title="Status it will be saved with">{r.status}</span>}
+                            {(bad || warn) && (
+                              <ul className={imp.msgs}>
+                                {(bad ? r.errors : r.warnings).map((m, k) => (
+                                  <li key={k} className={`${imp.msg} ${bad ? imp.msgBad : imp.msgWarn}`}>{m}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         )}
 
         {importStep === "results" && (
-          <div className={styles.verifyForm}>
-            <p className={styles.description}>
-              <strong style={{ color: "var(--success-700)" }}>{importResults.succeeded}</strong> imported successfully.
-              {importResults.failed.length > 0 && (
-                <> <strong style={{ color: "var(--danger-700)" }}>{importResults.failed.length}</strong> failed during import.</>
-              )}
+          <div className={imp.done}>
+            <div className={`${imp.doneIcon} ${importResults.failed.length > 0 ? imp.doneIconBad : ""}`} aria-hidden="true">
+              <Icon name={importResults.failed.length > 0 ? "alert" : "check"} size={26} />
+            </div>
+            <h3 className={imp.doneTitle}>
+              {importResults.succeeded} grantee{importResults.succeeded !== 1 ? "s" : ""} imported
+            </h3>
+            <p className={imp.doneSub}>
+              {importResults.failed.length > 0
+                ? `${importResults.failed.length} could not be saved. Details below.`
+                : "They now appear in the grantees table. Students can link their account to a record by entering their School ID on their profile."}
             </p>
             {importResults.failed.length > 0 && (
-              <div className={styles.verifySection}>
-                <h4 className={styles.verifySectionTitle}>Failed rows</h4>
+              <div className={imp.failed}>
+                <div className={imp.failedHead}>{importResults.failed.length} failed</div>
                 {importResults.failed.map(f => (
-                  <p key={f.row} className={styles.description}>
-                    Row {f.row} ({f.name}): {f.reason}
-                  </p>
+                  <div key={f.row} className={imp.failedRow}>
+                    {f.name} <span>Row {f.row}: {f.reason}</span>
+                  </div>
                 ))}
               </div>
             )}

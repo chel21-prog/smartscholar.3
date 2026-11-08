@@ -214,7 +214,7 @@ export default function Compliance() {
             {Object.keys(r.requirements).length === 0 ? (
               <p className={styles.noReqs}>No document requirements listed for this grant.</p>
             ) : (
-              <>
+              <div className={styles.checkBody}>
                 {(() => {
                   const list = Object.values(r.requirements);
                   const done = list.filter((q) => q.file_url).length;
@@ -281,7 +281,7 @@ export default function Compliance() {
                     );
                   })}
                 </ul>
-              </>
+              </div>
             )}
           </Card>
         ))}
