@@ -13,12 +13,6 @@
   overflow: hidden;
   cursor: pointer;
 }
-/* a soft tone wash in the corner, like the reference's tinted panels */
-.card::before {
-  content: ""; position: absolute; inset: 0 auto 0 0; width: 6px;
-}
-.card_ok::before   { background: var(--success-600); }
-.card_warn::before { background: var(--gold-500); }
 .cardLink { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
 .cardLink:focus-visible { outline: 2px solid var(--navy-600); outline-offset: 2px; }
 

@@ -14,10 +14,10 @@
 .tabOn { background: var(--surface-raised); color: var(--text-primary); box-shadow: var(--shadow-sm); }
 
 .iconField { position: relative; width: 100%; }
-.iconField > input { padding-left: 44px; }
+.iconField input:not([type="checkbox"]) { padding-left: 44px; }
 .lead {
   position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-  display: flex; color: var(--text-secondary); pointer-events: none;
+  display: flex; color: var(--text-secondary); pointer-events: none; z-index: 2;
 }
 .iconField:focus-within .lead { color: var(--navy-600); }
 
