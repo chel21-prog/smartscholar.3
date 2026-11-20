@@ -6,7 +6,10 @@ import ThemeToggle from "@/components/ui/ThemeToggle";
 import PageLoader from "@/components/ui/PageLoader";
 import HelpGuide from "@/components/ui/HelpGuide";
 import NotificationBell from "@/components/student/NotificationBell";
+import { supabase } from "@/lib/supabase";
 import styles from "./PortalLayout.module.css";
+
+const todayKey = () => new Date().toISOString().slice(0, 10);
 
 export default function PortalLayout({ role, roleLabel, links, showNotifications = false }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -27,6 +30,16 @@ export default function PortalLayout({ role, roleLabel, links, showNotifications
       window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
     };
+  }, []);
+
+  // When a scholarship deadline has passed, announce it once to coordinators and students.
+  // Needs supabase/deadline_notifications.sql; quietly does nothing if it isn't installed.
+  useEffect(() => {
+    try { if (sessionStorage.getItem("deadline-check") === todayKey()) return; } catch { /* ignore */ }
+    supabase.rpc("notify_closed_scholarships").then(({ error }) => {
+      if (error) return;
+      try { sessionStorage.setItem("deadline-check", todayKey()); } catch { /* ignore */ }
+    });
   }, []);
 
   return (

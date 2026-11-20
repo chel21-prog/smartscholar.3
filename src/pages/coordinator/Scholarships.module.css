@@ -496,3 +496,10 @@
 .reviewRow dt { color: var(--text-secondary); font-weight: 600; }
 .reviewRow dd { margin: 0; color: var(--text-primary); overflow-wrap: anywhere; }
 @media (max-width: 640px) { .stepperBar { padding: var(--space-3) var(--space-4); } .reviewRow { grid-template-columns: 1fr; gap: 2px; } }
+
+/* Deadline: pick a date or Indefinite */
+.deadlineChoice { display: inline-flex; padding: 3px; gap: 3px; border-radius: var(--radius-full); background: var(--surface-muted); border: 1px solid var(--border); width: fit-content; }
+.choiceBtn { border: 0; background: transparent; padding: 6px 14px; border-radius: var(--radius-full); font: inherit; font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary); cursor: pointer; }
+.choiceBtn:hover { color: var(--text-primary); }
+.choiceOn { background: var(--text-primary); color: var(--surface); }
+.choiceNote { font-size: var(--text-sm); color: var(--text-secondary); padding: 8px 2px; }

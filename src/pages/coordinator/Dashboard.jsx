@@ -367,7 +367,7 @@ export default function CoordinatorDashboard() {
 
   const loadUpcomingDeadlines = async () => {
     const { data } = await supabase.from("scholarships").select("scholarship_name,submission_deadline")
-      .eq("status","Active").order("submission_deadline",{ascending:true}).limit(5);
+      .eq("status","Active").not("submission_deadline","is",null).gte("submission_deadline", new Date().toISOString().slice(0,10)).order("submission_deadline",{ascending:true}).limit(5);
     setUpcomingDeadlines(data||[]);
     setCached(CACHE_KEY, { ...getCached(CACHE_KEY), upcomingDeadlines: data||[] });
   };

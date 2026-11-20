@@ -1,3 +1,5 @@
+import { applicationWindow } from "@/lib/applicationWindow";
+import { useToast } from "@/context/ToastContext";
 import Icon from "@/components/ui/Icon";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -17,6 +19,7 @@ import s from "./Dashboard.module.css";
 const CACHE_KEY = "student-dashboard";
 
 export default function Dashboard() {
+  const toast = useToast();
   const cached = getCached(CACHE_KEY);
   const [scholarships,   setScholarships]   = useState(cached?.scholarships || []);
   const [requirementsMap,setRequirementsMap] = useState(cached?.requirementsMap || []);
@@ -258,6 +261,7 @@ export default function Dashboard() {
   };
 
   const openApply = async (scholarship) => {
+    if (!applicationWindow(scholarship).open) { toast.error(applicationWindow(scholarship).label + ". Applications are closed for this scholarship."); return; }
     setApplyStep("details");
     setSelectedScholarship(scholarship);
     setFormMeta(null);
@@ -342,6 +346,13 @@ export default function Dashboard() {
     // right now (the list on screen may be stale, e.g. approved in another tab).
     const violation = await findRuleViolation(supabase, studentId, selectedScholarship.scholarship_id);
     if (violation) { setFormError(violation); setSubmitting(false); return; }
+
+    // The deadline may have passed (or the coordinator closed it) since this page loaded.
+    const { data: freshSch } = await supabase.from("scholarships").select("status, submission_deadline").eq("scholarship_id", selectedScholarship.scholarship_id).maybeSingle();
+    if (freshSch && !applicationWindow(freshSch).open) {
+      setFormError("Applications for this scholarship have closed. " + applicationWindow(freshSch).label + ".");
+      setSubmitting(false); load(); return;
+    }
 
     // Slots may have filled up since this page loaded.
     const slotBlock = await findSlotViolation(supabase, selectedScholarship.scholarship_id);
@@ -487,7 +498,7 @@ export default function Dashboard() {
   };
 
   // blocked-by-rule scholarships can't be applied to, so they're never recommended
-  const candidates = scholarships.filter((sc) => !getApplication(sc.scholarship_id) && ruleFor(sc).allowed);
+  const candidates = scholarships.filter((sc) => !getApplication(sc.scholarship_id) && ruleFor(sc).allowed && applicationWindow(sc).open);
   const maxValue = Math.max(1, ...candidates.map(totalValue));
 
   const scored = candidates.map((sc) => {
@@ -700,10 +711,12 @@ export default function Dashboard() {
                         ? urgent
                           ? `Apply soon — ${days} day${days === 1 ? "" : "s"} left`
                           : `Due ${sc.submission_deadline}`
-                        : "No deadline set"}
+                        : "No deadline"}
                     </span>
 
-                    <Button size="sm" variant="primary" onClick={() => openApply(sc)}>Apply</Button>
+                    {applicationWindow(sc).open
+                      ? <Button size="sm" variant="primary" onClick={() => openApply(sc)}>Apply</Button>
+                      : <Button size="sm" variant="secondary" disabled title={applicationWindow(sc).label}>Closed</Button>}
                   </div>
                 </div>
               );
@@ -734,11 +747,13 @@ export default function Dashboard() {
                       <td>₱{Number(sc.amount || 0).toLocaleString()}</td>
                       <td className={uiStyles.colOptional}>{sc.payout_frequency || "—"}</td>
                       <td className={uiStyles.colOptional}>{sc.duration_type || "—"}</td>
-                      <td>{sc.submission_deadline || "—"}</td>
+                      <td>{sc.submission_deadline || "No deadline"}</td>
                       <td>
                         {app
                           ? <Badge status={app.status} />
-                          : <Button size="sm" variant="primary" onClick={() => openApply(sc)}>Apply</Button>
+                          : applicationWindow(sc).open
+                            ? <Button size="sm" variant="primary" onClick={() => openApply(sc)}>Apply</Button>
+                            : <Button size="sm" variant="secondary" disabled title={applicationWindow(sc).label}>Closed</Button>
                         }
                       </td>
                     </tr>
@@ -782,11 +797,13 @@ export default function Dashboard() {
                       <td>₱{Number(sc.amount || 0).toLocaleString()}</td>
                       <td className={uiStyles.colOptional}>{sc.payout_frequency || "—"}</td>
                       <td className={uiStyles.colOptional}>{sc.duration_type || "—"}</td>
-                      <td>{sc.submission_deadline || "—"}</td>
+                      <td>{sc.submission_deadline || "No deadline"}</td>
                       <td>
                         {app
                           ? <Badge status={app.status} />
-                          : <Button size="sm" variant="primary" onClick={() => openApply(sc)}>Apply</Button>
+                          : applicationWindow(sc).open
+                            ? <Button size="sm" variant="primary" onClick={() => openApply(sc)}>Apply</Button>
+                            : <Button size="sm" variant="secondary" disabled title={applicationWindow(sc).label}>Closed</Button>
                         }
                       </td>
                     </tr>

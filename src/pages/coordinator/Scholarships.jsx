@@ -1,3 +1,4 @@
+import { applicationWindow } from "@/lib/applicationWindow";
 import { closePendingIfFull } from "@/lib/scholarshipSlots";
 import Icon from "@/components/ui/Icon";
 import { useEffect, useState } from "react";
@@ -53,6 +54,12 @@ export default function Scholarships() {
   const [budget,         setBudget]         = useState("");
   const [slots,          setSlots]          = useState("");
   const [deadline,       setDeadline]       = useState("");
+  const [noDeadline,     setNoDeadline]     = useState(false);
+  // "Reopen applications" dialog (shown for scholarships whose deadline has passed)
+  const [reopenFor,      setReopenFor]      = useState(null);
+  const [reopenMode,     setReopenMode]     = useState("indefinite"); // "indefinite" | "date"
+  const [reopenDate,     setReopenDate]     = useState("");
+  const [reopenSaving,   setReopenSaving]   = useState(false);
   const [payoutFreq,     setPayoutFreq]     = useState("Semester");
   const [duration,       setDuration]       = useState("Until Graduation");
   // who may apply, based on scholarships they already hold (lib/scholarshipRules.js)
@@ -196,6 +203,25 @@ export default function Scholarships() {
   };
 
   // ── actions ─────────────────────────────────────────────
+  const openReopen = (sch) => {
+    setReopenFor(sch); setReopenMode("indefinite"); setReopenDate("");
+  };
+
+  const confirmReopen = async () => {
+    if (!reopenFor) return;
+    if (reopenMode === "date" && !reopenDate) { toast.error("Pick the new deadline."); return; }
+    const next = reopenMode === "indefinite" ? null : reopenDate;
+    if (next && !applicationWindow({ status: "Active", submission_deadline: next }).open) { toast.error("The new deadline must be today or later."); return; }
+    setReopenSaving(true);
+    const { error } = await supabase.from("scholarships").update({ submission_deadline: next, status: "Active" }).eq("scholarship_id", reopenFor.scholarship_id);
+    setReopenSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? `Applications reopened until ${next}.` : "Applications reopened with no deadline.");
+    supabase.rpc("notify_scholarship_reopened", { p_scholarship_id: reopenFor.scholarship_id }); // tells students; ignored if the SQL isn't installed
+    setReopenFor(null);
+    load();
+  };
+
   const toggleStatus = async (sch) => {
     if (togglingId) return;
     setTogglingId(sch.scholarship_id);
@@ -276,7 +302,7 @@ export default function Scholarships() {
 
   const reset = () => {
     setName(""); setSponsor(""); setDescription(""); setAmount("");
-    setBudget(""); setSlots(""); setDeadline("");
+    setBudget(""); setSlots(""); setDeadline(""); setNoDeadline(false);
     setPayoutFreq("Semester"); setDuration("Until Graduation");
     setAppRule(RULE_OPEN); setBlockedWith([]);
     setSelectedReq([]);
@@ -306,7 +332,7 @@ export default function Scholarships() {
     setName(sch.scholarship_name || ""); setSponsor(sch.sponsor || "");
     setDescription(sch.description || ""); setAmount(sch.amount || "");
     setBudget(sch.total_budget || "");
-    setSlots(sch.slots || ""); setDeadline(sch.submission_deadline || "");
+    setSlots(sch.slots || ""); setDeadline(sch.submission_deadline || ""); setNoDeadline(!sch.submission_deadline);
     setPayoutFreq(sch.payout_frequency || "Semester");
     setDuration(sch.duration_type || "Until Graduation");
     setAppRule(sch.application_rule || RULE_OPEN);
@@ -380,7 +406,7 @@ export default function Scholarships() {
 
   const doCreateScholarship = async () => {
     setSaving(true);
-    const baseRow = { scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: deadline, payout_frequency: payoutFreq, duration_type: duration, status: "Active" };
+    const baseRow = { scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: noDeadline || !deadline ? null : deadline, payout_frequency: payoutFreq, duration_type: duration, status: "Active" };
     let { data: sch, error } = await supabase.from("scholarships")
       .insert({ ...baseRow, ...ruleFields() })
       .select().single();
@@ -423,7 +449,7 @@ export default function Scholarships() {
   const doUpdateScholarship = async () => {
     setSaving(true);
 
-    const baseRow = { scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: deadline, payout_frequency: payoutFreq, duration_type: duration };
+    const baseRow = { scholarship_name: name, sponsor, description, amount: parseFloat(amount || 0), total_budget: parseFloat(budget || 0), slots: parseInt(slots || 0), submission_deadline: noDeadline || !deadline ? null : deadline, payout_frequency: payoutFreq, duration_type: duration };
     let { error } = await supabase.from("scholarships")
       .update({ ...baseRow, ...ruleFields() })
       .eq("scholarship_id", editingId);
@@ -590,7 +616,7 @@ export default function Scholarships() {
                 { h: "Name" }, { h: "Sponsor" }, { h: "Description", optional: true },
                 { h: "Amount" }, { h: "Budget", optional: true }, { h: "Released", optional: true },
                 { h: "Remaining", optional: true }, { h: "Slots", optional: true },
-                { h: "Deadline", optional: true }, { h: "Payout" }, { h: "Duration", optional: true },
+                { h: "Deadline" }, { h: "Payout" }, { h: "Duration", optional: true },
                 { h: "Status" }, { h: "Reqs", optional: true }, { h: "Form", optional: true }, { h: "Action" },
               ].map(({ h, optional }) => (
                 <th key={h} data-pin={h === "Name" || undefined} className={`${s.th} ${optional ? s.colOptional : ""}`}>{h}</th>
@@ -614,7 +640,15 @@ export default function Scholarships() {
                 <td className={`${s.td} ${s.colOptional}`}>₱{releasedAmount(sch).toLocaleString()}</td>
                 <td className={`${s.td} ${s.colOptional}`}>₱{(Number(sch.total_budget || 0) - releasedAmount(sch)).toLocaleString()}</td>
                 <td className={`${s.td} ${s.colOptional}`}>{sch.slots}</td>
-                <td className={`${s.td} ${s.colOptional}`}>{sch.submission_deadline || "—"}</td>
+                <td className={s.td}>
+                  {sch.submission_deadline || "No deadline"}
+                  {sch.status === "Active" && !applicationWindow(sch).open && (
+                    <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                      <span className={`${s.badge} ${s.badgeWarning}`} style={{ cursor: "default" }}>Applications closed</span>
+                      <Button size="sm" variant="secondary" onClick={() => openReopen(sch)}>Reopen</Button>
+                    </div>
+                  )}
+                </td>
                 <td className={s.td}>{sch.payout_frequency || "—"}</td>
                 <td className={`${s.td} ${s.colOptional}`}>{sch.duration_type || "—"}</td>
                 <td className={s.td}>
@@ -650,6 +684,38 @@ export default function Scholarships() {
           <button className={s.pageBtn} disabled={currentPage >= totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p+1)}>Next</button>
         </div>
       </div>
+
+      {/* ── Reopen applications ── */}
+      {reopenFor && (
+        <div className={s.overlay} onMouseDown={e => e.target === e.currentTarget && setReopenFor(null)}>
+          <div className={s.modal} style={{ maxWidth: 460 }}>
+            <div className={s.modalHeader}>
+              <h2 className={s.modalTitle}>Reopen applications</h2>
+              <button className={s.closeBtn} onClick={() => setReopenFor(null)}><Icon name="close" size={14} /></button>
+            </div>
+            <div style={{ padding: "4px 20px 8px", display: "flex", flexDirection: "column", gap: 12 }}>
+              <p style={{ margin: 0, fontSize: 14, color: "var(--text-secondary)" }}>
+                <strong style={{ color: "var(--text-primary)" }}>{reopenFor.scholarship_name}</strong> closed on {reopenFor.submission_deadline}. Students can apply again once you reopen it.
+              </p>
+              <label style={{ display: "flex", gap: 8, alignItems: "flex-start", cursor: "pointer", fontSize: 14 }}>
+                <input type="radio" name="reopenMode" checked={reopenMode === "indefinite"} onChange={() => setReopenMode("indefinite")} />
+                <span><strong>No deadline</strong><br /><span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Stays open until you close it by suspending the scholarship.</span></span>
+              </label>
+              <label style={{ display: "flex", gap: 8, alignItems: "flex-start", cursor: "pointer", fontSize: 14 }}>
+                <input type="radio" name="reopenMode" checked={reopenMode === "date"} onChange={() => setReopenMode("date")} />
+                <span><strong>Set a new deadline</strong></span>
+              </label>
+              {reopenMode === "date" && (
+                <input className={s.input} type="date" value={reopenDate} onChange={e => setReopenDate(e.target.value)} />
+              )}
+            </div>
+            <div className={s.modalFooter} style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "12px 20px 18px" }}>
+              <Button variant="secondary" onClick={() => setReopenFor(null)}>Cancel</Button>
+              <Button variant="primary" disabled={reopenSaving} onClick={confirmReopen}>{reopenSaving ? "Reopening…" : "Reopen applications"}</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── View Requirements Modal ── */}
       {viewOpen && (
@@ -783,7 +849,16 @@ export default function Scholarships() {
                     <div className={s.formGrid3}>
                       <div className={s.fieldWrap}>
                         <label className={s.label}>Submission deadline</label>
-                        <input className={s.input} type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
+                        <div className={s.deadlineChoice} role="radiogroup" aria-label="Submission deadline">
+                          <button type="button" role="radio" aria-checked={!noDeadline}
+                            className={`${s.choiceBtn} ${!noDeadline ? s.choiceOn : ""}`} onClick={() => setNoDeadline(false)}>Set a date</button>
+                          <button type="button" role="radio" aria-checked={noDeadline}
+                            className={`${s.choiceBtn} ${noDeadline ? s.choiceOn : ""}`} onClick={() => setNoDeadline(true)}>Indefinite</button>
+                        </div>
+                        {noDeadline
+                          ? <span className={s.choiceNote}>Stays open until you close it yourself.</span>
+                          : <input className={s.input} type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />}
+                        <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Applications close automatically the day after the deadline, and students and coordinators are notified. You can reopen them any time.</span>
                       </div>
                       <div className={s.fieldWrap}>
                         <label className={s.label}>Payout frequency</label>
@@ -1113,7 +1188,7 @@ export default function Scholarships() {
                         ["Amount per grantee", amount ? `₱${Number(amount).toLocaleString()}` : "—"],
                         ["Total budget", budget ? `₱${Number(budget).toLocaleString()}` : "—"],
                         ["Slots", slots || "—"],
-                        ["Submission deadline", deadline || "—"],
+                        ["Submission deadline", noDeadline || !deadline ? "No deadline" : deadline],
                         ["Payout", payoutFreq],
                         ["Duration", duration],
                         ["Who can apply", describeRule({ application_rule: appRule, blocked_with: blockedWith }, list)],
