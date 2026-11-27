@@ -19,7 +19,7 @@ const STEPS = [
   { id: "compliance", label: "Compliance" },
 ];
 const STEP_FIELDS = {
-  personal:   [["first_name", "First name"], ["last_name", "Last name"], ["gender", "Gender"], ["ethnicity", "Ethnicity"]],
+  personal:   [["first_name", "First name"], ["last_name", "Last name"], ["gender", "Gender"]],
   school:     [["school_id", "School ID"], ["course", "Program"], ["year_level", "Year level"], ["contact_number", "Contact number"]],
   compliance: [],
 };
@@ -300,12 +300,14 @@ export default function Profile() {
       if (studentChanged || !student) {
         const payload = {
           user_id: userId,
-          school_id: updatedForm.school_id,
-          course: updatedForm.course,
-          year_level: updatedForm.year_level,
-          gender: updatedForm.gender,
-          ethnicity: updatedForm.ethnicity,
-          contact_number: updatedForm.contact_number,
+          // blank fields are saved as empty (null), not "": year_level is a number column, and
+          // School ID is unique, so two students with "" would collide.
+          school_id: (updatedForm.school_id || "").trim() || null,
+          course: updatedForm.course || null,
+          year_level: updatedForm.year_level === "" || updatedForm.year_level == null ? null : Number(updatedForm.year_level),
+          gender: updatedForm.gender || null,
+          ethnicity: updatedForm.ethnicity || null,
+          contact_number: updatedForm.contact_number || null,
         };
 
         if (student) {
@@ -339,16 +341,21 @@ export default function Profile() {
       lastSavedRef.current = updatedForm;
       setSaveState("saved");
     } catch (err) {
-      console.error("Auto-save error:", err);
+      console.error("Auto-save error:", err?.message, err?.details, err?.hint, err?.code, err);
       setSaveState("error");
-      toast.error(`Couldn't save your profile: ${err.message}`);
+      toast.error(`Couldn't save your profile: ${[err?.message, err?.details, err?.hint].filter(Boolean).join(" · ")}`);
     }
   };
 
+  // Saves only once every required field is filled in (ethnicity is optional), and waits for a
+  // short pause in typing so it isn't saving on every keystroke.
+  const REQUIRED_KEYS = ["first_name", "last_name", "gender", "school_id", "course", "year_level", "contact_number"];
   const autoSaveStudent = (updatedForm) => {
     clearTimeout(saveTimeout.current);
+    const complete = REQUIRED_KEYS.every((k) => String(updatedForm[k] ?? "").trim() !== "");
+    if (!complete) { setSaveState("incomplete"); return; }
     setSaveState("saving");
-    saveTimeout.current = setTimeout(() => performSave(updatedForm), 500);
+    saveTimeout.current = setTimeout(() => performSave(updatedForm), 1500);
   };
 
   // Manual retry for when the debounced auto-save failed and the person
@@ -484,7 +491,8 @@ export default function Profile() {
                   </button>
                 </>
               )}
-              {saveState === "idle" && "Auto-saves as you type"}
+              {saveState === "idle" && "Saves automatically once all required fields are filled"}
+              {saveState === "incomplete" && "Not saved yet. Fill in all required fields and it saves automatically"}
             </span>
           }
         />
@@ -520,7 +528,7 @@ export default function Profile() {
               <option value="Female">Female</option>
             </Select>
           </Field>
-          <Field label="Ethnicity" required>
+          <Field label="Ethnicity (optional)">
             <Input
               value={form.ethnicity}
               onChange={(e) => {
@@ -544,7 +552,7 @@ export default function Profile() {
               value={form.course}
               onChange={(e) => updateField("course", e.target.value)}
             >
-              <option value="">Select course</option>
+              <option value="">Select program</option>
               <option value="BSIT">Bachelor of Science in Information Technology</option>
               <option value="BSTM">Bachelor of Science in Tourism Management</option>
               <option value="BSHM">Bachelor of Science in Hospitality Management</option>

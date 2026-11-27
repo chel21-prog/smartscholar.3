@@ -18,7 +18,6 @@ const REQUIRED_STUDENT_FIELDS = [
   { key: "course",         label: "Program",        source: "student" },
   { key: "year_level",     label: "Year level",     source: "student" },
   { key: "gender",         label: "Gender",         source: "student" },
-  { key: "ethnicity",      label: "Ethnicity",      source: "student" },
   { key: "contact_number", label: "Contact number", source: "student" },
 ];
 
