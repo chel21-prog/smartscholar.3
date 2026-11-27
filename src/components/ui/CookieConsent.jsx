@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import styles from "./CookieConsent.module.css";
 
@@ -34,11 +34,25 @@ export default function CookieConsent() {
     setVisible(false);
   };
 
+  // The banner is fixed to the bottom of the screen. Reserve its height at the bottom of the page
+  // while it's showing, so the last part of a form or card can always be scrolled above it.
+  const bannerRef = useRef(null);
+  useEffect(() => {
+    if (!visible) return;
+    const el = bannerRef.current;
+    if (!el) return;
+    const prev = document.body.style.paddingBottom;
+    const apply = () => { document.body.style.paddingBottom = `${el.offsetHeight + 32}px`; };
+    apply();
+    window.addEventListener("resize", apply);
+    return () => { window.removeEventListener("resize", apply); document.body.style.paddingBottom = prev; };
+  }, [visible]);
+
   if (!visible) return null;
 
   return (
     <>
-      <div className={styles.banner} role="dialog" aria-label="Cookie notice">
+      <div ref={bannerRef} className={styles.banner} role="dialog" aria-label="Cookie notice">
         <p className={styles.text}>
           SmartScholar uses essential cookies and local storage to keep you
           signed in and remember your settings. We don't use these for

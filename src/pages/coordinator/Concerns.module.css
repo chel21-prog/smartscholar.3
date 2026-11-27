@@ -110,7 +110,7 @@
 .modalHeader {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   padding: 22px 28px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
@@ -120,14 +120,18 @@
 .modalSubtitle { margin-top: 5px; color: var(--text-secondary); font-size: 13px; }
 
 .closeBtn {
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 10px;
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 16px;
+  margin-left: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full, 999px);
   cursor: pointer;
-  background: var(--page-bg);
+  background: var(--surface-muted, var(--page-bg));
   color: var(--text-secondary);
-  font-size: 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   transition: .2s;
 }
 
@@ -227,22 +231,27 @@
   letter-spacing: .3px;
 }
 
-.textarea {
-  padding: 9px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 14px;
-  resize: vertical;
-  font-family: inherit;
-}
-
+.textarea,
 .selectInput {
-  padding: 9px 12px;
+  width: 100%;
+  padding: 11px 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
+  font: inherit;
   font-size: 14px;
-  background: var(--surface);
+  line-height: 1.5;
+  background: var(--surface-muted);
   color: var(--text-primary);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.textarea { resize: vertical; min-height: 120px; }
+.textarea::placeholder { color: var(--text-secondary); opacity: .8; }
+.textarea:focus,
+.selectInput:focus {
+  background: var(--surface);
+  border-color: var(--navy-500);
+  box-shadow: 0 0 0 3px var(--navy-100);
 }
 
 /* ===========================================

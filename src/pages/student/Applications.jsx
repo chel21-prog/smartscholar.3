@@ -324,7 +324,7 @@ export default function Applications() {
               </h3>
 
               <p className={styles.date}>
-                Applied {a.application_date || "—"}
+                Applied {a.application_date ? String(a.application_date).slice(0, 10) : "—"}
               </p>
 
               <Badge status={a.status} />
