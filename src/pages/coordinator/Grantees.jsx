@@ -102,6 +102,7 @@ const [rowsPerPage] = useState(10);
   const [statusFilter, setStatusFilter] = useState("All");
 const [scholarshipFilter, setScholarshipFilter] = useState("All");
 const [semesterFilter, setSemesterFilter] = useState("All");
+const [sourceFilter, setSourceFilter] = useState("All"); // All | Imported | Application | Manual
 const [yearFilter, setYearFilter] = useState("All");
   const [currentUserId, setCurrentUserId] = useState(null);
 
@@ -495,7 +496,7 @@ const [yearFilter, setYearFilter] = useState("All");
   // (or for all rows at once) on the next screen.
   const continueWordImport = async () => {
     const d = wordDraft;
-    if (!AY_PATTERN.test(d.academic_year.trim())) return toast.error('Academic year should look like "2022-2023".');
+    if (d.academic_year.trim() && !AY_PATTERN.test(d.academic_year.trim())) return toast.error('Academic year should look like "2022-2023", or leave it blank.');
     if (wordLabelsMapped === 0) return toast.error("Match at least one scholarship in the list to a scholarship in the system, or choose to create it.");
     const bad = d.labels.find(l => l.scholarship_id === NEW_SCHOLARSHIP && !l.newName.trim());
     if (bad) return toast.error("Give the new scholarship a name.");
@@ -609,16 +610,24 @@ const [yearFilter, setYearFilter] = useState("All");
 
       if (!first_name) errors.push("Missing first_name");
       if (!last_name) errors.push("Missing last_name");
-      if (!school_id) errors.push("Missing school_id");
       if (!scholarship_name) errors.push("Missing scholarship_name");
-      if (!academic_year) errors.push("Missing academic_year");
+
+      // Only a name and a scholarship are required. Everything else can be blank for now and
+      // filled in later; blanks are saved as empty and flagged here so nothing is missed silently.
+      const blanks = [];
+      if (!school_id) blanks.push("School ID");
+      if (!academic_year) blanks.push("school year");
       else if (!AY_PATTERN.test(academic_year)) errors.push(`academic_year "${academic_year}" doesn't look like "2022-2023"`);
-      if (!date_awarded) errors.push("Missing date_awarded");
+      if (!date_awarded) blanks.push("date awarded");
       else if (isNaN(new Date(date_awarded))) errors.push(`date_awarded "${date_awarded}" isn't a valid date`);
 
       const semester = normalizeAgainst(r.semester, VALID_SEMESTERS);
-      if (!r.semester?.trim()) errors.push("Missing semester");
+      if (!r.semester?.trim()) blanks.push("semester");
       else if (!semester) errors.push(`semester "${r.semester}" must be "1st Semester" or "2nd Semester"`);
+      if (blanks.length > 0) {
+        warnings.push(`No ${blanks.join(", ")} yet. Saved blank; you can add it later.` +
+          (!school_id ? " Without a School ID the student's account can only be linked by name, with your approval." : ""));
+      }
 
       const pastYear = isPastAcademicYear(academic_year);
       const status = r.status?.trim() ? normalizeAgainst(r.status, VALID_STATUSES) : (pastYear ? "Inactive" : "Active");
@@ -653,6 +662,13 @@ const [yearFilter, setYearFilter] = useState("All");
           g.academic_year === academic_year && g.semester === semester
         );
         if (dupeGrant) errors.push("This student already has a grantee record for this exact scholarship, academic year and semester. It won't be imported again");
+      }
+
+      // people without a School ID: the same name + scholarship + year + semester twice is a duplicate row
+      if (!school_id && first_name && last_name) {
+        const nk = [first_name, last_name, scholarship_name, academic_year, semester || ""].join("|").toLowerCase();
+        if (seenInFile.has("name:" + nk)) errors.push(`Same name, scholarship and term as row ${seenInFile.get("name:" + nk) + 2} (no School ID to tell them apart)`);
+        else seenInFile.set("name:" + nk, i);
       }
 
       if (school_id) {
@@ -741,7 +757,7 @@ const [yearFilter, setYearFilter] = useState("All");
         const { data: studentRow, error: studentError } = await supabase
           .from("students")
           .insert({
-            user_id: userRow.user_id, school_id: row.school_id,
+            user_id: userRow.user_id, school_id: row.school_id || null,
             course: row.course || null, year_level: row.year_level,
             contact_number: row.contact_number || null, status: "Enrolled",
           })
@@ -763,9 +779,9 @@ const [yearFilter, setYearFilter] = useState("All");
         student_id: studentId,
         scholarship_id: row.scholarship_id,
         status: row.status,
-        date_awarded: row.date_awarded,
-        academic_year: row.academic_year,
-        semester: row.semester,
+        date_awarded: row.date_awarded || null,
+        academic_year: row.academic_year || null,
+        semester: row.semester || null,
         verification_result: row.verification_result,
         verification_remarks: "Imported from file — migrated from records predating the system.",
         last_verified_at: new Date().toISOString(),
@@ -814,6 +830,7 @@ const [yearFilter, setYearFilter] = useState("All");
   scholarshipFilter,
   semesterFilter,
   yearFilter,
+  sourceFilter,
 ]);
   const load = async () => {
   if (!getCached(CACHE_KEY)) setLoading(true);
@@ -1212,7 +1229,9 @@ const [yearFilter, setYearFilter] = useState("All");
   };
 
   const grouped = rows.reduce((acc, r) => {
-  const key = r.school_id; // better if you use student_id
+  // Group by the student record, not the School ID: imported people can have no School ID yet,
+  // and they would all collapse into one "N/A" person.
+  const key = r.student_id ?? r.school_id;
 
   if (!acc[key]) {
     acc[key] = {
@@ -1261,6 +1280,7 @@ const filtered = Object.values(grouped)
         s.status.toLowerCase().includes(keyword) ||
         s.academic_year.toLowerCase().includes(keyword) ||
         s.semester.toLowerCase().includes(keyword) ||
+        (s.source === "Imported" && "imported".includes(keyword)) ||
         (s.date_awarded &&
           new Date(s.date_awarded)
             .toLocaleDateString()
@@ -1283,12 +1303,16 @@ const filtered = Object.values(grouped)
         yearFilter === "All" ||
         s.academic_year === yearFilter;
 
+      const matchesSource =
+        sourceFilter === "All" || s.source === sourceFilter;
+
       return (
         matchesSearch &&
         matchesStatus &&
         matchesScholarship &&
         matchesSemester &&
-        matchesYear
+        matchesYear &&
+        matchesSource
       );
 
     })
@@ -1469,6 +1493,17 @@ const endRow =
       options: yearOptions.map((o) => ({ value: o, label: o === "All" ? "All Academic Years" : o })),
     },
     {
+      label: "Source",
+      value: sourceFilter,
+      onChange: (v) => { setSourceFilter(v); setCurrentPage(1); },
+      options: [
+        { value: "All", label: "All Sources" },
+        { value: "Imported", label: "Imported" },
+        { value: "Application", label: "Applied in system" },
+        { value: "Manual", label: "Added manually" },
+      ],
+    },
+    {
       label: "Semester",
       value: semesterFilter,
       onChange: (v) => { setSemesterFilter(v); setCurrentPage(1); },
@@ -1514,6 +1549,12 @@ const endRow =
 
 <td data-pin className={styles.td}>
     {student.student_name}
+    {s.source === "Imported" && (
+      <span className={styles.importedTag} title="Added from an imported grantee list (a record from before the system)">Imported</span>
+    )}
+    {s.source === "Manual" && (
+      <span className={`${styles.importedTag} ${styles.manualTag}`} title="Added by hand by a coordinator">Manual</span>
+    )}
 </td>
         <td className={styles.td}>
           {s.scholarship_name}
@@ -2146,10 +2187,10 @@ const endRow =
               <div className={imp.kind}>
                 <span className={imp.kindTitle}><Icon name="file" size={14} /> CSV template</span>
                 <div className={imp.chips}>
-                  {["first_name", "last_name", "school_id", "scholarship_name", "academic_year", "semester", "date_awarded"].map(c => <span key={c} className={imp.chip}>{c}</span>)}
-                  {["middle_name", "course", "year_level", "contact_number", "status", "verification_result"].map(c => <span key={c} className={`${imp.chip} ${imp.chipOpt}`}>{c}</span>)}
+                  {["first_name", "last_name", "scholarship_name"].map(c => <span key={c} className={imp.chip}>{c}</span>)}
+                  {["school_id", "academic_year", "semester", "date_awarded", "middle_name", "course", "year_level", "contact_number", "status", "verification_result"].map(c => <span key={c} className={`${imp.chip} ${imp.chipOpt}`}>{c}</span>)}
                 </div>
-                <p className={imp.kindText}>Solid chips are required. scholarship_name must match an existing scholarship.</p>
+                <p className={imp.kindText}>Only the solid chips are required; blanks in the others are fine and can be filled in later. scholarship_name must match an existing scholarship.</p>
                 <div><button type="button" className={styles.pageBtn} onClick={downloadCsvTemplate}>Download CSV template</button></div>
               </div>
             </div>
@@ -2180,7 +2221,7 @@ const endRow =
               <p className={imp.cardHint}>Applies to every row. Semester and date can be left blank here and set per row on the review screen.</p>
               <div className={imp.grid3}>
                 <label className={imp.label}>Academic year
-                  <input className={styles.vfInput} value={wordDraft.academic_year} placeholder="2022-2023"
+                  <input className={styles.vfInput} value={wordDraft.academic_year} placeholder="2022-2023 (optional)"
                     onChange={(e) => setWordDraft(d => ({ ...d, academic_year: e.target.value }))} />
                 </label>
                 <label className={imp.label}><span>Semester <span className={imp.optional}>(optional)</span></span>
@@ -2279,7 +2320,7 @@ const endRow =
                 <button type="button" className={styles.pageBtn} onClick={() => applyToAllWord({ semester: bulkSemester, date_awarded: bulkDate })}>Apply to all</button>
                 <button type="button" className={styles.pageBtn} onClick={downloadPreviewCsv}>Download as CSV</button>
                 <p className={imp.bulkNote}>
-                  {noIdCount > 0 ? `${noIdCount} row${noIdCount !== 1 ? "s" : ""} still need a School ID. Type it in the table, or fill the CSV in Excel and upload that. ` : "Every row has a School ID. "}
+                  {noIdCount > 0 ? `${noIdCount} row${noIdCount !== 1 ? "s" : ""} have no School ID yet. They will still import; you can add the ID now, or leave it for later. ` : "Every row has a School ID. "}
                   You can also change semester and date row by row.
                 </p>
               </div>
@@ -2289,15 +2330,15 @@ const endRow =
               {shownRows.length === 0 ? (
                 <div className={imp.empty}>No rows in this group.</div>
               ) : (
-                <table className={imp.tbl}>
+                <table className={imp.tbl} data-plain>
                   <thead>
                     <tr>
-                      <th>#</th>
-                      <th>Name</th>
-                      <th>School ID</th>
-                      <th>Year / semester</th>
-                      {importRows[0]?.fromWord && <th>Date awarded</th>}
-                      <th>Check</th>
+                      <th className={imp.colNum}>#</th>
+                      <th className={imp.colName}>Name</th>
+                      <th className={imp.colId}>School ID</th>
+                      <th className={imp.colTerm}>Year / semester</th>
+                      {importRows[0]?.fromWord && <th className={imp.colDate}>Date awarded</th>}
+                      <th className={imp.colCheck}>Check</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2328,8 +2369,7 @@ const endRow =
                               <select
                                 key={`${r.rowNumber}-sem-${r.semester}`}
                                 className={`${styles.vfInput} ${imp.cellInput}`}
-                                style={{ minWidth: 130 }}
-                                defaultValue={r.semester}
+                                                                defaultValue={r.semester}
                                 aria-label={`Semester for ${r.first_name} ${r.last_name}`}
                                 onChange={(e) => setWordField(r.rawIndex, "semester", e.target.value)}
                               >
@@ -2343,8 +2383,7 @@ const endRow =
                               <input
                                 key={`${r.rowNumber}-date-${r.date_awarded}`}
                                 className={`${styles.vfInput} ${imp.cellInput}`}
-                                style={{ minWidth: 120 }}
-                                type="date"
+                                                                type="date"
                                 defaultValue={r.date_awarded}
                                 aria-label={`Date awarded for ${r.first_name} ${r.last_name}`}
                                 onBlur={(e) => setWordField(r.rawIndex, "date_awarded", e.target.value)}

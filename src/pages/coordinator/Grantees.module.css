@@ -412,3 +412,11 @@
 }
 
 /* The Action column scrolls with the rest of the table (it is no longer pinned). */
+
+/* Where a grantee record came from */
+.importedTag {
+  display: inline-block; margin-left: 8px; padding: 2px 8px; vertical-align: middle;
+  border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.4;
+  background: var(--navy-100); color: var(--link); border: 1px solid var(--border);
+}
+.manualTag { background: var(--surface-muted); color: var(--text-secondary); }
