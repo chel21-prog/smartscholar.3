@@ -19,6 +19,11 @@ import { SkeletonText } from "@/components/ui/Skeleton";
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
 
 const TILE_ICONS = {
+  accounts: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0113 0" /><path d="M16 4.5a3.5 3.5 0 010 7M18 14.5a6.5 6.5 0 013.5 5.5" />
+    </svg>
+  ),
   security: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="4" y="10" width="16" height="10" rx="2" /><path d="M8 10V7a4 4 0 018 0v3" />
@@ -356,6 +361,15 @@ const [showCurrent, setShowCurrent] = useState(false);
           description="Change your password"
           onClick={() => setOpenModal("security")}
         />
+        {role === "Coordinator" && (
+          <SettingsTile
+            tone="navy"
+            icon={TILE_ICONS.accounts}
+            title="Account management"
+            description="Roles, deactivate or delete, match imported records"
+            onClick={() => navigate("/coordinator/accounts")}
+          />
+        )}
         {(role === "Coordinator" || role === "Cashier") && (
           <SettingsTile
             tone="gold"

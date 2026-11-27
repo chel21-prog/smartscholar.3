@@ -10,6 +10,7 @@ const CoordinatorApplications = lazy(() => import("@/pages/coordinator/Coordinat
 const Requirements = lazy(() => import("@/pages/coordinator/Requirements"));
 const Payouts = lazy(() => import("@/pages/coordinator/Payouts"));
 const Concerns = lazy(() => import("@/pages/coordinator/Concerns"));
+const Accounts = lazy(() => import("@/pages/coordinator/Accounts"));
 const Settings = lazy(() => import("@/pages/settings/Settings"));
 
 const LINKS = [
@@ -48,6 +49,7 @@ export default function CoordinatorRoutes() {
         <Route path="requirements" element={<Requirements />} />
         <Route path="payouts"      element={<Payouts />} />
         <Route path="concerns"     element={<Concerns />} />
+        <Route path="accounts"     element={<Accounts />} />
         <Route path="settings"     element={<Settings />} />
       </Route>
     </Routes>

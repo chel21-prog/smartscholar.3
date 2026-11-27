@@ -114,6 +114,9 @@ const [yearFilter, setYearFilter] = useState("All");
   const [cancelRequests, setCancelRequests] = useState([]);
   const [linkRequests, setLinkRequests] = useState([]); // students asking to be linked to an imported record
   const [linkBusy, setLinkBusy] = useState(null);
+  const [editRow, setEditRow] = useState(null);   // an imported grantee being corrected in place
+  const [editForm, setEditForm] = useState(null);
+  const [editBusy, setEditBusy] = useState(false);
   const [reviewTarget, setReviewTarget] = useState(null); // { request, row }
   const [reviewRemarks, setReviewRemarks] = useState("");
   const [savingReview, setSavingReview] = useState(false);
@@ -716,6 +719,21 @@ const [yearFilter, setYearFilter] = useState("All");
     const failed = [];
     const touchedScholarships = new Set();
 
+    // Everything this import adds is tagged with one batch id so it can be undone later
+    // (Settings → Account management → Imports). If the tagging column isn't in the database yet
+    // (supabase/account_management.sql not run), it quietly imports without the tag.
+    const batchId = `imp_${Date.now()}`;
+    let useBatch = true;
+    let createdPeople = 0;
+    const insertTagged = async (table, payload) => {
+      let res = await supabase.from(table).insert(useBatch ? { ...payload, import_batch: batchId } : payload).select().maybeSingle();
+      if (res.error && useBatch && /import_batch/i.test(res.error.message)) {
+        useBatch = false;
+        res = await supabase.from(table).insert(payload).select().maybeSingle();
+      }
+      return res;
+    };
+
     // Scholarships that don't exist yet are created first. They start as Suspended so
     // students can't apply to a half-set-up scholarship; set them up under Scholarships.
     const createdIds = new Map(); // lower-cased name -> scholarship_id
@@ -754,14 +772,11 @@ const [yearFilter, setYearFilter] = useState("All");
 
         if (userError) { failed.push({ row: row.rowNumber, name: `${row.first_name} ${row.last_name}`, reason: userError.message }); continue; }
 
-        const { data: studentRow, error: studentError } = await supabase
-          .from("students")
-          .insert({
-            user_id: userRow.user_id, school_id: row.school_id || null,
-            course: row.course || null, year_level: row.year_level,
-            contact_number: row.contact_number || null, status: "Enrolled",
-          })
-          .select().single();
+        const { data: studentRow, error: studentError } = await insertTagged("students", {
+          user_id: userRow.user_id, school_id: row.school_id || null,
+          course: row.course || null, year_level: row.year_level,
+          contact_number: row.contact_number || null, status: "Enrolled",
+        });
 
         if (studentError) {
           failed.push({
@@ -773,9 +788,10 @@ const [yearFilter, setYearFilter] = useState("All");
           continue;
         }
         studentId = studentRow.student_id;
+        createdPeople += 1;
       }
 
-      const { error: granteeError } = await supabase.from("grantees").insert({
+      const { error: granteeError } = await insertTagged("grantees", {
         student_id: studentId,
         scholarship_id: row.scholarship_id,
         status: row.status,
@@ -814,6 +830,13 @@ const [yearFilter, setYearFilter] = useState("All");
           12000
         );
       }
+    }
+
+    if (succeeded.length > 0) {
+      supabase.rpc("log_audit_event", {
+        p_action: "import_done", p_target_type: "import", p_target_id: batchId,
+        p_details: { rows: succeeded.length, created_people: createdPeople, file: importFileName || null },
+      }); // ignored if the audit SQL isn't installed
     }
 
     setImporting(false);
@@ -938,6 +961,45 @@ const [yearFilter, setYearFilter] = useState("All");
   const loadLinkRequests = async () => {
     const { data, error } = await supabase.rpc("list_student_link_requests");
     setLinkRequests(error ? [] : data || []);
+  };
+
+  const openEdit = async (g) => {
+    const { data: u } = await supabase.from("users").select("first_name, middle_name, last_name").eq("user_id", g.student_user_id).maybeSingle();
+    const none = (v) => (v == null || v === "N/A" ? "" : String(v));
+    setEditRow(g);
+    setEditForm({
+      first_name: u?.first_name || "", middle_name: u?.middle_name || "", last_name: u?.last_name || "",
+      school_id: none(g.school_id), course: none(g.course), year_level: none(g.year_level),
+      academic_year: none(g.academic_year), semester: none(g.semester), date_awarded: g.date_awarded ? String(g.date_awarded).slice(0, 10) : "",
+      status: g.status,
+    });
+  };
+
+  const saveEdit = async () => {
+    const f = editForm;
+    if (!f.first_name.trim() || !f.last_name.trim()) return toast.error("A first and last name are required.");
+    if (f.academic_year.trim() && !AY_PATTERN.test(f.academic_year.trim())) return toast.error('Academic year should look like "2022-2023", or be blank.');
+    setEditBusy(true);
+    const fail = (e) => { setEditBusy(false); toast.error(/duplicate|unique/i.test(e.message) ? "That School ID already belongs to another student." : e.message); };
+    const a = await supabase.from("users").update({ first_name: f.first_name.trim(), middle_name: f.middle_name.trim() || null, last_name: f.last_name.trim() }).eq("user_id", editRow.student_user_id);
+    if (a.error) return fail(a.error);
+    const b = await supabase.from("students").update({
+      school_id: f.school_id.trim() || null, course: f.course.trim() || null,
+      year_level: f.year_level === "" ? null : Number(f.year_level),
+    }).eq("student_id", editRow.student_id);
+    if (b.error) return fail(b.error);
+    const c = await supabase.from("grantees").update({
+      academic_year: f.academic_year.trim() || null, semester: f.semester || null,
+      date_awarded: f.date_awarded || null, status: f.status,
+    }).eq("grantee_id", editRow.grantee_id);
+    if (c.error) return fail(c.error);
+    supabase.rpc("log_audit_event", { p_action: "grantee_edited", p_target_type: "grantee", p_target_id: String(editRow.grantee_id),
+      p_details: { name: `${f.first_name} ${f.last_name}`.trim() } });
+    setEditBusy(false);
+    toast.success("Saved.");
+    setEditRow(null);
+    clearAllCached();
+    load();
   };
 
   const decideLink = async (rq, approve) => {
@@ -1626,6 +1688,9 @@ const endRow =
     <Button size="sm" variant={s.verification_result === "Verified" ? "secondary" : "primary"} onClick={() => openVerify(s)}>
       {s.verification_result === "Verified" ? "Re-verify" : "Verify"}
     </Button>
+    {s.source === "Imported" && (
+      <Button size="sm" variant="secondary" onClick={() => openEdit(s)}>Edit</Button>
+    )}
     {s.status === "Active" && (
       <Button size="sm" variant="danger" onClick={() => openRevoke(s)}>Revoke</Button>
     )}
@@ -2436,6 +2501,48 @@ const endRow =
                 ))}
               </div>
             )}
+          </div>
+        )}
+      </Modal>
+
+      {/* EDIT AN IMPORTED RECORD */}
+      <Modal
+        open={Boolean(editRow)}
+        onClose={() => !editBusy && setEditRow(null)}
+        title="Edit imported record"
+        size="md"
+        footer={<><Button variant="ghost" onClick={() => setEditRow(null)} disabled={editBusy}>Cancel</Button><Button loading={editBusy} onClick={saveEdit}>Save changes</Button></>}
+      >
+        {editForm && (
+          <div>
+            <p className={imp.cardHint}>Fix details that were missing or wrong in the list you imported. This changes the person and this grantee record only.</p>
+            <div className={imp.grid3}>
+              {[["first_name", "First name"], ["middle_name", "Middle name"], ["last_name", "Last name"], ["school_id", "School ID"], ["course", "Program"]].map(([k, label]) => (
+                <label key={k} className={imp.label}>{label}
+                  <input className={styles.vfInput} value={editForm[k]} onChange={(e) => setEditForm((f) => ({ ...f, [k]: e.target.value }))} />
+                </label>
+              ))}
+              <label className={imp.label}>Year level
+                <input className={styles.vfInput} type="number" min="1" max="8" value={editForm.year_level} onChange={(e) => setEditForm((f) => ({ ...f, year_level: e.target.value }))} />
+              </label>
+              <label className={imp.label}>Academic year
+                <input className={styles.vfInput} value={editForm.academic_year} placeholder="2022-2023" onChange={(e) => setEditForm((f) => ({ ...f, academic_year: e.target.value }))} />
+              </label>
+              <label className={imp.label}>Semester
+                <select className={styles.vfInput} value={editForm.semester} onChange={(e) => setEditForm((f) => ({ ...f, semester: e.target.value }))}>
+                  <option value="">Not set</option>
+                  {VALID_SEMESTERS.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </label>
+              <label className={imp.label}>Date awarded
+                <input className={styles.vfInput} type="date" value={editForm.date_awarded} onChange={(e) => setEditForm((f) => ({ ...f, date_awarded: e.target.value }))} />
+              </label>
+              <label className={imp.label}>Status
+                <select className={styles.vfInput} value={editForm.status} onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}>
+                  {VALID_STATUSES.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </label>
+            </div>
           </div>
         )}
       </Modal>
